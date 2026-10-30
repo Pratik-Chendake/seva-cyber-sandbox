@@ -1,0 +1,118 @@
+{
+  "registry_schema_version": "1.0.0",
+  "created_at_utc": "2026-10-29T15:17:25.887775+00:00",
+  "registered_models": {
+    "custom-mlp-v1.0.0": {
+      "model_version": "custom-mlp-v1.0.0",
+      "architecture_version": "3-layer-mlp-ngram-v1",
+      "checkpoint_rel_path": "models/experimental_custom_v1",
+      "weights_sha256": "d4b6c2b1cc0359966100623fe18d1f728caeeaef9bcad561bfa00f89485bef20",
+      "metadata_sha256": "23cdb9df5004abc3a16b5ebe0df6c773e52b1d36248695e37164cb9d9991bea8",
+      "preprocessing_version": "neural-preproc-v1.0.0",
+      "label_mapping": {
+        "phishing": 0,
+        "legitimate": 1,
+        "protective_advisory": 2
+      },
+      "hyperparameters": {
+        "input_dim": 1024,
+        "hidden_dim1": 64,
+        "hidden_dim2": 32,
+        "num_classes": 3,
+        "learning_rate": 0.005,
+        "weight_decay": 0.0001,
+        "seed": 42
+      },
+      "training_corpus_id": "v2-synthetic-train-360",
+      "training_corpus_digest": "8871bf7ffec30cd486add55c1f860c4313e530d183f832281ddf2fbd9357f4b9",
+      "validation_corpus_id": "v2-synthetic-val-135",
+      "validation_corpus_digest": "77911f9db811de13c5e89f7f756cb13bbc73c4ad9c13c0d401a62287052cf777",
+      "validation_metrics": {
+        "accuracy": 0.9481,
+        "macro_f1": 0.9482,
+        "note": "Evaluated on synthetic candidate corpus. Metrics do NOT establish certified real-world accuracy."
+      },
+      "registered_at_utc": "2026-10-29T15:17:25.891049+00:00",
+      "registered_by": "local_operator",
+      "lifecycle_state": "approved_for_shadow",
+      "is_production_authoritative": false,
+      "notes": "Phase 3 initial custom neural classifier checkpoint."
+    },
+    "custom-mlp-v1.1.0-preproc": {
+      "model_version": "custom-mlp-v1.1.0-preproc",
+      "architecture_version": "3-layer-mlp-ngram-v1",
+      "checkpoint_rel_path": "models/experimental_custom_v1",
+      "weights_sha256": "d4b6c2b1cc0359966100623fe18d1f728caeeaef9bcad561bfa00f89485bef20",
+      "metadata_sha256": "23cdb9df5004abc3a16b5ebe0df6c773e52b1d36248695e37164cb9d9991bea8",
+      "preprocessing_version": "neural-preproc-v1.1.0",
+      "label_mapping": {
+        "phishing": 0,
+        "legitimate": 1,
+        "protective_advisory": 2
+      },
+      "hyperparameters": {
+        "input_dim": 1024,
+        "hidden_dim1": 64,
+        "hidden_dim2": 32,
+        "num_classes": 3,
+        "learning_rate": 0.005,
+        "weight_decay": 0.0001,
+        "seed": 42
+      },
+      "training_corpus_id": "v2-synthetic-train-360",
+      "training_corpus_digest": "8871bf7ffec30cd486add55c1f860c4313e530d183f832281ddf2fbd9357f4b9",
+      "validation_corpus_id": "v2-synthetic-val-135",
+      "validation_corpus_digest": "77911f9db811de13c5e89f7f756cb13bbc73c4ad9c13c0d401a62287052cf777",
+      "validation_metrics": {
+        "accuracy": 0.9481,
+        "macro_f1": 0.9482,
+        "note": "Evaluated on synthetic candidate corpus. Metrics do NOT establish certified real-world accuracy."
+      },
+      "registered_at_utc": "2026-10-29T15:17:25.895948+00:00",
+      "registered_by": "local_operator",
+      "lifecycle_state": "approved_for_shadow",
+      "is_production_authoritative": false,
+      "notes": "Phase 5 custom neural classifier with canonical Devanagari numeral normalization."
+    }
+  },
+  "audit_log": [
+    {
+      "timestamp_utc": "2026-10-29T15:17:25.891049+00:00",
+      "action": "REGISTER_MODEL",
+      "model_version": "custom-mlp-v1.0.0",
+      "operator_label": "local_operator",
+      "lifecycle_state": "approved_for_shadow",
+      "weights_sha256": "d4b6c2b1cc0359966100623fe18d1f728caeeaef9bcad561bfa00f89485bef20"
+    },
+    {
+      "timestamp_utc": "2026-10-29T15:17:25.895948+00:00",
+      "action": "REGISTER_MODEL",
+      "model_version": "custom-mlp-v1.1.0-preproc",
+      "operator_label": "local_operator",
+      "lifecycle_state": "approved_for_shadow",
+      "weights_sha256": "d4b6c2b1cc0359966100623fe18d1f728caeeaef9bcad561bfa00f89485bef20"
+    },
+    {
+      "timestamp_utc": "2026-10-29T15:17:25.901233+00:00",
+      "action": "ACTIVATE_DIAGNOSTIC_MODEL",
+      "model_version": "custom-mlp-v1.0.0",
+      "operator_label": "local_operator",
+      "reason": "Initial registration activation",
+      "details": {
+        "prior_version": null,
+        "checkpoint": "models/experimental_custom_v1"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-29T15:17:25.905937+00:00",
+      "action": "ACTIVATE_DIAGNOSTIC_MODEL",
+      "model_version": "custom-mlp-v1.1.0-preproc",
+      "operator_label": "local_operator",
+      "reason": "Activated Phase 5 normalized preprocessing configuration",
+      "details": {
+        "prior_version": "custom-mlp-v1.0.0",
+        "checkpoint": "models/experimental_custom_v1"
+      }
+    }
+  ]
+}

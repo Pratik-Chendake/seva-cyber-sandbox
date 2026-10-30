@@ -1,0 +1,56 @@
+{
+  "manifest_schema_version": "3.0.0",
+  "partition": "development",
+  "lifecycle_state": "active_development",
+  "file_name": "synthetic_dev_corpus.jsonl",
+  "file_sha256": "55e9357abae0de2ebc71535374f079bdb146ea746278471b03797f0941c85e4d",
+  "record_count": 300,
+  "campaign_family_count": 6,
+  "campaign_families": [
+    "v3_dev_advisory_deepfake_voice_fraud",
+    "v3_dev_advisory_rto_echallan",
+    "v3_dev_legit_hospital_opd_booking",
+    "v3_dev_legit_telecom_data_pack",
+    "v3_dev_phish_credit_card_points",
+    "v3_dev_phish_solar_subsidy"
+  ],
+  "scenario_count": 6,
+  "scenarios": [
+    "dev_credit_card_points_scam",
+    "dev_deepfake_extortion_advisory",
+    "dev_hospital_opd_appointment",
+    "dev_rto_echallan_advisory",
+    "dev_solar_subsidy_lure",
+    "dev_telecom_service_renewal"
+  ],
+  "distributions": {
+    "label_distribution": {
+      "phishing": 100,
+      "legitimate": 100,
+      "protective_advisory": 100
+    },
+    "language_distribution": {
+      "mr": 78,
+      "mr-Latn": 78,
+      "en": 72,
+      "mr-en": 72
+    },
+    "messaging_mode_distribution": {
+      "sms": 146,
+      "whatsapp": 54,
+      "formal_notice": 6,
+      "service_alert": 18,
+      "advisory_bulletin": 76
+    },
+    "url_presence_distribution": {
+      "True": 156,
+      "False": 144
+    }
+  },
+  "isolation_metadata": {
+    "is_qualification_held_back": false,
+    "disjoint_family_guarantee": true,
+    "locked_eval_accessible": false
+  },
+  "created_at_utc": "2026-10-30T12:24:21Z"
+}

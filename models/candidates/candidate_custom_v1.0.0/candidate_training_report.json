@@ -1,0 +1,82 @@
+{
+  "report_schema_version": "1.0.0",
+  "candidate_id": "candidate_custom_v1.0.0",
+  "candidate_version": "1.0.0",
+  "lifecycle_state": "experimental",
+  "training_timestamp_utc": "2026-10-30T11:32:09Z",
+  "random_seed": 42,
+  "architecture": {
+    "model_type": "Multi-Layer Perceptron (MLP)",
+    "input_dim": 1024,
+    "hidden_dim1": 64,
+    "hidden_dim2": 32,
+    "num_classes": 3,
+    "activation": "LeakyReLU (alpha=0.01)",
+    "initialization": "He normal (hidden layers), Xavier uniform (output layer)"
+  },
+  "hyperparameters": {
+    "epochs": 5,
+    "batch_size": 16,
+    "learning_rate": 0.005,
+    "weight_decay": 0.0001,
+    "dropout_rate": 0.2
+  },
+  "dataset_provenance": {
+    "composition_policy": "synthetic_only",
+    "total_training_examples": 360,
+    "human_reviewed_feedback_count": 0,
+    "synthetic_anchor_corpus_count": 360,
+    "class_distribution": {
+      "phishing": 120,
+      "legitimate": 120,
+      "protective_advisory": 120
+    },
+    "feature_schema_version": "1.0.0",
+    "preprocessing_version": "neural-preproc-v1.1.0"
+  },
+  "artifacts": {
+    "weights_file": "model_weights.npz",
+    "weights_sha256": "5a1e50a1a9bde3355a1f48c9faa2a3ca14b6f04b9628266cb5d887f548d275ee",
+    "metadata_file": "model_metadata.json",
+    "metadata_sha256": "eae87e974763dad10fdbf48f802b331d0516dc35fc6b5aa1270b19a1cace3dbb"
+  },
+  "training_metrics": {
+    "initial_loss": 0.6978,
+    "final_loss": 0.0193,
+    "final_accuracy": 1.0,
+    "loss_history": [
+      {
+        "epoch": 1,
+        "loss": 0.6978,
+        "accuracy": 1.0
+      },
+      {
+        "epoch": 2,
+        "loss": 0.0482,
+        "accuracy": 1.0
+      },
+      {
+        "epoch": 3,
+        "loss": 0.0213,
+        "accuracy": 1.0
+      },
+      {
+        "epoch": 4,
+        "loss": 0.0222,
+        "accuracy": 1.0
+      },
+      {
+        "epoch": 5,
+        "loss": 0.0193,
+        "accuracy": 1.0
+      }
+    ]
+  },
+  "warnings_and_limitations": [
+    "EXPERIMENTAL_CANDIDATE_ONLY: Not evaluated or approved for shadow/production deployment.",
+    "NO_GENERALIZATION_CLAIM: Training loss reduction does not certify real-world vernacular generalization.",
+    "UNAUTHENTICATED_LOCAL_FEEDBACK: Local operator review annotations are not certified external ground truth.",
+    "SYNTHETIC_ONLY_DEMONSTRATION: Zero human feedback records incorporated. Does NOT demonstrate feedback learning."
+  ],
+  "status": "SUCCESS"
+}

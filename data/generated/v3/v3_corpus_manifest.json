@@ -1,0 +1,219 @@
+{
+  "manifest_schema_version": "3.0.0",
+  "corpus_id": "seva-synthetic-corpus-v3",
+  "generator_version": "3.0.0",
+  "total_records": 1950,
+  "partitions": {
+    "training": {
+      "manifest_schema_version": "3.0.0",
+      "partition": "training",
+      "lifecycle_state": "active_training",
+      "file_name": "synthetic_training_corpus.jsonl",
+      "file_sha256": "f8143880f3d5d13e5f10c14ca2d07c3a736726979f93a53dd864d59fdaee2473",
+      "record_count": 1200,
+      "campaign_family_count": 24,
+      "campaign_families": [
+        "v3_train_advisory_certin_malware_apk",
+        "v3_train_advisory_cybercell_lottery",
+        "v3_train_advisory_msedcl_fraud_alert",
+        "v3_train_advisory_police_job_scam",
+        "v3_train_advisory_rbi_banking_safety",
+        "v3_train_advisory_social_media_impersonation",
+        "v3_train_advisory_trai_sim_spoof",
+        "v3_train_advisory_uidai_aadhaar_lock",
+        "v3_train_legit_bank_credit_alert",
+        "v3_train_legit_gram_panchayat_tax",
+        "v3_train_legit_lpg_cylinder_booking",
+        "v3_train_legit_maha_metro_ticket",
+        "v3_train_legit_railway_irctc_pnr",
+        "v3_train_legit_ration_distribution",
+        "v3_train_legit_school_parent_meeting",
+        "v3_train_legit_utility_bill_receipt",
+        "v3_train_phish_bank_kyc_freeze",
+        "v3_train_phish_courier_hold",
+        "v3_train_phish_epfo_claim_approved",
+        "v3_train_phish_fastag_blocked",
+        "v3_train_phish_income_tax_refund",
+        "v3_train_phish_msedcl_powercut",
+        "v3_train_phish_part_time_job",
+        "v3_train_phish_sim_esim_block"
+      ],
+      "scenario_count": 24,
+      "scenarios": [
+        "aadhaar_safety_advisory",
+        "apk_malware_advisory",
+        "bank_kyc_suspension",
+        "banking_safety_advisory",
+        "courier_parcel_delivery",
+        "epfo_pf_withdrawal_scam",
+        "fastag_blacklist_threat",
+        "genuine_banking_credit",
+        "genuine_gram_panchayat_tax",
+        "genuine_lpg_booking",
+        "genuine_metro_ticket",
+        "genuine_railway_pnr",
+        "genuine_ration_distribution",
+        "genuine_school_circular",
+        "genuine_utility_receipt",
+        "impersonation_fraud_advisory",
+        "income_tax_refund_lure",
+        "job_scam_advisory",
+        "lottery_fraud_advisory",
+        "msedcl_powercut_threat",
+        "part_time_task_scam",
+        "sim_card_deactivation",
+        "telecom_spoof_advisory",
+        "utility_fraud_advisory"
+      ],
+      "distributions": {
+        "label_distribution": {
+          "phishing": 400,
+          "legitimate": 400,
+          "protective_advisory": 400
+        },
+        "language_distribution": {
+          "mr": 312,
+          "mr-Latn": 312,
+          "en": 288,
+          "mr-en": 288
+        },
+        "messaging_mode_distribution": {
+          "sms": 498,
+          "whatsapp": 212,
+          "formal_notice": 138,
+          "service_alert": 48,
+          "advisory_bulletin": 304
+        },
+        "url_presence_distribution": {
+          "True": 624,
+          "False": 576
+        }
+      },
+      "isolation_metadata": {
+        "is_qualification_held_back": false,
+        "disjoint_family_guarantee": true,
+        "locked_eval_accessible": false
+      },
+      "created_at_utc": "2026-10-30T12:24:21Z"
+    },
+    "development": {
+      "manifest_schema_version": "3.0.0",
+      "partition": "development",
+      "lifecycle_state": "active_development",
+      "file_name": "synthetic_dev_corpus.jsonl",
+      "file_sha256": "55e9357abae0de2ebc71535374f079bdb146ea746278471b03797f0941c85e4d",
+      "record_count": 300,
+      "campaign_family_count": 6,
+      "campaign_families": [
+        "v3_dev_advisory_deepfake_voice_fraud",
+        "v3_dev_advisory_rto_echallan",
+        "v3_dev_legit_hospital_opd_booking",
+        "v3_dev_legit_telecom_data_pack",
+        "v3_dev_phish_credit_card_points",
+        "v3_dev_phish_solar_subsidy"
+      ],
+      "scenario_count": 6,
+      "scenarios": [
+        "dev_credit_card_points_scam",
+        "dev_deepfake_extortion_advisory",
+        "dev_hospital_opd_appointment",
+        "dev_rto_echallan_advisory",
+        "dev_solar_subsidy_lure",
+        "dev_telecom_service_renewal"
+      ],
+      "distributions": {
+        "label_distribution": {
+          "phishing": 100,
+          "legitimate": 100,
+          "protective_advisory": 100
+        },
+        "language_distribution": {
+          "mr": 78,
+          "mr-Latn": 78,
+          "en": 72,
+          "mr-en": 72
+        },
+        "messaging_mode_distribution": {
+          "sms": 146,
+          "whatsapp": 54,
+          "formal_notice": 6,
+          "service_alert": 18,
+          "advisory_bulletin": 76
+        },
+        "url_presence_distribution": {
+          "True": 156,
+          "False": 144
+        }
+      },
+      "isolation_metadata": {
+        "is_qualification_held_back": false,
+        "disjoint_family_guarantee": true,
+        "locked_eval_accessible": false
+      },
+      "created_at_utc": "2026-10-30T12:24:21Z"
+    },
+    "qualification": {
+      "manifest_schema_version": "3.0.0",
+      "partition": "qualification",
+      "lifecycle_state": "sealed_independent_benchmark",
+      "file_name": "synthetic_qualification_corpus.jsonl",
+      "file_sha256": "197c62e7f0b305ce5965cf7bbeba8543fcd542a4a026d07dbd1172b3656f4a0f",
+      "record_count": 450,
+      "campaign_family_count": 9,
+      "campaign_families": [
+        "v3_qual_advisory_digital_arrest_alert",
+        "v3_qual_advisory_loan_app_harassment",
+        "v3_qual_advisory_pm_kisan_phishing",
+        "v3_qual_legit_bank_statement_ready",
+        "v3_qual_legit_exam_hall_ticket",
+        "v3_qual_legit_water_supply_maintenance",
+        "v3_qual_phish_digital_arrest_extortion",
+        "v3_qual_phish_mudra_loan_subsidy",
+        "v3_qual_phish_traffic_challan_seizure"
+      ],
+      "scenario_count": 9,
+      "scenarios": [
+        "qual_bank_estatement_ready",
+        "qual_digital_arrest_advisory",
+        "qual_digital_arrest_extortion",
+        "qual_exam_hall_ticket_notice",
+        "qual_illegal_loan_apps_advisory",
+        "qual_mudra_loan_scam",
+        "qual_pm_kisan_fraud_advisory",
+        "qual_traffic_challan_threat",
+        "qual_water_supply_maintenance"
+      ],
+      "distributions": {
+        "label_distribution": {
+          "phishing": 150,
+          "legitimate": 150,
+          "protective_advisory": 150
+        },
+        "language_distribution": {
+          "mr": 117,
+          "mr-Latn": 117,
+          "en": 108,
+          "mr-en": 108
+        },
+        "messaging_mode_distribution": {
+          "sms": 164,
+          "whatsapp": 72,
+          "formal_notice": 88,
+          "service_alert": 12,
+          "advisory_bulletin": 114
+        },
+        "url_presence_distribution": {
+          "True": 234,
+          "False": 216
+        }
+      },
+      "isolation_metadata": {
+        "is_qualification_held_back": true,
+        "disjoint_family_guarantee": true,
+        "locked_eval_accessible": false
+      },
+      "created_at_utc": "2026-10-30T12:24:21Z"
+    }
+  },
+  "created_at_utc": "2026-10-30T12:24:21Z"
+}

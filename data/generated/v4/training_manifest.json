@@ -1,0 +1,103 @@
+{
+  "manifest_schema_version": "4.0.0",
+  "partition": "training",
+  "lifecycle_state": "active_training",
+  "file_name": "synthetic_training_corpus.jsonl",
+  "file_sha256": "6abd8b2b2daa25d6f8bc0263e588d0a3410fd9bae8fb82632b5fe826cb1cc93f",
+  "record_count": 1500,
+  "campaign_family_count": 30,
+  "campaign_families": [
+    "v4_train_advisory_cbi_impersonation_alert",
+    "v4_train_advisory_certin_deepfake_voice_scam",
+    "v4_train_advisory_cybercell_video_extortion",
+    "v4_train_advisory_ecourt_fake_warrant_notice",
+    "v4_train_advisory_mha_digital_arrest_warning",
+    "v4_train_advisory_national_1930_helpline",
+    "v4_train_advisory_pib_scheme_factcheck",
+    "v4_train_advisory_police_verification_fee_fraud",
+    "v4_train_advisory_rbi_predatory_loan_apps",
+    "v4_train_advisory_sebi_fake_ipo_investment",
+    "v4_train_legit_aadhaar_biometric_update_status",
+    "v4_train_legit_civil_hospital_opd_schedule",
+    "v4_train_legit_court_notice_appearance_info",
+    "v4_train_legit_district_court_hearing_schedule",
+    "v4_train_legit_mantralaya_gazette_circular",
+    "v4_train_legit_municipal_water_pipeline_maintenance",
+    "v4_train_legit_passport_police_appointment",
+    "v4_train_legit_police_lost_property_acknowledgement",
+    "v4_train_legit_post_office_registered_parcel_pickup",
+    "v4_train_legit_state_board_hall_ticket_download",
+    "v4_train_phish_cbi_investigation_notice",
+    "v4_train_phish_court_warrant_penalty",
+    "v4_train_phish_cybercrime_financial_fraud",
+    "v4_train_phish_digital_arrest_narcotics",
+    "v4_train_phish_fir_cancellation_settlement",
+    "v4_train_phish_mudra_loan_default_attachment",
+    "v4_train_phish_narcotics_possession_warrant",
+    "v4_train_phish_passport_police_verification_fee",
+    "v4_train_phish_pm_kisan_subsidy_disqualification",
+    "v4_train_phish_police_videocall_summons"
+  ],
+  "scenario_count": 30,
+  "scenarios": [
+    "advisory_cbi_impersonation_alert",
+    "advisory_certin_deepfake_voice_scam",
+    "advisory_cybercell_video_extortion",
+    "advisory_ecourt_fake_warrant_notice",
+    "advisory_mha_digital_arrest_warning",
+    "advisory_national_1930_helpline",
+    "advisory_pib_scheme_factcheck",
+    "advisory_police_verification_fee_fraud",
+    "advisory_rbi_predatory_loan_apps",
+    "advisory_sebi_fake_ipo_investment",
+    "legit_aadhaar_biometric_update_status",
+    "legit_civil_hospital_opd_schedule",
+    "legit_court_notice_appearance_info",
+    "legit_district_court_hearing_schedule",
+    "legit_mantralaya_gazette_circular",
+    "legit_municipal_water_pipeline_maintenance",
+    "legit_passport_police_appointment",
+    "legit_police_lost_property_acknowledgement",
+    "legit_post_office_registered_parcel_pickup",
+    "legit_state_board_hall_ticket_download",
+    "phish_cbi_investigation_notice",
+    "phish_court_warrant_penalty",
+    "phish_cybercrime_financial_fraud",
+    "phish_digital_arrest_narcotics",
+    "phish_fir_cancellation_settlement",
+    "phish_mudra_loan_default_attachment",
+    "phish_narcotics_possession_warrant",
+    "phish_passport_police_verification_fee",
+    "phish_pm_kisan_subsidy_disqualification",
+    "phish_police_videocall_summons"
+  ],
+  "distributions": {
+    "label_distribution": {
+      "legitimate": 500,
+      "phishing": 500,
+      "protective_advisory": 500
+    },
+    "language_distribution": {
+      "en": 360,
+      "mr": 390,
+      "mr-Latn": 390,
+      "mr-en": 360
+    },
+    "messaging_mode_distribution": {
+      "advisory_bulletin": 462,
+      "formal_notice": 480,
+      "sms": 458,
+      "whatsapp": 100
+    },
+    "url_presence_distribution": {
+      "False": 750,
+      "True": 750
+    }
+  },
+  "isolation_metadata": {
+    "is_qualification_held_back": false,
+    "disjoint_family_guarantee": true,
+    "locked_eval_accessible": false
+  },
+  "created_at_utc": "2026-10-30T20:30:00Z"
+}

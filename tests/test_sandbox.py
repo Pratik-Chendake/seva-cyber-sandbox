@@ -173,11 +173,20 @@ def test_14_empty_and_non_string_message_inputs():
 
 
 def test_15_optional_ml_baseline_and_bad_path_handling():
-    good = train_and_evaluate_local_model()
+    good = train_and_evaluate_local_model(force_retrain=True)
     assert good["is_available"] is True
+    assert good["is_educational_baseline"] is True
+    assert good["is_production_ready"] is False
     assert good["total_samples"] == 20
+    assert "cross_validation_accuracy_pct" in good
+    assert "cross_validation_f1_pct" in good
+    assert good["cross_validation_folds"] == 5
+    assert "sample_size_warning" in good
+
     pred = predict_with_local_ml("Download MSEDCL_Update.apk and share OTP immediately")
     assert pred["is_available"] is True
+    assert pred["is_educational_baseline"] is True
+    assert "limitations_note" in pred
 
     bad = train_and_evaluate_local_model(dataset_path="non_existent_file.json", force_retrain=True)
     assert bad["is_available"] is False
@@ -191,3 +200,119 @@ def test_16_offline_wav_audio_generation():
     en_script, mr_script = get_spoken_script("red", "APK Assessment")
     assert "Caution" in en_script
     assert "सावधान" in mr_script
+
+
+def test_17_zip_slip_path_traversal_rejection():
+    """Verifies that an archive with path traversal (Zip Slip) sequences is rejected."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("../etc/passwd", "malicious_entry")
+        zf.writestr("AndroidManifest.xml", "<manifest></manifest>")
+    res = analyze_apk_bytes(buf.getvalue(), "zip_slip.apk")
+    assert res["is_valid_apk"] is False
+    assert "path traversal" in (res["error_message"] or "").lower()
+
+
+def test_18_anomalous_compression_ratio_rejection():
+    """Verifies that an archive with an extreme compression ratio is rejected before decompression."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        # 2 MB of zeroes compresses to under 2 KB (>1000x ratio)
+        zf.writestr("AndroidManifest.xml", b"\x00" * (2 * 1024 * 1024))
+    res = analyze_apk_bytes(buf.getvalue(), "bomb.apk")
+    assert res["is_valid_apk"] is False
+    assert "anomalous compression ratio" in (res["error_message"] or "").lower()
+
+
+def test_19_apk_observations_and_inferences_separation():
+    """Verifies that confirmed observations are explicitly separated from heuristic inferences."""
+    path = os.path.join("sample_apks", "Gram_Panchayat_Directory_Test.apk")
+    with open(path, "rb") as f:
+        res = analyze_apk_bytes(f.read(), "Gram_Panchayat_Directory_Test.apk")
+    assert res["is_valid_apk"] is True
+    assert "observed_facts" in res
+    assert "heuristic_inferences" in res
+    assert len(res["observed_facts"]) >= 5
+    assert any("File size:" in fact for fact in res["observed_facts"])
+    assert any("Declared permissions count:" in fact for fact in res["observed_facts"])
+
+
+def test_20_compiled_binary_axml_tree_parsing():
+    """Verifies that full AST element tree chunks in compiled AXML are parsed directly."""
+    path = os.path.join("sample_apks", "Compiled_Binary_AXML_Tree_Sample.apk")
+    with open(path, "rb") as f:
+        res = analyze_apk_bytes(f.read(), "Compiled_Binary_AXML_Tree_Sample.apk")
+    assert res["is_valid_apk"] is True
+    assert "Element Tree Parser" in res["parser_used"]
+    assert res["package_name"] == "in.gov.maharashtra.service.portal"
+    assert res["app_name"] == "MahaSeva Official Citizen App"
+    perms = set(res["all_raw_permissions"])
+    assert "android.permission.INTERNET" in perms
+    assert "android.permission.ACCESS_FINE_LOCATION" in perms
+
+
+def test_21_zero_width_character_evasion_stripping():
+    """Verifies that zero-width characters inserted to evade regex detection are stripped."""
+    # "OTP share kara" with zero-width spaces (\u200b) and ZWNJ (\u200c)
+    obfuscated = "O\u200bT\u200bP\u200c \u200dshare\u200b kara lagech"
+    res = analyze_message_text(obfuscated)
+    assert res["is_empty"] is False
+    # CREDENTIAL_HARVEST should trigger despite zero-width evasion
+    assert any(f["id"] == "CREDENTIAL_HARVEST" for f in res["findings"])
+
+
+def test_22_benign_conversational_marathi_safety():
+    """Verifies that ordinary benign Marathi conversation does not trigger phishing alerts."""
+    benign_greetings = [
+        "शुभ सकाळ! आजचा दिवस आनंदाचा आणि आरोग्याचा जावो.",
+        "काका, उद्या संध्याकाळी घरी या, आपण चहा घेऊ.",
+        "दिवाळीच्या सर्व मित्रपरिवाराला हार्दिक शुभेच्छा!",
+    ]
+    for msg in benign_greetings:
+        res = analyze_message_text(msg)
+        assert res["is_empty"] is False
+        assert len(res["findings"]) == 0
+        scored = score_message_analysis(res)
+        assert scored["score"] == 0
+        assert scored["badge_color"] == "green"
+
+
+def test_23_message_observations_and_inferences_separation():
+    """Verifies that message analysis and scoring strictly separate observed facts from inferences."""
+    msg = "तात्काळ महावितरण वीज बिल भरा नाहीतर आज रात्री कनेक्शन कट होईल http://bill-update.xyz"
+    res = analyze_message_text(msg)
+    assert "observed_facts" in res
+    assert "heuristic_inferences" in res
+    assert any("Input length:" in fact for fact in res["observed_facts"])
+    assert any("Script classification:" in fact for fact in res["observed_facts"])
+
+    scored = score_message_analysis(res)
+    assert "observed_facts" in scored
+    assert "heuristic_inferences" in scored
+    assert any("Calculated heuristic risk index:" in inf for inf in scored["heuristic_inferences"])
+
+
+def test_24_audio_alert_edge_cases_and_graceful_tts():
+    """Verifies that audio synthesis handles invalid badge colors and TTS handles complex inputs gracefully."""
+    from src.audio_alert import inspect_installed_tts_voices, speak_offline_windows_tts
+
+    # Non-standard or empty badge colors
+    for bad_color in (None, "", "unknown_color", "CRITICAL", 123):  # type: ignore
+        wav = generate_alert_wav_bytes(bad_color)
+        assert wav[:4] == b"RIFF"
+        assert len(wav) > 500
+
+    # Test inspection function returns well-structured dict
+    inspection = inspect_installed_tts_voices()
+    assert isinstance(inspection, dict)
+    assert "tts_available" in inspection
+    assert "has_marathi_or_hindi_voice" in inspection
+
+    # Test TTS with quotation marks and symbols does not throw exceptions
+    success, msg = speak_offline_windows_tts('Alert: "Quotes" & \nNewlines \x00 testing.')
+    assert isinstance(success, bool)
+    assert isinstance(msg, str)
+    assert len(msg) > 0
+
+
+

@@ -16,3 +16,11 @@ __pycache__/
 # OS artifacts
 .DS_Store
 Thumbs.db
+# SQLite database persistence and sidecars
+instance/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.db
+*.db-wal
+*.db-shm

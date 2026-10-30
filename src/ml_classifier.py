@@ -22,7 +22,7 @@ try:
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.linear_model import LogisticRegression
     from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
-    from sklearn.model_selection import train_test_split
+    from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
     from sklearn.pipeline import Pipeline
 
     SKLEARN_AVAILABLE = True
@@ -30,17 +30,25 @@ except Exception:
     SKLEARN_AVAILABLE = False
 
 _CACHED_BUNDLE: Optional[Dict[str, Any]] = None
+_CACHED_MTIME: Optional[float] = None
 
 
 def train_and_evaluate_local_model(
     dataset_path: str = DATA_PATH, force_retrain: bool = False
 ) -> Dict[str, Any]:
     """
-    Validates the local JSON dataset, splits into 75% train and 25% unseen test sets,
-    trains a TF-IDF + Logistic Regression pipeline, and returns evaluation metrics.
+    Validates the local JSON dataset, evaluates 5-fold cross-validation alongside a 75/25 split,
+    trains a TF-IDF + Logistic Regression pipeline, and returns honest evaluation metrics.
     """
-    global _CACHED_BUNDLE
-    if _CACHED_BUNDLE is not None and not force_retrain and dataset_path == DATA_PATH:
+    global _CACHED_BUNDLE, _CACHED_MTIME
+    current_mtime = os.path.getmtime(dataset_path) if os.path.exists(dataset_path) else 0.0
+
+    if (
+        _CACHED_BUNDLE is not None
+        and not force_retrain
+        and dataset_path == DATA_PATH
+        and _CACHED_MTIME == current_mtime
+    ):
         return _CACHED_BUNDLE
 
     if not SKLEARN_AVAILABLE:
@@ -112,8 +120,18 @@ def train_and_evaluate_local_model(
     acc = round(float(accuracy_score(y_test, y_pred)) * 100, 1)
     f1 = round(float(f1_score(y_test, y_pred, zero_division=0)) * 100, 1)
 
+    # 5-Fold Stratified Cross-Validation for honest generalization evaluation
+    cv_folds = min(5, phishing_count, legit_count)
+    cv = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=42)
+    cv_acc_scores = cross_val_score(pipeline, texts, labels, cv=cv, scoring="accuracy")
+    cv_acc = round(float(cv_acc_scores.mean()) * 100, 1)
+    cv_f1_scores = cross_val_score(pipeline, texts, labels, cv=cv, scoring="f1")
+    cv_f1 = round(float(cv_f1_scores.mean()) * 100, 1)
+
     bundle: Dict[str, Any] = {
         "is_available": True,
+        "is_educational_baseline": True,
+        "is_production_ready": False,
         "error": None,
         "pipeline": pipeline,
         "total_samples": len(labels),
@@ -127,15 +145,25 @@ def train_and_evaluate_local_model(
         "false_negatives": int(fn),
         "test_accuracy_pct": acc,
         "test_f1_pct": f1,
+        "cross_validation_folds": cv_folds,
+        "cross_validation_accuracy_pct": cv_acc,
+        "cross_validation_f1_pct": cv_f1,
+        "sample_size_warning": (
+            f"Dataset contains only {len(labels)} messages ({phishing_count} phishing, {legit_count} legitimate). "
+            "This sample size is far too small for production automated blocking and easily overfits. "
+            "It is provided strictly for educational demonstration of text feature extraction and ML evaluation."
+        ),
         "methodology_note": (
-            f"Educational ML Baseline: Trained on {len(X_train)} messages and evaluated on {len(X_test)} unseen test messages "
-            "from data/sample_messages.json. Because a 20-message sample is too small for production generalization, "
+            f"Educational ML Baseline: Evaluated via {cv_folds}-fold stratified cross-validation (mean accuracy {cv_acc}%, "
+            f"mean F1 {cv_f1}%) alongside a holdout test split ({acc}% accuracy). "
+            f"Because a {len(labels)}-message sample is too small for production generalization, "
             "this classifier is provided strictly as a learning demonstration alongside the primary rule-based detector."
         ),
     }
 
     if dataset_path == DATA_PATH:
         _CACHED_BUNDLE = bundle
+        _CACHED_MTIME = current_mtime
     return bundle
 
 
@@ -147,6 +175,7 @@ def predict_with_local_ml(text: str) -> Dict[str, Any]:
     if not bundle.get("is_available"):
         return {
             "is_available": False,
+            "is_educational_baseline": True,
             "error": bundle.get("error", "ML baseline unavailable."),
             "experimental_ml_confidence": 0.0,
             "ml_flag": "Unavailable",
@@ -157,6 +186,7 @@ def predict_with_local_ml(text: str) -> Dict[str, Any]:
     if not cleaned:
         return {
             "is_available": True,
+            "is_educational_baseline": True,
             "error": None,
             "experimental_ml_confidence": 0.0,
             "ml_flag": "No Input",
@@ -167,12 +197,17 @@ def predict_with_local_ml(text: str) -> Dict[str, Any]:
     proba_phishing = float(model.predict_proba([cleaned])[0][1])
     return {
         "is_available": True,
+        "is_educational_baseline": True,
         "error": None,
         "experimental_ml_confidence": round(proba_phishing * 100, 1),
         "ml_flag": (
             "Flagged by Experimental ML Baseline (Score >= 50%)"
             if proba_phishing >= 0.5
             else "Not Flagged by Experimental ML Baseline (Score < 50%)"
+        ),
+        "limitations_note": (
+            "Uncalibrated educational ML score: based on a 20-sample prototype corpus. "
+            "Do not use for definitive automated security enforcement."
         ),
         "evaluation_summary": {k: v for k, v in bundle.items() if k != "pipeline"},
     }

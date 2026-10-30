@@ -1,0 +1,197 @@
+{
+  "model_checkpoint": "C:\\Users\\prati\\seva-cyber-sandbox\\models\\experimental_custom_v1",
+  "validation_corpus": "C:\\Users\\prati\\seva-cyber-sandbox\\data\\generated\\v2\\synthetic_validation_corpus.jsonl",
+  "total_samples": 135,
+  "primary_metrics": {
+    "accuracy": 0.9481,
+    "macro_f1": 0.9482,
+    "per_class": {
+      "phishing": {
+        "precision": 0.898,
+        "recall": 0.9778,
+        "f1": 0.9362,
+        "tp": 44,
+        "fp": 5,
+        "fn": 1,
+        "support": 45
+      },
+      "legitimate": {
+        "precision": 0.9524,
+        "recall": 0.8889,
+        "f1": 0.9195,
+        "tp": 40,
+        "fp": 2,
+        "fn": 5,
+        "support": 45
+      },
+      "protective_advisory": {
+        "precision": 1.0,
+        "recall": 0.9778,
+        "f1": 0.9888,
+        "tp": 44,
+        "fp": 0,
+        "fn": 1,
+        "support": 45
+      }
+    }
+  },
+  "confusion_matrix": {
+    "matrix": [
+      [
+        44,
+        1,
+        0
+      ],
+      [
+        5,
+        40,
+        0
+      ],
+      [
+        0,
+        1,
+        44
+      ]
+    ],
+    "classes": [
+      "phishing",
+      "legitimate",
+      "protective_advisory"
+    ]
+  },
+  "critical_safety_metrics": {
+    "legitimate_false_positive_rate": {
+      "rate": 0.1111,
+      "count": 5,
+      "denominator": 45
+    },
+    "protective_advisory_false_positive_rate": {
+      "rate": 0.0,
+      "count": 0,
+      "denominator": 45
+    }
+  },
+  "baseline_comparisons": {
+    "majority_class_baseline": {
+      "name": "Majority-Class Predictor (Trivial)",
+      "accuracy": 0.3333,
+      "macro_f1": 0.1667,
+      "description": "Always predicts 'phishing' regardless of input text."
+    },
+    "url_presence_diagnostic_baseline": {
+      "name": "URL-Presence Diagnostic Rule",
+      "accuracy": 0.3481,
+      "macro_f1": 0.2793,
+      "description": "Predicts 'phishing' if text contains http/https, else 'legitimate'."
+    }
+  },
+  "language_breakdown": {
+    "mr": {
+      "count": 55,
+      "accuracy": 0.9273,
+      "macro_f1": 0.9242
+    },
+    "mr-en": {
+      "count": 23,
+      "accuracy": 0.9565,
+      "macro_f1": 0.9659
+    },
+    "mr-Latn": {
+      "count": 20,
+      "accuracy": 0.9,
+      "macro_f1": 0.8963
+    },
+    "en": {
+      "count": 37,
+      "accuracy": 1.0,
+      "macro_f1": 1.0
+    }
+  },
+  "scenario_breakdown": {
+    "msedcl_solar_subsidy": {
+      "count": 15,
+      "accuracy": 1.0
+    },
+    "credit_card_rewards": {
+      "count": 15,
+      "accuracy": 1.0
+    },
+    "rto_echallan_fine": {
+      "count": 15,
+      "accuracy": 0.9333
+    },
+    "genuine_appointment_booking": {
+      "count": 15,
+      "accuracy": 0.6667
+    },
+    "genuine_telecom_service": {
+      "count": 15,
+      "accuracy": 1.0
+    },
+    "genuine_education_notice": {
+      "count": 15,
+      "accuracy": 1.0
+    },
+    "rto_safety_advisory": {
+      "count": 15,
+      "accuracy": 1.0
+    },
+    "lottery_reward_advisory": {
+      "count": 15,
+      "accuracy": 0.9333
+    },
+    "digital_arrest_advisory": {
+      "count": 15,
+      "accuracy": 1.0
+    }
+  },
+  "counterfactual_url_ablation": {
+    "url_removal_test": {
+      "samples_evaluated": 69,
+      "prediction_flips": 4,
+      "flip_rate": 0.058,
+      "note": "Tests if stripping a URL from a link-bearing message flips model prediction."
+    },
+    "url_addition_test": {
+      "samples_evaluated": 66,
+      "prediction_flips": 5,
+      "flip_rate": 0.0758,
+      "note": "Tests if adding a URL to a link-free message flips model prediction."
+    }
+  },
+  "seed_sensitivity_trial": {
+    "seed_42": {
+      "accuracy": 0.9778,
+      "macro_f1": 0.9778,
+      "best_epoch": 30
+    },
+    "seed_101": {
+      "accuracy": 0.9852,
+      "macro_f1": 0.9852,
+      "best_epoch": 28
+    },
+    "seed_202": {
+      "accuracy": 0.9704,
+      "macro_f1": 0.9703,
+      "best_epoch": 16
+    },
+    "seed_303": {
+      "accuracy": 0.9704,
+      "macro_f1": 0.97,
+      "best_epoch": 29
+    },
+    "seed_404": {
+      "accuracy": 0.9852,
+      "macro_f1": 0.9852,
+      "best_epoch": 40
+    },
+    "summary": {
+      "mean_accuracy": 0.9778,
+      "std_accuracy": 0.0066,
+      "min_accuracy": 0.9704,
+      "max_accuracy": 0.9852,
+      "mean_macro_f1": 0.9777,
+      "std_macro_f1": 0.0067
+    }
+  }
+}

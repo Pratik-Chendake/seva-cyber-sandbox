@@ -1,0 +1,362 @@
+{
+  "report_schema_version": "1.0.0",
+  "candidate_id": "candidate_v3_seed202",
+  "random_seed": 202,
+  "lifecycle_state": "experimental",
+  "created_at_utc": "2026-10-30T12:38:07Z",
+  "architecture": {
+    "model_type": "Multi-Layer Perceptron (MLP)",
+    "input_dim": 1024,
+    "hidden_dim1": 64,
+    "hidden_dim2": 32,
+    "num_classes": 3,
+    "activation": "LeakyReLU (alpha=0.01)",
+    "initialization": "He normal (hidden layers), Xavier uniform (output layer)"
+  },
+  "hyperparameters": {
+    "max_epochs": 50,
+    "early_stopping_patience": 10,
+    "batch_size": 32,
+    "initial_learning_rate": 0.005,
+    "weight_decay": 0.0005,
+    "dropout_rate": 0.2,
+    "lr_schedule_milestones": {
+      "21": 0.002,
+      "36": 0.001
+    }
+  },
+  "training_run_summary": {
+    "best_epoch": 10,
+    "total_epochs_trained": 20,
+    "stopped_early": true,
+    "best_dev_macro_f1": 0.9599,
+    "best_dev_accuracy": 0.96
+  },
+  "dataset_provenance": {
+    "training_corpus": "data/generated/v3/synthetic_training_corpus.jsonl",
+    "training_examples": 1200,
+    "dev_corpus": "data/generated/v3/synthetic_dev_corpus.jsonl",
+    "dev_examples": 300,
+    "qualification_partition": "SEALED_INACCESSIBLE",
+    "feature_schema_version": "1.0.0",
+    "preprocessing_version": "neural-preproc-v1.1.0"
+  },
+  "dev_evaluation_metrics": {
+    "sample_count": 300,
+    "accuracy": 0.96,
+    "accuracy_ci_95": [
+      0.9314,
+      0.977
+    ],
+    "accuracy_fraction": "288/300",
+    "total_incorrect": 12,
+    "total_incorrect_fraction": "12/300",
+    "macro_f1": 0.9599,
+    "macro_precision": 0.9643,
+    "macro_recall": 0.96,
+    "balanced_accuracy": 0.96,
+    "weighted_f1": 0.9599,
+    "confusion_matrix": [
+      [
+        100,
+        0,
+        0
+      ],
+      [
+        12,
+        88,
+        0
+      ],
+      [
+        0,
+        0,
+        100
+      ]
+    ],
+    "per_class": {
+      "phishing": {
+        "class_index": 0,
+        "true_positives": 100,
+        "false_positives": 12,
+        "false_negatives": 0,
+        "support": 100,
+        "precision": 0.8929,
+        "precision_ci_95": [
+          0.822,
+          0.9376
+        ],
+        "precision_fraction": "100/112",
+        "recall": 1.0,
+        "recall_ci_95": [
+          0.963,
+          1.0
+        ],
+        "recall_fraction": "100/100",
+        "f1": 0.9434
+      },
+      "legitimate": {
+        "class_index": 1,
+        "true_positives": 88,
+        "false_positives": 0,
+        "false_negatives": 12,
+        "support": 100,
+        "precision": 1.0,
+        "precision_ci_95": [
+          0.9582,
+          1.0
+        ],
+        "precision_fraction": "88/88",
+        "recall": 0.88,
+        "recall_ci_95": [
+          0.8019,
+          0.93
+        ],
+        "recall_fraction": "88/100",
+        "f1": 0.9362
+      },
+      "protective_advisory": {
+        "class_index": 2,
+        "true_positives": 100,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "support": 100,
+        "precision": 1.0,
+        "precision_ci_95": [
+          0.963,
+          1.0
+        ],
+        "precision_fraction": "100/100",
+        "recall": 1.0,
+        "recall_ci_95": [
+          0.963,
+          1.0
+        ],
+        "recall_fraction": "100/100",
+        "f1": 1.0
+      }
+    },
+    "safety_metrics": {
+      "legitimate_fp_rate": 0.12,
+      "legitimate_fp_ci_95": [
+        0.07,
+        0.1981
+      ],
+      "legitimate_fp_fraction": "12/100",
+      "protective_advisory_fp_rate": 0.0,
+      "protective_advisory_fp_ci_95": [
+        0.0,
+        0.037
+      ],
+      "protective_advisory_fp_fraction": "0/100",
+      "phishing_fn_rate": 0.0,
+      "phishing_fn_ci_95": [
+        0.0,
+        0.037
+      ],
+      "phishing_fn_fraction": "0/100",
+      "prediction_distribution": {
+        "phishing": 112,
+        "legitimate": 88,
+        "protective_advisory": 100
+      }
+    }
+  },
+  "epoch_history": [
+    {
+      "epoch": 1,
+      "lr": 0.005,
+      "train_loss": 0.4834,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.2968,
+      "dev_accuracy": 0.8967,
+      "dev_macro_f1": 0.8976
+    },
+    {
+      "epoch": 2,
+      "lr": 0.005,
+      "train_loss": 0.0921,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.2452,
+      "dev_accuracy": 0.9267,
+      "dev_macro_f1": 0.9263
+    },
+    {
+      "epoch": 3,
+      "lr": 0.005,
+      "train_loss": 0.0715,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.2349,
+      "dev_accuracy": 0.9133,
+      "dev_macro_f1": 0.9144
+    },
+    {
+      "epoch": 4,
+      "lr": 0.005,
+      "train_loss": 0.0554,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.2239,
+      "dev_accuracy": 0.9033,
+      "dev_macro_f1": 0.9044
+    },
+    {
+      "epoch": 5,
+      "lr": 0.005,
+      "train_loss": 0.0458,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.218,
+      "dev_accuracy": 0.9033,
+      "dev_macro_f1": 0.9046
+    },
+    {
+      "epoch": 6,
+      "lr": 0.005,
+      "train_loss": 0.0413,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.2245,
+      "dev_accuracy": 0.9233,
+      "dev_macro_f1": 0.9244
+    },
+    {
+      "epoch": 7,
+      "lr": 0.005,
+      "train_loss": 0.0374,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1556,
+      "dev_accuracy": 0.95,
+      "dev_macro_f1": 0.9497
+    },
+    {
+      "epoch": 8,
+      "lr": 0.005,
+      "train_loss": 0.0346,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1942,
+      "dev_accuracy": 0.9233,
+      "dev_macro_f1": 0.9241
+    },
+    {
+      "epoch": 9,
+      "lr": 0.005,
+      "train_loss": 0.0348,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.2114,
+      "dev_accuracy": 0.9267,
+      "dev_macro_f1": 0.9271
+    },
+    {
+      "epoch": 10,
+      "lr": 0.005,
+      "train_loss": 0.0316,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1423,
+      "dev_accuracy": 0.96,
+      "dev_macro_f1": 0.9599
+    },
+    {
+      "epoch": 11,
+      "lr": 0.005,
+      "train_loss": 0.0329,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.2538,
+      "dev_accuracy": 0.9,
+      "dev_macro_f1": 0.902
+    },
+    {
+      "epoch": 12,
+      "lr": 0.005,
+      "train_loss": 0.0319,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1446,
+      "dev_accuracy": 0.9367,
+      "dev_macro_f1": 0.9376
+    },
+    {
+      "epoch": 13,
+      "lr": 0.005,
+      "train_loss": 0.0427,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1975,
+      "dev_accuracy": 0.9433,
+      "dev_macro_f1": 0.9427
+    },
+    {
+      "epoch": 14,
+      "lr": 0.005,
+      "train_loss": 0.0547,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1453,
+      "dev_accuracy": 0.9567,
+      "dev_macro_f1": 0.9565
+    },
+    {
+      "epoch": 15,
+      "lr": 0.005,
+      "train_loss": 0.0454,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1342,
+      "dev_accuracy": 0.96,
+      "dev_macro_f1": 0.9599
+    },
+    {
+      "epoch": 16,
+      "lr": 0.005,
+      "train_loss": 0.0361,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.161,
+      "dev_accuracy": 0.94,
+      "dev_macro_f1": 0.9395
+    },
+    {
+      "epoch": 17,
+      "lr": 0.005,
+      "train_loss": 0.0451,
+      "train_accuracy": 0.9975,
+      "dev_loss": 0.3496,
+      "dev_accuracy": 0.9233,
+      "dev_macro_f1": 0.924
+    },
+    {
+      "epoch": 18,
+      "lr": 0.005,
+      "train_loss": 0.0653,
+      "train_accuracy": 0.9992,
+      "dev_loss": 0.469,
+      "dev_accuracy": 0.9033,
+      "dev_macro_f1": 0.9046
+    },
+    {
+      "epoch": 19,
+      "lr": 0.005,
+      "train_loss": 0.0612,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.293,
+      "dev_accuracy": 0.88,
+      "dev_macro_f1": 0.8814
+    },
+    {
+      "epoch": 20,
+      "lr": 0.005,
+      "train_loss": 0.0476,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.2232,
+      "dev_accuracy": 0.93,
+      "dev_macro_f1": 0.931
+    }
+  ],
+  "artifacts": {
+    "model_weights": {
+      "filename": "model_weights.npz",
+      "sha256": "fce2b252a62c5142ba4cd0e3430fc44ffd6a66d02c05cd840d9a2fa4774f03dd"
+    },
+    "model_metadata": {
+      "filename": "model_metadata.json",
+      "sha256": "1264a632aef1a5356b0f9e336734fc58abd0838bcc097ef8a8dff4512eec5223"
+    }
+  },
+  "warnings_and_limitations": [
+    "EXPERIMENTAL_CANDIDATE_ONLY: Not evaluated or approved for shadow or production deployment.",
+    "LOCAL_BENCHMARK_EVALUATION: Generalization measured against v3 dev partition only.",
+    "INDEPENDENT_SEALED_QUALIFICATION_RESERVED: Final qualification partition remains strictly sealed."
+  ],
+  "status": "SUCCESS"
+}

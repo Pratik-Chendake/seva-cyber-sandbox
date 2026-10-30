@@ -1,0 +1,228 @@
+{
+  "manifest_schema_version": "4.0.0",
+  "corpus_id": "seva-synthetic-corpus-v4",
+  "generator_version": "4.0.0",
+  "total_records": 2250,
+  "partitions": {
+    "training": {
+      "manifest_schema_version": "4.0.0",
+      "partition": "training",
+      "lifecycle_state": "active_training",
+      "file_name": "synthetic_training_corpus.jsonl",
+      "file_sha256": "6abd8b2b2daa25d6f8bc0263e588d0a3410fd9bae8fb82632b5fe826cb1cc93f",
+      "record_count": 1500,
+      "campaign_family_count": 30,
+      "campaign_families": [
+        "v4_train_advisory_cbi_impersonation_alert",
+        "v4_train_advisory_certin_deepfake_voice_scam",
+        "v4_train_advisory_cybercell_video_extortion",
+        "v4_train_advisory_ecourt_fake_warrant_notice",
+        "v4_train_advisory_mha_digital_arrest_warning",
+        "v4_train_advisory_national_1930_helpline",
+        "v4_train_advisory_pib_scheme_factcheck",
+        "v4_train_advisory_police_verification_fee_fraud",
+        "v4_train_advisory_rbi_predatory_loan_apps",
+        "v4_train_advisory_sebi_fake_ipo_investment",
+        "v4_train_legit_aadhaar_biometric_update_status",
+        "v4_train_legit_civil_hospital_opd_schedule",
+        "v4_train_legit_court_notice_appearance_info",
+        "v4_train_legit_district_court_hearing_schedule",
+        "v4_train_legit_mantralaya_gazette_circular",
+        "v4_train_legit_municipal_water_pipeline_maintenance",
+        "v4_train_legit_passport_police_appointment",
+        "v4_train_legit_police_lost_property_acknowledgement",
+        "v4_train_legit_post_office_registered_parcel_pickup",
+        "v4_train_legit_state_board_hall_ticket_download",
+        "v4_train_phish_cbi_investigation_notice",
+        "v4_train_phish_court_warrant_penalty",
+        "v4_train_phish_cybercrime_financial_fraud",
+        "v4_train_phish_digital_arrest_narcotics",
+        "v4_train_phish_fir_cancellation_settlement",
+        "v4_train_phish_mudra_loan_default_attachment",
+        "v4_train_phish_narcotics_possession_warrant",
+        "v4_train_phish_passport_police_verification_fee",
+        "v4_train_phish_pm_kisan_subsidy_disqualification",
+        "v4_train_phish_police_videocall_summons"
+      ],
+      "scenario_count": 30,
+      "scenarios": [
+        "advisory_cbi_impersonation_alert",
+        "advisory_certin_deepfake_voice_scam",
+        "advisory_cybercell_video_extortion",
+        "advisory_ecourt_fake_warrant_notice",
+        "advisory_mha_digital_arrest_warning",
+        "advisory_national_1930_helpline",
+        "advisory_pib_scheme_factcheck",
+        "advisory_police_verification_fee_fraud",
+        "advisory_rbi_predatory_loan_apps",
+        "advisory_sebi_fake_ipo_investment",
+        "legit_aadhaar_biometric_update_status",
+        "legit_civil_hospital_opd_schedule",
+        "legit_court_notice_appearance_info",
+        "legit_district_court_hearing_schedule",
+        "legit_mantralaya_gazette_circular",
+        "legit_municipal_water_pipeline_maintenance",
+        "legit_passport_police_appointment",
+        "legit_police_lost_property_acknowledgement",
+        "legit_post_office_registered_parcel_pickup",
+        "legit_state_board_hall_ticket_download",
+        "phish_cbi_investigation_notice",
+        "phish_court_warrant_penalty",
+        "phish_cybercrime_financial_fraud",
+        "phish_digital_arrest_narcotics",
+        "phish_fir_cancellation_settlement",
+        "phish_mudra_loan_default_attachment",
+        "phish_narcotics_possession_warrant",
+        "phish_passport_police_verification_fee",
+        "phish_pm_kisan_subsidy_disqualification",
+        "phish_police_videocall_summons"
+      ],
+      "distributions": {
+        "label_distribution": {
+          "legitimate": 500,
+          "phishing": 500,
+          "protective_advisory": 500
+        },
+        "language_distribution": {
+          "en": 360,
+          "mr": 390,
+          "mr-Latn": 390,
+          "mr-en": 360
+        },
+        "messaging_mode_distribution": {
+          "advisory_bulletin": 462,
+          "formal_notice": 480,
+          "sms": 458,
+          "whatsapp": 100
+        },
+        "url_presence_distribution": {
+          "False": 750,
+          "True": 750
+        }
+      },
+      "isolation_metadata": {
+        "is_qualification_held_back": false,
+        "disjoint_family_guarantee": true,
+        "locked_eval_accessible": false
+      },
+      "created_at_utc": "2026-10-30T20:30:00Z"
+    },
+    "development": {
+      "manifest_schema_version": "4.0.0",
+      "partition": "development",
+      "lifecycle_state": "active_development",
+      "file_name": "synthetic_dev_corpus.jsonl",
+      "file_sha256": "4814d15a93119eb9934d0ef4127612009b60dc3f5ab607e58d45f349723f9930",
+      "record_count": 300,
+      "campaign_family_count": 6,
+      "campaign_families": [
+        "v4_dev_advisory_dot_sim_termination_alert",
+        "v4_dev_advisory_ed_money_laundering_scam",
+        "v4_dev_legit_property_tax_annual_assessment",
+        "v4_dev_legit_rto_smartcard_dispatch",
+        "v4_dev_phish_customs_fedex_contraband_threat",
+        "v4_dev_phish_highcourt_contempt_fine_scam"
+      ],
+      "scenario_count": 6,
+      "scenarios": [
+        "dev_advisory_dot_sim_termination_alert",
+        "dev_advisory_ed_money_laundering_scam",
+        "dev_legit_property_tax_annual_assessment",
+        "dev_legit_rto_smartcard_dispatch",
+        "dev_phish_customs_fedex_contraband_threat",
+        "dev_phish_highcourt_contempt_fine_scam"
+      ],
+      "distributions": {
+        "label_distribution": {
+          "legitimate": 100,
+          "phishing": 100,
+          "protective_advisory": 100
+        },
+        "language_distribution": {
+          "en": 72,
+          "mr": 78,
+          "mr-Latn": 78,
+          "mr-en": 72
+        },
+        "messaging_mode_distribution": {
+          "advisory_bulletin": 75,
+          "formal_notice": 137,
+          "sms": 75,
+          "whatsapp": 13
+        },
+        "url_presence_distribution": {
+          "False": 150,
+          "True": 150
+        }
+      },
+      "isolation_metadata": {
+        "is_qualification_held_back": false,
+        "disjoint_family_guarantee": true,
+        "locked_eval_accessible": false
+      },
+      "created_at_utc": "2026-10-30T20:30:00Z"
+    },
+    "qualification": {
+      "manifest_schema_version": "4.0.0",
+      "partition": "qualification",
+      "lifecycle_state": "sealed_independent_benchmark",
+      "file_name": "synthetic_qualification_corpus.jsonl",
+      "file_sha256": "d9a3f4a861d971dfb8716f96f7233c42d8291de85ff070ed93893643caa81f7e",
+      "record_count": 450,
+      "campaign_family_count": 9,
+      "campaign_families": [
+        "v4_qual_advisory_bar_council_fake_legal_summons",
+        "v4_qual_advisory_i4c_digital_arrest_sop",
+        "v4_qual_advisory_trai_cyber_arrest_ivr",
+        "v4_qual_legit_lok_adalat_dispute_hearing",
+        "v4_qual_legit_municipal_trade_license_reminder",
+        "v4_qual_legit_police_clearance_certificate_ready",
+        "v4_qual_phish_acb_disproportionate_assets_fine",
+        "v4_qual_phish_nia_terror_funding_interrogation",
+        "v4_qual_phish_supremecourt_arrest_injunction"
+      ],
+      "scenario_count": 9,
+      "scenarios": [
+        "qual_advisory_bar_council_fake_legal_summons",
+        "qual_advisory_i4c_digital_arrest_sop",
+        "qual_advisory_trai_cyber_arrest_ivr",
+        "qual_legit_lok_adalat_dispute_hearing",
+        "qual_legit_municipal_trade_license_reminder",
+        "qual_legit_police_clearance_certificate_ready",
+        "qual_phish_acb_disproportionate_assets_fine",
+        "qual_phish_nia_terror_funding_interrogation",
+        "qual_phish_supremecourt_arrest_injunction"
+      ],
+      "distributions": {
+        "label_distribution": {
+          "legitimate": 150,
+          "phishing": 150,
+          "protective_advisory": 150
+        },
+        "language_distribution": {
+          "en": 108,
+          "mr": 117,
+          "mr-Latn": 117,
+          "mr-en": 108
+        },
+        "messaging_mode_distribution": {
+          "advisory_bulletin": 100,
+          "formal_notice": 249,
+          "sms": 88,
+          "whatsapp": 13
+        },
+        "url_presence_distribution": {
+          "False": 225,
+          "True": 225
+        }
+      },
+      "isolation_metadata": {
+        "is_qualification_held_back": true,
+        "disjoint_family_guarantee": true,
+        "locked_eval_accessible": false
+      },
+      "created_at_utc": "2026-10-30T20:30:00Z"
+    }
+  },
+  "created_at_utc": "2026-10-30T20:30:00Z"
+}

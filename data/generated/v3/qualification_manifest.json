@@ -1,0 +1,62 @@
+{
+  "manifest_schema_version": "3.0.0",
+  "partition": "qualification",
+  "lifecycle_state": "sealed_independent_benchmark",
+  "file_name": "synthetic_qualification_corpus.jsonl",
+  "file_sha256": "197c62e7f0b305ce5965cf7bbeba8543fcd542a4a026d07dbd1172b3656f4a0f",
+  "record_count": 450,
+  "campaign_family_count": 9,
+  "campaign_families": [
+    "v3_qual_advisory_digital_arrest_alert",
+    "v3_qual_advisory_loan_app_harassment",
+    "v3_qual_advisory_pm_kisan_phishing",
+    "v3_qual_legit_bank_statement_ready",
+    "v3_qual_legit_exam_hall_ticket",
+    "v3_qual_legit_water_supply_maintenance",
+    "v3_qual_phish_digital_arrest_extortion",
+    "v3_qual_phish_mudra_loan_subsidy",
+    "v3_qual_phish_traffic_challan_seizure"
+  ],
+  "scenario_count": 9,
+  "scenarios": [
+    "qual_bank_estatement_ready",
+    "qual_digital_arrest_advisory",
+    "qual_digital_arrest_extortion",
+    "qual_exam_hall_ticket_notice",
+    "qual_illegal_loan_apps_advisory",
+    "qual_mudra_loan_scam",
+    "qual_pm_kisan_fraud_advisory",
+    "qual_traffic_challan_threat",
+    "qual_water_supply_maintenance"
+  ],
+  "distributions": {
+    "label_distribution": {
+      "phishing": 150,
+      "legitimate": 150,
+      "protective_advisory": 150
+    },
+    "language_distribution": {
+      "mr": 117,
+      "mr-Latn": 117,
+      "en": 108,
+      "mr-en": 108
+    },
+    "messaging_mode_distribution": {
+      "sms": 164,
+      "whatsapp": 72,
+      "formal_notice": 88,
+      "service_alert": 12,
+      "advisory_bulletin": 114
+    },
+    "url_presence_distribution": {
+      "True": 234,
+      "False": 216
+    }
+  },
+  "isolation_metadata": {
+    "is_qualification_held_back": true,
+    "disjoint_family_guarantee": true,
+    "locked_eval_accessible": false
+  },
+  "created_at_utc": "2026-10-30T12:24:21Z"
+}

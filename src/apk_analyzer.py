@@ -26,6 +26,12 @@ MAX_ZIP_ENTRIES = 5000                           # Max number of files inside ZI
 # Android Binary XML (AXML) constants
 RES_XML_TYPE = 0x0003
 RES_STRING_POOL_TYPE = 0x0001
+RES_XML_RESOURCE_MAP_TYPE = 0x0180
+RES_XML_START_NAMESPACE_TYPE = 0x0100
+RES_XML_END_NAMESPACE_TYPE = 0x0101
+RES_XML_START_ELEMENT_TYPE = 0x0102
+RES_XML_END_ELEMENT_TYPE = 0x0103
+RES_XML_CDATA_TYPE = 0x0104
 UTF8_FLAG = 1 << 8
 
 # Documented catalog of sensitive Android permissions
@@ -176,12 +182,19 @@ def _parse_axml_string_pool(manifest_bytes: bytes) -> Tuple[bool, List[str]]:
         _styles_start,
     ) = struct.unpack_from("<HHIIIIII", manifest_bytes, sp_offset)
 
-    if sp_type != RES_STRING_POOL_TYPE or string_count > 100000:
+    if sp_type != RES_STRING_POOL_TYPE or string_count > 100000 or sp_chunk_size < 28:
+        return False, []
+
+    if sp_offset + sp_chunk_size > len(manifest_bytes):
         return False, []
 
     is_utf8 = bool(flags & UTF8_FLAG)
     offsets_table_start = sp_offset + sp_header_size
     strings_data_start = sp_offset + strings_start
+
+    if offsets_table_start + (string_count * 4) > sp_offset + sp_chunk_size:
+        return False, []
+
     extracted: List[str] = []
 
     try:
@@ -192,10 +205,12 @@ def _parse_axml_string_pool(manifest_bytes: bytes) -> Tuple[bool, List[str]]:
             str_rel_offset = struct.unpack_from("<I", manifest_bytes, offset_pos)[0]
             pos = strings_data_start + str_rel_offset
             if pos >= len(manifest_bytes):
+                extracted.append("<offset-out-of-bounds>")
                 continue
 
             if is_utf8:
                 if pos + 2 > len(manifest_bytes):
+                    extracted.append("<truncated-utf8>")
                     continue
                 char_len = manifest_bytes[pos]
                 pos += 1
@@ -206,26 +221,271 @@ def _parse_axml_string_pool(manifest_bytes: bytes) -> Tuple[bool, List[str]]:
                 if byte_len & 0x80:
                     byte_len = ((byte_len & 0x7F) << 8) | manifest_bytes[pos]
                     pos += 1
+                if pos + byte_len > len(manifest_bytes):
+                    extracted.append("<truncated-utf8-data>")
+                    continue
                 raw_s = manifest_bytes[pos : pos + byte_len]
-                extracted.append(raw_s.decode("utf-8", errors="ignore"))
+                extracted.append(raw_s.decode("utf-8", errors="replace"))
             else:
                 if pos + 2 > len(manifest_bytes):
+                    extracted.append("<truncated-utf16>")
                     continue
                 u16_len = struct.unpack_from("<H", manifest_bytes, pos)[0]
                 pos += 2
                 if u16_len & 0x8000:
                     if pos + 2 > len(manifest_bytes):
+                        extracted.append("<truncated-utf16-surrogate>")
                         continue
                     low = struct.unpack_from("<H", manifest_bytes, pos)[0]
                     u16_len = ((u16_len & 0x7FFF) << 16) | low
                     pos += 2
                 byte_len = u16_len * 2
+                if pos + byte_len > len(manifest_bytes):
+                    extracted.append("<truncated-utf16-data>")
+                    continue
                 raw_s = manifest_bytes[pos : pos + byte_len]
-                extracted.append(raw_s.decode("utf-16le", errors="ignore"))
+                extracted.append(raw_s.decode("utf-16le", errors="replace"))
     except Exception:
         pass
 
     return True, extracted
+
+
+def _parse_axml_element_tree(
+    manifest_bytes: bytes, pool_strings: List[str]
+) -> Dict[str, Any]:
+    """
+    Safely walks compiled Android Binary XML (AXML) chunks following the string pool.
+    Traverses RES_XML_START_ELEMENT_TYPE (0x0102) records to extract manifest attributes
+    (package, label, versionName, versionCode) and declared uses-permission entries
+    strictly from the XML AST without falling back to string pool regex scraping.
+    """
+    tree_result: Dict[str, Any] = {
+        "success": False,
+        "tree_parsed": False,
+        "error": None,
+        "package_name": None,
+        "app_name": None,
+        "version_name": None,
+        "version_code": None,
+        "permissions": [],
+        "elements_seen": 0,
+        "has_manifest_tag": False,
+    }
+
+    if len(manifest_bytes) < 16 or not pool_strings:
+        tree_result["error"] = "Manifest bytes too small or string pool empty."
+        return tree_result
+
+    xml_type, xml_header_size, _ = struct.unpack_from("<HHI", manifest_bytes, 0)
+    if xml_type != RES_XML_TYPE or xml_header_size < 8:
+        tree_result["error"] = f"Invalid XML root chunk (type: 0x{xml_type:04X}, header size: {xml_header_size})."
+        return tree_result
+
+    sp_offset = xml_header_size
+    if sp_offset + 28 > len(manifest_bytes):
+        tree_result["error"] = "StringPool offset overflows manifest bytes."
+        return tree_result
+
+    sp_type, _, sp_chunk_size = struct.unpack_from("<HHI", manifest_bytes, sp_offset)
+    if sp_type != RES_STRING_POOL_TYPE or sp_chunk_size < 28:
+        tree_result["error"] = "Invalid StringPool chunk header."
+        return tree_result
+
+    chunk_offset = sp_offset + sp_chunk_size
+    chunks_processed = 0
+    max_chunks = 20000
+
+    while chunk_offset + 8 <= len(manifest_bytes):
+        chunks_processed += 1
+        if chunks_processed > max_chunks:
+            tree_result["error"] = "Exceeded maximum chunk count safety ceiling (potential loop)."
+            return tree_result
+
+        chunk_type, chunk_hdr_size, chunk_size = struct.unpack_from(
+            "<HHI", manifest_bytes, chunk_offset
+        )
+
+        if chunk_size < 8:
+            tree_result["error"] = f"Malformed chunk size ({chunk_size} < 8) at offset {chunk_offset}."
+            return tree_result
+        if chunk_offset + chunk_size > len(manifest_bytes):
+            tree_result["error"] = (
+                f"Truncated chunk: chunk size {chunk_size} exceeds manifest length at offset {chunk_offset}."
+            )
+            return tree_result
+
+        # Skip resource map (0x0180), namespace chunks (0x0100, 0x0101), and CDATA (0x0104) safely
+        if chunk_type in (
+            RES_XML_RESOURCE_MAP_TYPE,
+            RES_XML_START_NAMESPACE_TYPE,
+            RES_XML_END_NAMESPACE_TYPE,
+            RES_XML_CDATA_TYPE,
+        ):
+            chunk_offset += chunk_size
+            continue
+
+        if chunk_type == RES_XML_START_ELEMENT_TYPE:
+            tree_result["elements_seen"] += 1
+            if chunk_hdr_size < 16 or chunk_offset + 28 > len(manifest_bytes):
+                tree_result["error"] = f"Corrupted START_ELEMENT chunk header at offset {chunk_offset}."
+                return tree_result
+
+            try:
+                (
+                    _line_no,
+                    _comment_idx,
+                    _ns_idx,
+                    name_idx,
+                    attr_start,
+                    attr_size,
+                    attr_count,
+                ) = struct.unpack_from("<IIIIHHH", manifest_bytes, chunk_offset + 8)
+
+                if not (0 <= name_idx < len(pool_strings)):
+                    tree_result["error"] = f"Element tag name index {name_idx} out of string pool bounds."
+                    return tree_result
+                tag_name = pool_strings[name_idx]
+
+                if tree_result["elements_seen"] == 1:
+                    if tag_name != "manifest":
+                        tree_result["error"] = f"Expected root element <manifest>, got <{tag_name}>."
+                        return tree_result
+                    tree_result["has_manifest_tag"] = True
+
+                if attr_count > 1000:
+                    tree_result["error"] = f"Unreasonable attribute count ({attr_count}) in <{tag_name}>."
+                    return tree_result
+                if attr_count > 0 and attr_size < 20:
+                    tree_result["error"] = f"Invalid attribute entry size ({attr_size} < 20) in <{tag_name}>."
+                    return tree_result
+
+                first_attr_offset = chunk_offset + (
+                    attr_start if attr_start >= 36 else chunk_hdr_size + attr_start
+                )
+
+                attrs: Dict[str, str] = {}
+                for attr_i in range(attr_count):
+                    curr_attr_offset = first_attr_offset + (attr_i * attr_size)
+                    if (
+                        curr_attr_offset + 20 > chunk_offset + chunk_size
+                        or curr_attr_offset + 20 > len(manifest_bytes)
+                    ):
+                        tree_result["error"] = f"Attribute entry {attr_i} overflows chunk boundary."
+                        return tree_result
+
+                    (
+                        attr_ns,
+                        attr_name_idx,
+                        raw_val_idx,
+                        _val_size,
+                        _val_res0,
+                        val_type,
+                        val_data,
+                    ) = struct.unpack_from("<IIIHBB I", manifest_bytes, curr_attr_offset)
+
+                    attr_name = (
+                        pool_strings[attr_name_idx]
+                        if 0 <= attr_name_idx < len(pool_strings)
+                        else f"unknown_attr_{attr_name_idx}"
+                    )
+
+                    # Attribute value decoding
+                    if raw_val_idx != 0xFFFFFFFF:
+                        if 0 <= raw_val_idx < len(pool_strings):
+                            attr_val = pool_strings[raw_val_idx]
+                        else:
+                            attr_val = f"<invalid-string-ref-0x{raw_val_idx:X}>"
+                    elif val_type == 0x01:  # TYPE_REFERENCE
+                        attr_val = f"@0x{val_data:08X}"
+                    elif val_type == 0x02:  # TYPE_ATTRIBUTE
+                        attr_val = f"?0x{val_data:08X}"
+                    elif val_type == 0x03:  # TYPE_STRING
+                        if 0 <= val_data < len(pool_strings):
+                            attr_val = pool_strings[val_data]
+                        else:
+                            attr_val = f"<invalid-string-ref-0x{val_data:X}>"
+                    elif val_type == 0x12:  # TYPE_INT_BOOLEAN
+                        attr_val = "true" if val_data != 0 else "false"
+                    elif val_type in (0x10, 0x11):  # TYPE_INT_DEC, TYPE_INT_HEX
+                        attr_val = str(val_data)
+                    else:
+                        attr_val = str(val_data)
+
+                    attrs[attr_name] = attr_val
+                    if attr_ns != 0xFFFFFFFF and 0 <= attr_ns < len(pool_strings):
+                        ns_uri = pool_strings[attr_ns]
+                        if "android" in ns_uri and not attr_name.startswith("android:"):
+                            attrs[f"android:{attr_name}"] = attr_val
+
+                if tag_name == "manifest":
+                    pkg = attrs.get("package") or attrs.get("android:package")
+                    if pkg and not pkg.startswith("<invalid"):
+                        tree_result["package_name"] = pkg
+                    vname = attrs.get("versionName") or attrs.get("android:versionName")
+                    if vname and not vname.startswith("<invalid"):
+                        tree_result["version_name"] = vname
+                    vcode = attrs.get("versionCode") or attrs.get("android:versionCode")
+                    if vcode:
+                        tree_result["version_code"] = vcode
+                elif tag_name in ("uses-permission", "uses-permission-sdk-23", "uses-permission-sdk-m"):
+                    pname = attrs.get("name") or attrs.get("android:name")
+                    if pname and not pname.startswith("<invalid"):
+                        tree_result["permissions"].append(pname)
+                elif tag_name == "application":
+                    app_lbl = attrs.get("label") or attrs.get("android:label")
+                    if app_lbl and not app_lbl.startswith("<invalid"):
+                        tree_result["app_name"] = app_lbl
+
+            except Exception as exc:
+                tree_result["error"] = f"Exception while decoding START_ELEMENT at offset {chunk_offset}: {exc}"
+                return tree_result
+
+        chunk_offset += chunk_size
+
+    if not tree_result["has_manifest_tag"]:
+        tree_result["error"] = "Manifest does not contain a <manifest> element (incomplete or empty manifest)."
+        return tree_result
+
+    tree_result["success"] = True
+    tree_result["tree_parsed"] = True
+    return tree_result
+
+
+
+def _safe_read_zip_member(zf: zipfile.ZipFile, member_name: str, max_bytes: int) -> bytes:
+    """Reads up to max_bytes from a zip member, raising ValueError if the member exceeds max_bytes."""
+    with zf.open(member_name, "r") as f:
+        chunks = []
+        total = 0
+        while True:
+            chunk = f.read(64 * 1024)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > max_bytes:
+                raise ValueError(
+                    f"Member '{member_name}' decompressed size exceeded safety limit of {max_bytes} bytes."
+                )
+            chunks.append(chunk)
+        return b"".join(chunks)
+
+
+def _safe_read_zip_member_prefix(
+    zf: zipfile.ZipFile, member_name: str, max_prefix_bytes: int
+) -> bytes:
+    """Reads up to max_prefix_bytes from a zip member without decompressing the entire file into memory."""
+    with zf.open(member_name, "r") as f:
+        chunks = []
+        total = 0
+        while total < max_prefix_bytes:
+            to_read = min(64 * 1024, max_prefix_bytes - total)
+            chunk = f.read(to_read)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            total += len(chunk)
+        return b"".join(chunks)
 
 
 def _extract_fallback_strings(raw_bytes: bytes) -> str:
@@ -272,6 +532,7 @@ def analyze_apk_bytes(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         "package_name": "Unknown",
         "app_name": "Unknown",
         "version_name": "Unknown",
+        "version_code": "Unknown",
         "files_inside_zip": [],
         "has_manifest": False,
         "has_dex_code": False,
@@ -280,6 +541,8 @@ def analyze_apk_bytes(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         "passive_urls": [],
         "confirmed_observations": [],
         "heuristic_warnings": [],
+        "observed_facts": [],
+        "heuristic_inferences": [],
     }
 
     # 1. Reject empty files
@@ -312,7 +575,7 @@ def analyze_apk_bytes(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         with zipfile.ZipFile(bio, "r") as zf:
             info_list = zf.infolist()
 
-            # ZIP bomb checks
+            # ZIP safety checks
             if len(info_list) > MAX_ZIP_ENTRIES:
                 result["error_message"] = (
                     f"Archive contains {len(info_list)} entries, exceeding the safety ceiling ({MAX_ZIP_ENTRIES})."
@@ -325,6 +588,28 @@ def analyze_apk_bytes(file_bytes: bytes, filename: str) -> Dict[str, Any]:
                     "Archive uncompressed size exceeds the 50 MB safety threshold (potential decompression bomb)."
                 )
                 return result
+
+            # Path traversal and compression ratio checks
+            for info in info_list:
+                norm_name = info.filename.replace("\\", "/")
+                if (
+                    norm_name.startswith("/")
+                    or "../" in norm_name
+                    or "/.." in norm_name
+                    or norm_name == ".."
+                    or (len(norm_name) > 1 and norm_name[1] == ":")
+                ):
+                    result["error_message"] = (
+                        f"Archive rejected: entry '{info.filename}' contains path traversal sequences."
+                    )
+                    return result
+                if info.file_size > 1024 * 1024 and info.compress_size > 0:
+                    ratio = info.file_size / max(info.compress_size, 1)
+                    if ratio > 100:
+                        result["error_message"] = (
+                            f"Archive rejected: entry '{info.filename}' exhibits an anomalous compression ratio ({ratio:.1f}x)."
+                        )
+                        return result
 
             namelist = [info.filename for info in info_list]
             result["files_inside_zip"] = namelist[:30]
@@ -345,21 +630,28 @@ def analyze_apk_bytes(file_bytes: bytes, filename: str) -> Dict[str, Any]:
                 )
                 return result
 
-            with zf.open("AndroidManifest.xml", "r") as mf:
-                manifest_bytes = mf.read(MAX_UNCOMPRESSED_MEMBER_BYTES)
+            manifest_bytes = _safe_read_zip_member(
+                zf, "AndroidManifest.xml", MAX_UNCOMPRESSED_MEMBER_BYTES
+            )
 
-            # Inspect classes.dex header if present (bounded to 512 KB)
+            # Inspect classes.dex header if present (bounded to 512 KB prefix)
             dex_bytes = b""
             for name in namelist:
                 if name.endswith(".dex"):
                     dex_info = zf.getinfo(name)
-                    if dex_info.file_size <= MAX_UNCOMPRESSED_MEMBER_BYTES:
-                        with zf.open(name, "r") as df:
-                            dex_bytes = df.read(512 * 1024)
+                    if dex_info.file_size > MAX_UNCOMPRESSED_MEMBER_BYTES:
+                        result["error_message"] = (
+                            f"Archive member '{name}' uncompressed size exceeds the 10 MB safety limit."
+                        )
+                        return result
+                    dex_bytes = _safe_read_zip_member_prefix(zf, name, 512 * 1024)
                     break
 
     except zipfile.BadZipFile:
         result["error_message"] = "Corrupted ZIP archive structure."
+        return result
+    except ValueError as exc:
+        result["error_message"] = str(exc)
         return result
     except RuntimeError as exc:
         result["error_message"] = f"Archive could not be read safely (possibly encrypted): {exc}"
@@ -370,22 +662,87 @@ def analyze_apk_bytes(file_bytes: bytes, filename: str) -> Dict[str, Any]:
 
     # 5. Distinguish Binary AXML vs. Synthetic Plain-Text XML Fixture
     raw_permissions_set: Set[str] = set()
-    is_binary_axml, pool_strings = _parse_axml_string_pool(manifest_bytes)
+    manifest_text_searchable = ""
 
-    if is_binary_axml:
+    # Check magic: Android Binary XML starts with RES_XML_TYPE (0x0003)
+    is_axml_header = len(manifest_bytes) >= 4 and struct.unpack_from("<H", manifest_bytes, 0)[0] == RES_XML_TYPE
+
+    if is_axml_header:
+        is_binary_axml, pool_strings = _parse_axml_string_pool(manifest_bytes)
+        if not is_binary_axml:
+            result["manifest_format"] = "Corrupted Android Binary XML (String Pool Error)"
+            result["error_message"] = (
+                "Failed to parse Android Binary XML (AXML): String pool chunk is corrupted or truncated."
+            )
+            return result
+
+        tree_result = _parse_axml_element_tree(manifest_bytes, pool_strings)
+        if not tree_result["success"]:
+            result["manifest_format"] = "Corrupted Android Binary XML (Structural Parsing Failure)"
+            result["parser_used"] = "Spec-Compliant Binary AXML Element Tree Parser (Failed)"
+            result["error_message"] = (
+                f"Failed to parse Android Binary XML structure: {tree_result['error']}"
+            )
+            return result
+
         result["manifest_format"] = "Compiled Android Binary XML (AXML 0x00080003)"
-        result["parser_used"] = "Spec-Compliant Binary AXML StringPool Inspector"
-        manifest_text_searchable = "\n".join(pool_strings) + "\n" + _extract_fallback_strings(manifest_bytes)
-        for s in pool_strings:
-            if s.startswith("android.permission.") and re.match(r"^android\.permission\.[A-Z0-9_]+$", s):
-                raw_permissions_set.add(s)
-            elif re.match(r"^(com|in|org|net|edu|gov)\.[a-zA-Z0-9_.]+$", s) and result["package_name"] == "Unknown":
-                result["package_name"] = s
+        result["parser_used"] = "Spec-Compliant Binary AXML Element Tree Parser"
+        if tree_result["package_name"]:
+            result["package_name"] = tree_result["package_name"]
+        if tree_result["app_name"]:
+            result["app_name"] = tree_result["app_name"]
+        if tree_result["version_name"]:
+            result["version_name"] = tree_result["version_name"]
+        if tree_result.get("version_code"):
+            result["version_code"] = tree_result["version_code"]
+
+        # Declared permissions extracted STRICTLY from AST elements, never from arbitrary string pool occurrences
+        for p in tree_result["permissions"]:
+            raw_permissions_set.add(p)
+
+        manifest_text_searchable = "\n".join(pool_strings)
+
     elif manifest_bytes.lstrip().startswith(b"<"):
-        result["manifest_format"] = "Synthetic Plain-Text XML Test Fixture"
-        result["is_synthetic_fixture"] = True
-        result["parser_used"] = "Plain-Text XML Fixture Inspector"
-        manifest_text_searchable = manifest_bytes.decode("utf-8", errors="ignore")
+        try:
+            import xml.etree.ElementTree as ET
+            root = ET.fromstring(manifest_bytes)
+            root_tag = root.tag.split("}")[-1]
+            if root_tag != "manifest":
+                result["error_message"] = (
+                    f"Plain-text XML fixture rejected: root element is <{root_tag}> instead of <manifest>."
+                )
+                return result
+
+            result["manifest_format"] = "Synthetic Plain-Text XML Test Fixture"
+            result["is_synthetic_fixture"] = True
+            result["parser_used"] = "Safe Plain-Text XML Element Tree Parser"
+
+            pkg = root.attrib.get("package")
+            if pkg:
+                result["package_name"] = pkg
+
+            for k, v in root.attrib.items():
+                attr_clean = k.split("}")[-1]
+                if attr_clean == "versionName":
+                    result["version_name"] = v
+                elif attr_clean == "versionCode":
+                    result["version_code"] = v
+
+            for elem in root:
+                tag_short = elem.tag.split("}")[-1]
+                if tag_short in ("uses-permission", "uses-permission-sdk-23", "uses-permission-sdk-m"):
+                    for k, v in elem.attrib.items():
+                        if k.split("}")[-1] == "name" and v:
+                            raw_permissions_set.add(v)
+                elif tag_short == "application":
+                    for k, v in elem.attrib.items():
+                        if k.split("}")[-1] == "label" and v:
+                            result["app_name"] = v
+
+            manifest_text_searchable = manifest_bytes.decode("utf-8", errors="ignore")
+        except Exception as exc:
+            result["error_message"] = f"Malformed plain-text XML fixture: {exc}"
+            return result
     else:
         result["error_message"] = (
             "Unrecognized AndroidManifest.xml format: neither valid Android Binary XML (AXML) "
@@ -395,7 +752,7 @@ def analyze_apk_bytes(file_bytes: bytes, filename: str) -> Dict[str, Any]:
 
     # 6. Check DEX bytecode authenticity
     if dex_bytes.startswith(b"dex\n03"):
-        result["dex_format"] = "Genuine Dalvik Executable Header (dex\\n03x)"
+        result["dex_format"] = "Genuine Dalvik Executable Header (dex\n03x)"
     elif dex_bytes:
         result["dex_format"] = "Synthetic Non-Executable Stub"
         result["is_synthetic_fixture"] = True
@@ -403,23 +760,9 @@ def analyze_apk_bytes(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         result["dex_format"] = "No .dex File Present"
         result["is_synthetic_fixture"] = True
 
-    # 7. Extract package attributes & permissions from searchable text
-    pkg_match = re.search(r'package\s*=\s*["\']([a-zA-Z0-9_.]+)["\']', manifest_text_searchable)
-    if pkg_match and result["package_name"] == "Unknown":
-        result["package_name"] = pkg_match.group(1)
-
-    label_match = re.search(r'android:label\s*=\s*["\']([^"\']+)["\']', manifest_text_searchable)
-    if label_match and result["app_name"] == "Unknown":
-        result["app_name"] = label_match.group(1)
-
-    ver_match = re.search(r'android:versionName\s*=\s*["\']([^"\']+)["\']', manifest_text_searchable)
-    if ver_match and result["version_name"] == "Unknown":
-        result["version_name"] = ver_match.group(1)
-
-    for pm in re.findall(r"android\.permission\.[A-Z0-9_]+", manifest_text_searchable):
-        raw_permissions_set.add(pm)
-
+    # 7. Record declared permissions strictly from validated element tree
     result["all_raw_permissions"] = sorted(raw_permissions_set)
+
 
     # 8. Match against Sensitive Permissions Catalog
     matched_perms: List[Dict[str, Any]] = []
@@ -466,6 +809,32 @@ def analyze_apk_bytes(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         result["heuristic_warnings"].append(
             "Filename Heuristic: File name references a utility, bank, RTO, or welfare scheme. "
             "Official public-service apps are distributed via Google Play Store, not forwarded as raw .apk files on WhatsApp."
+        )
+
+    # Strictly separate confirmed static observations from heuristic inferences
+    result["observed_facts"] = [
+        f"File size: {result['file_size_bytes']} bytes",
+        f"SHA-256 fingerprint: {result['sha256_hash']}",
+        f"Archive entry count: {len(info_list)}",
+        f"Manifest format: {result['manifest_format']}",
+        f"Parser used: {result['parser_used']}",
+        f"Package name: {result['package_name']}",
+        f"App label: {result['app_name']}",
+        f"Version name: {result['version_name']}",
+        f"Version code: {result['version_code']}",
+        f"DEX bytecode: {result['dex_format']}",
+        f"Declared permissions count: {len(result['all_raw_permissions'])}",
+        f"Sensitive permissions matched: {len(matched_perms)}",
+        f"Passive external URLs extracted: {len(result['passive_urls'])}",
+    ]
+    result["heuristic_inferences"] = [
+        f"Permission risk weight sum: {sum(p['weight'] for p in matched_perms)}",
+    ]
+    if result["heuristic_warnings"]:
+        result["heuristic_inferences"].extend(result["heuristic_warnings"])
+    if result["is_synthetic_fixture"]:
+        result["heuristic_inferences"].append(
+            "Synthetic Fixture Inference: Flagged as non-executable test fixture."
         )
 
     result["is_valid_apk"] = True

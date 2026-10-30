@@ -1,0 +1,13 @@
+# Seva Cyber Sandbox Streamlit Configuration
+# Local-Only Security Boundary Enforcement (SEC-05-01)
+# Binds strictly to loopback interface (127.0.0.1) to prevent network exposure.
+
+[server]
+address = "127.0.0.1"
+port = 8501
+headless = true
+enableCORS = false
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false

@@ -1,0 +1,38 @@
+{
+  "model_version": "candidate_v3_seed202",
+  "input_dim": 1024,
+  "hidden_dim1": 64,
+  "hidden_dim2": 32,
+  "num_classes": 3,
+  "learning_rate": 0.005,
+  "weight_decay": 0.0005,
+  "dropout_rate": 0.2,
+  "leaky_relu_alpha": 0.01,
+  "seed": 202,
+  "label_to_index": {
+    "phishing": 0,
+    "legitimate": 1,
+    "protective_advisory": 2
+  },
+  "hasher": {
+    "num_features": 1024,
+    "min_n": 3,
+    "max_n": 5
+  },
+  "architecture": "MLP (3-layer feedforward) over deterministic character n-gram hashing",
+  "weight_initialization": "Layer 1: He normal, Layer 2: He normal, Layer 3: Xavier uniform",
+  "optimizer": "Adam (NumPy implementation)",
+  "is_experimental": true,
+  "training_metadata": {
+    "candidate_id": "candidate_v3_seed202",
+    "seed": 202,
+    "created_at_utc": "2026-10-30T12:38:07Z",
+    "lifecycle_state": "experimental",
+    "is_production_authoritative": false,
+    "preprocessing_version": "neural-preproc-v1.1.0",
+    "training_corpus": "synthetic_training_corpus.jsonl",
+    "best_epoch": 10,
+    "total_epochs_trained": 20,
+    "best_dev_macro_f1": 0.9599
+  }
+}

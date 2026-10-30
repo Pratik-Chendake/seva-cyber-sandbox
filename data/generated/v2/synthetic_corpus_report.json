@@ -1,0 +1,94 @@
+{
+  "pipeline_version": "2.0.0",
+  "total_records_processed": 540,
+  "valid_training_records": 360,
+  "valid_validation_records": 135,
+  "quarantined_records": 45,
+  "exact_duplicates_count": 0,
+  "near_duplicate_warnings_count": 201,
+  "leak_free_guarantee": true,
+  "leaked_campaigns": [],
+  "label_distribution": {
+    "phishing": 165,
+    "legitimate": 165,
+    "protective_advisory": 165
+  },
+  "language_distribution": {
+    "mr-Latn": 100,
+    "en": 145,
+    "mr": 171,
+    "mr-en": 79
+  },
+  "script_distribution": {
+    "Latin": 245,
+    "Devanagari": 171,
+    "Mixed": 79
+  },
+  "scenario_distribution": {
+    "msedcl_powercut_threat": 30,
+    "bank_kyc_suspension": 30,
+    "upi_cashback_lure": 30,
+    "courier_parcel_delivery": 30,
+    "genuine_utility_receipt": 30,
+    "genuine_banking_credit": 30,
+    "genuine_service_booking": 30,
+    "genuine_civic_notice": 30,
+    "utility_safety_advisory": 30,
+    "banking_safety_advisory": 30,
+    "apk_malware_advisory": 30,
+    "part_time_task_advisory": 30,
+    "msedcl_solar_subsidy": 15,
+    "credit_card_rewards": 15,
+    "rto_echallan_fine": 15,
+    "genuine_appointment_booking": 15,
+    "genuine_telecom_service": 15,
+    "genuine_education_notice": 15,
+    "rto_safety_advisory": 15,
+    "lottery_reward_advisory": 15,
+    "digital_arrest_advisory": 15
+  },
+  "quarantined_summary": [
+    {
+      "record_id": "syn_v2_train_0361",
+      "reason": "Ambiguous record quarantined for analyst review (not for training)."
+    },
+    {
+      "record_id": "syn_v2_train_0362",
+      "reason": "Ambiguous record quarantined for analyst review (not for training)."
+    },
+    {
+      "record_id": "syn_v2_train_0363",
+      "reason": "Ambiguous record quarantined for analyst review (not for training)."
+    },
+    {
+      "record_id": "syn_v2_train_0364",
+      "reason": "Ambiguous record quarantined for analyst review (not for training)."
+    },
+    {
+      "record_id": "syn_v2_train_0365",
+      "reason": "Ambiguous record quarantined for analyst review (not for training)."
+    },
+    {
+      "record_id": "syn_v2_train_0366",
+      "reason": "Ambiguous record quarantined for analyst review (not for training)."
+    },
+    {
+      "record_id": "syn_v2_train_0367",
+      "reason": "Ambiguous record quarantined for analyst review (not for training)."
+    },
+    {
+      "record_id": "syn_v2_train_0368",
+      "reason": "Ambiguous record quarantined for analyst review (not for training)."
+    },
+    {
+      "record_id": "syn_v2_train_0369",
+      "reason": "Ambiguous record quarantined for analyst review (not for training)."
+    },
+    {
+      "record_id": "syn_v2_train_0370",
+      "reason": "Ambiguous record quarantined for analyst review (not for training)."
+    }
+  ],
+  "corpus_version": "2.2.0-deconfounded",
+  "locked_test_manifest_sha256": "9b9c02d438cfca8bd07af89d60bc1d2fb42d460143d016365ab5a1d231ee0cda"
+}

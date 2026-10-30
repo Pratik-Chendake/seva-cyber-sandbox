@@ -1,0 +1,221 @@
+{
+  "schema_version": "1.0.0",
+  "last_curated": "2026-10-28",
+  "curator": "Seva Cyber Sandbox Verification Desk",
+  "source_evaluations": [
+    {
+      "url": "https://maharashtra.gov.in/",
+      "name": "Government of Maharashtra State Portal",
+      "status": "Accessible",
+      "has_public_rest_api": false,
+      "notes": "Main state government portal. Provides general notices and policy links; no public REST API."
+    },
+    {
+      "url": "https://gr.maharashtra.gov.in/1145/Government-Resolutions",
+      "name": "Maharashtra Government Resolutions (GR) Repository",
+      "status": "Accessible",
+      "has_public_rest_api": false,
+      "notes": "ASP.NET WebForms portal requiring VIEWSTATE session state. No public REST/RSS feed."
+    },
+    {
+      "url": "https://mahadbt.maharashtra.gov.in/",
+      "name": "MahaDBT (Direct Benefit Transfer) Portal",
+      "status": "Accessible",
+      "has_public_rest_api": false,
+      "notes": "Citizen authentication and scholarship portal. Does not provide an unauthenticated open query API."
+    },
+    {
+      "url": "https://mahadbt2.maharashtra.gov.in/",
+      "name": "MahaDBT Secondary/Legacy Gateway",
+      "status": "Unavailable",
+      "has_public_rest_api": false,
+      "notes": "SSL handshake timeout observed during automated probing; marked as unstable/unavailable."
+    }
+  ],
+  "allowlisted_domains": [
+    "maharashtra.gov.in",
+    "gov.in",
+    "mahadiscom.in",
+    "nic.in"
+  ],
+  "disclaimer": "Curated from official Government Resolutions (GRs), notifications, and official portals of the Government of Maharashtra. This source-backed registry provides verified ground-truth baselines and does not claim to index every scheme in Maharashtra.",
+  "schemes": [
+    {
+      "id": "ladki_bahin_yojana",
+      "official_title_en": "Mukhyamantri Majhi Ladki Bahin Yojana",
+      "official_title_mr": "मुख्यमंत्री माझी लाडकी बहीण योजना",
+      "department_en": "Women and Child Development Department, Government of Maharashtra",
+      "department_mr": "महिला व बाल विकास विभाग, महाराष्ट्र शासन",
+      "official_portal_url": "https://ladakibahin.maharashtra.gov.in/",
+      "official_gr_url": "https://maharashtra.gov.in/",
+      "official_gr_number": "शासन निर्णय क्र. संकीर्ण-२०२४/प्र.क्र.१४७/कार्या-०२",
+      "publication_date": "2024-06-28",
+      "benefit_amount_description_en": "₹1,500 per month (direct benefit transfer to Aadhaar-linked bank account)",
+      "benefit_amount_description_mr": "दरमहा ₹१,५०० (आधार लिंक बँक खात्यात थेट जमा)",
+      "benefit_numeric_values": [1500],
+      "fee_required": false,
+      "official_application_channels_en": [
+        "Official Web Portal (ladakibahin.maharashtra.gov.in)",
+        "Official Nari Shakti Doot Mobile Application",
+        "In-person at Anganwadi Kendra, Gram Panchayat, or Setu Suvidha Kendra"
+      ],
+      "official_application_channels_mr": [
+        "अधिकृत वेब पोर्टल (ladakibahin.maharashtra.gov.in)",
+        "अधिकृत नारीशक्ती दूत मोबाईल ॲप",
+        "अंगणवाडी केंद्र, ग्रामपंचायत किंवा सेतू सुविधा केंद्र येथे प्रत्यक्ष अर्ज"
+      ],
+      "keywords": [
+        "ladki bahin",
+        "लाडकी बहीण",
+        "ladki behan",
+        "majhi ladki bahin",
+        "ladakibahin",
+        "मुख्यमंत्री माझी लाडकी बहीण"
+      ],
+      "known_scam_conflicts": [
+        "Claims promising ₹3,000, ₹5,000, or ₹10,000 monthly payouts (official amount is strictly ₹1,500)",
+        "Claims asking citizens to register by clicking an unverified WhatsApp link or bit.ly link",
+        "Claims asking citizens to download an APK file (e.g. Ladki_Bahin_Form.apk) outside the Google Play Store",
+        "Demands for registration fees or processing charges (the official application is 100% free)"
+      ]
+    },
+    {
+      "id": "namo_shetkari_yojana",
+      "official_title_en": "Namo Shetkari Mahasanman Nidhi Yojana",
+      "official_title_mr": "नमो शेतकरी महासन्मान निधी योजना",
+      "department_en": "Agriculture Department, Government of Maharashtra",
+      "department_mr": "कृषी विभाग, महाराष्ट्र शासन",
+      "official_portal_url": "https://krishi.maharashtra.gov.in/",
+      "official_gr_url": "https://maharashtra.gov.in/",
+      "official_gr_number": "शासन निर्णय क्र. संकीर्ण-२०२३/प्र.क्र.८८/७-ओ",
+      "publication_date": "2023-05-30",
+      "benefit_amount_description_en": "₹6,000 annually per eligible farmer (paid in 3 installments of ₹2,000 each, supplemental to PM-KISAN)",
+      "benefit_amount_description_mr": "वार्षिक ₹६,००० प्रति शेतकरी (₹२,००० चे ३ हप्ते, पीएम-किसान योजनेव्यतिरिक्त)",
+      "benefit_numeric_values": [2000, 6000],
+      "fee_required": false,
+      "official_application_channels_en": [
+        "Integrated automatically with verified PM-KISAN database",
+        "Official Krishi Department portal (krishi.maharashtra.gov.in)"
+      ],
+      "official_application_channels_mr": [
+        "पीएम-किसान पोर्टलवरील पडताळणीकृत शेतकरी यादीनुसार थेट लाभ",
+        "कृषी विभागाचे अधिकृत पोर्टल (krishi.maharashtra.gov.in)"
+      ],
+      "keywords": [
+        "namo shetkari",
+        "नमो शेतकरी",
+        "shetkari mahasanman",
+        "नमो शेतकरी महासन्मान निधी",
+        "namo kisan"
+      ],
+      "known_scam_conflicts": [
+        "Demands for advance registration fees or KYC release fees",
+        "Claims offering ₹10,000 or ₹15,000 one-time lump-sum transfers",
+        "Requests to share OTP or ATM PIN with WhatsApp contacts to unblock installment"
+      ]
+    },
+    {
+      "id": "mahadbt_scholarship",
+      "official_title_en": "MahaDBT Post-Matric Scholarship Scheme",
+      "official_title_mr": "महाडीबीटी मॅट्रिकोत्तर शिष्यवृत्ती योजना",
+      "department_en": "Social Justice and Special Assistance Department / Directorate of Higher Education",
+      "department_mr": "सामाजिक न्याय व विशेष सहाय्य विभाग / उच्च शिक्षण संचालनालय",
+      "official_portal_url": "https://mahadbt.maharashtra.gov.in/",
+      "official_gr_url": "https://mahadbt.maharashtra.gov.in/",
+      "official_gr_number": "शासन निर्णय संकीर्ण-२०२४/महाडीबीटी",
+      "publication_date": "2024-07-01",
+      "benefit_amount_description_en": "Tuition fee reimbursement, exam fees, and maintenance allowance as per student category and course norms",
+      "benefit_amount_description_mr": "अभ्यासक्रम व संवर्ग नियमांनुसार शैक्षणिक शुल्क प्रतिपूर्ती व निर्वाह भत्ता",
+      "benefit_numeric_values": [],
+      "fee_required": false,
+      "official_application_channels_en": [
+        "Strictly via student login on the official portal (mahadbt.maharashtra.gov.in)"
+      ],
+      "official_application_channels_mr": [
+        "केवळ अधिकृत महाडीबीटी पोर्टलवर (mahadbt.maharashtra.gov.in) विद्यार्थी लॉगिनद्वारे"
+      ],
+      "keywords": [
+        "mahadbt",
+        "महाडीबीटी",
+        "post matric scholarship",
+        "मॅट्रिकोत्तर शिष्यवृत्ती",
+        "dbt scholarship"
+      ],
+      "known_scam_conflicts": [
+        "Messages claiming scholarship has arrived and asking user to enter UPI PIN to claim money",
+        "Links leading to non-gov domains (e.g. mahadbt-scholarship-update.xyz)"
+      ]
+    },
+    {
+      "id": "mukhyamantri_vayoshri_yojana",
+      "official_title_en": "Mukhyamantri Vayoshri Yojana",
+      "official_title_mr": "मुख्यमंत्री वयोश्री योजना",
+      "department_en": "Social Justice and Special Assistance Department, Government of Maharashtra",
+      "department_mr": "सामाजिक न्याय व विशेष सहाय्य विभाग, महाराष्ट्र शासन",
+      "official_portal_url": "https://sjsa.maharashtra.gov.in/",
+      "official_gr_url": "https://maharashtra.gov.in/",
+      "official_gr_number": "शासन निर्णय क्र. वयोश्री-२०२४/प्र.क्र.१९/कार्या-०७",
+      "publication_date": "2024-02-05",
+      "benefit_amount_description_en": "One-time financial assistance of ₹3,000 directly deposited for senior citizens (aged 65+) to purchase daily-living assistive aids",
+      "benefit_amount_description_mr": "६५ वर्षे किंवा त्यावरील ज्येष्ठ नागरिकांना दैनंदिन जीवन सुलभ साधनांसाठी एकरकमी ₹३,०००",
+      "benefit_numeric_values": [3000],
+      "fee_required": false,
+      "official_application_channels_en": [
+        "District Social Welfare Office",
+        "Gram Panchayat / Municipal Corporation facilitation counters",
+        "Authorized Setu Suvidha Kendra (Offline form submission)"
+      ],
+      "official_application_channels_mr": [
+        "जिल्हा समाजकल्याण अधिकारी कार्यालय",
+        "ग्रामपंचायत / महानगरपालिका सुविधा कक्ष",
+        "अधिकृत सेतू सुविधा केंद्र (ऑफलाईन अर्ज)"
+      ],
+      "keywords": [
+        "vayoshri",
+        "वयोश्री",
+        "mukhyamantri vayoshri",
+        "मुख्यमंत्री वयोश्री योजना",
+        "senior citizen scheme"
+      ],
+      "known_scam_conflicts": [
+        "Claims promising monthly pensions of ₹5,000 or ₹10,000 under Vayoshri",
+        "Directing elderly citizens to install an APK file on their phone to receive the money"
+      ]
+    },
+    {
+      "id": "msedcl_solar_agri_pump",
+      "official_title_en": "Magel Tyala Saur Krushi Pump Yojana (MSEDCL Solar Pump)",
+      "official_title_mr": "मागेल त्याला सौर कृषी पंप योजना (महावितरण)",
+      "department_en": "Energy Department / MSEDCL (Mahavitaran)",
+      "department_mr": "ऊर्जा विभाग / महाराष्ट्र राज्य विद्युत वितरण कंपनी मर्यादित (महावितरण)",
+      "official_portal_url": "https://www.mahadiscom.in/solar/",
+      "official_gr_url": "https://www.mahadiscom.in/",
+      "official_gr_number": "शासन निर्णय क्र. सौर-२०२४/प्र.क्र.६४/ऊर्जा-०७",
+      "publication_date": "2024-03-12",
+      "benefit_amount_description_en": "90% to 95% capital subsidy on standalone solar water pumping systems for agricultural consumers",
+      "benefit_amount_description_mr": "शेतकऱ्यांसाठी सौर कृषी पंपावर ९०% ते ९५% शासकीय अनुदान",
+      "benefit_numeric_values": [],
+      "fee_required": false,
+      "official_application_channels_en": [
+        "Official MSEDCL Solar Portal (mahadiscom.in/solar/)",
+        "Official Mahavitaran Mobile App"
+      ],
+      "official_application_channels_mr": [
+        "महावितरणचे अधिकृत सौर पोर्टल (mahadiscom.in/solar/)",
+        "अधिकृत महावितरण मोबाईल ॲप"
+      ],
+      "keywords": [
+        "saur krushi pump",
+        "सौर कृषी पंप",
+        "solar pump",
+        "magel tyala saur pump",
+        "मागेल त्याला सौर",
+        "msedcl solar"
+      ],
+      "known_scam_conflicts": [
+        "Demanding advance registration fees paid via QR code or private UPI mobile numbers",
+        "Unofficial fake approval letters distributed on WhatsApp directing users to click non-mahadiscom links"
+      ]
+    }
+  ]
+}

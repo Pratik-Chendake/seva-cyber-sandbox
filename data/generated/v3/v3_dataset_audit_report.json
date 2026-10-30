@@ -1,0 +1,113 @@
+{
+  "audit_schema_version": "3.0.0",
+  "audit_timestamp_utc": "2026-10-30T12:24:39Z",
+  "corpus_version": "3.0.0",
+  "total_records_audited": 1950,
+  "partitions": {
+    "training": {
+      "record_count": 1200,
+      "label_distribution": {
+        "phishing": 400,
+        "legitimate": 400,
+        "protective_advisory": 400
+      },
+      "language_distribution": {
+        "mr": 312,
+        "mr-Latn": 312,
+        "en": 288,
+        "mr-en": 288
+      },
+      "messaging_mode_distribution": {
+        "sms": 498,
+        "whatsapp": 212,
+        "formal_notice": 138,
+        "service_alert": 48,
+        "advisory_bulletin": 304
+      },
+      "url_distribution": {
+        "True": 624,
+        "False": 576
+      },
+      "url_by_class": {
+        "phishing": "208/400 with URL (52.0%)",
+        "legitimate": "208/400 with URL (52.0%)",
+        "protective_advisory": "208/400 with URL (52.0%)"
+      }
+    },
+    "development": {
+      "record_count": 300,
+      "label_distribution": {
+        "phishing": 100,
+        "legitimate": 100,
+        "protective_advisory": 100
+      },
+      "language_distribution": {
+        "mr": 78,
+        "mr-Latn": 78,
+        "en": 72,
+        "mr-en": 72
+      },
+      "messaging_mode_distribution": {
+        "sms": 146,
+        "whatsapp": 54,
+        "formal_notice": 6,
+        "service_alert": 18,
+        "advisory_bulletin": 76
+      },
+      "url_distribution": {
+        "True": 156,
+        "False": 144
+      },
+      "url_by_class": {
+        "phishing": "52/100 with URL (52.0%)",
+        "legitimate": "52/100 with URL (52.0%)",
+        "protective_advisory": "52/100 with URL (52.0%)"
+      }
+    },
+    "qualification": {
+      "record_count": 450,
+      "label_distribution": {
+        "phishing": 150,
+        "legitimate": 150,
+        "protective_advisory": 150
+      },
+      "language_distribution": {
+        "mr": 117,
+        "mr-Latn": 117,
+        "en": 108,
+        "mr-en": 108
+      },
+      "messaging_mode_distribution": {
+        "sms": 164,
+        "whatsapp": 72,
+        "formal_notice": 88,
+        "service_alert": 12,
+        "advisory_bulletin": 114
+      },
+      "url_distribution": {
+        "True": 234,
+        "False": 216
+      },
+      "url_by_class": {
+        "phishing": "78/150 with URL (52.0%)",
+        "legitimate": "78/150 with URL (52.0%)",
+        "protective_advisory": "78/150 with URL (52.0%)"
+      }
+    }
+  },
+  "isolation_checks": {
+    "record_id_leakage": 0,
+    "campaign_family_leakage": 0,
+    "scenario_category_leakage": 0,
+    "exact_text_leakage": 0,
+    "near_duplicate_cross_partition_leakage": 0,
+    "locked_eval_overlap": 0,
+    "locked_eval_digest_verified": true
+  },
+  "privacy_checks": {
+    "unmasked_phone_numbers_detected": 0,
+    "unmasked_aadhaar_detected": 0,
+    "non_synthetic_provenance_detected": 0
+  },
+  "status": "PASS"
+}

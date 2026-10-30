@@ -1,0 +1,73 @@
+{
+  "evaluation_partition": "data/generated/v2/synthetic_validation_corpus.jsonl",
+  "total_records_evaluated": 135,
+  "operating_modes_tested": [
+    "rules_only",
+    "shadow",
+    "fallback"
+  ],
+  "shadow_mode_score_invariance": {
+    "required_score_change": 0,
+    "observed_max_score_change": 0,
+    "all_scores_invariant": true,
+    "records_with_score_delta": 0
+  },
+  "concordance_summary": {
+    "agreements_count": 50,
+    "agreements_rate": 0.3704,
+    "disagreements_count": 85,
+    "disagreements_rate": 0.6296,
+    "not_applicable_count": 0
+  },
+  "critical_safety_false_positives": {
+    "protective_advisory_evaluation": {
+      "total_advisories": 45,
+      "rule_engine_false_positives": 9,
+      "rule_engine_fpr": 0.2,
+      "custom_model_false_positives": 0,
+      "custom_model_fpr": 0.0,
+      "hybrid_shadow_false_positives": 9,
+      "hybrid_shadow_fpr": 0.2
+    },
+    "legitimate_message_evaluation": {
+      "total_legitimate": 45,
+      "rule_engine_false_positives": 4,
+      "rule_engine_fpr": 0.0889,
+      "custom_model_false_positives": 5,
+      "custom_model_fpr": 0.1111,
+      "hybrid_shadow_false_positives": 4,
+      "hybrid_shadow_fpr": 0.0889
+    }
+  },
+  "fallback_verification": {
+    "samples_tested": 10,
+    "successful_safe_fallbacks": 10,
+    "fallback_reliability": "100.0% (Zero crashes, full rule-based preservation)"
+  },
+  "language_breakdown": {
+    "mr": {
+      "total": 55,
+      "rule_accuracy": 0.4364,
+      "model_accuracy": 0.9273,
+      "concordance_rate": 0.3818
+    },
+    "mr-en": {
+      "total": 23,
+      "rule_accuracy": 0.3913,
+      "model_accuracy": 0.9565,
+      "concordance_rate": 0.3478
+    },
+    "mr-Latn": {
+      "total": 20,
+      "rule_accuracy": 0.5,
+      "model_accuracy": 0.9,
+      "concordance_rate": 0.5
+    },
+    "en": {
+      "total": 37,
+      "rule_accuracy": 0.2973,
+      "model_accuracy": 1.0,
+      "concordance_rate": 0.2973
+    }
+  }
+}

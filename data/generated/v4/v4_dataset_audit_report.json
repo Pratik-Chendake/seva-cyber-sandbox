@@ -1,0 +1,47 @@
+{
+  "audit_schema_version": "4.0.0",
+  "audit_timestamp_utc": "2026-10-30T15:15:01Z",
+  "corpus_version": "4.0.0",
+  "total_records_audited": 2250,
+  "total_campaign_families": 45,
+  "partitions": {
+    "training": {
+      "records": 1500,
+      "families": 30,
+      "sha256": "6abd8b2b2daa25d6f8bc0263e588d0a3410fd9bae8fb82632b5fe826cb1cc93f"
+    },
+    "development": {
+      "records": 300,
+      "families": 6,
+      "sha256": "4814d15a93119eb9934d0ef4127612009b60dc3f5ab607e58d45f349723f9930"
+    },
+    "qualification": {
+      "records": 450,
+      "families": 9,
+      "sha256": "d9a3f4a861d971dfb8716f96f7233c42d8291de85ff070ed93893643caa81f7e"
+    }
+  },
+  "audit_results": {
+    "check_01_record_ids_disjoint": true,
+    "check_02_campaign_families_disjoint": true,
+    "check_03_scenarios_disjoint": true,
+    "check_04_exact_text_duplicates": 0,
+    "check_05_max_jaccard_similarity": 0.3241,
+    "check_06_class_distribution_balanced": true,
+    "check_07_language_distribution_balanced": true,
+    "check_08_url_presence_exactly_half": true,
+    "check_09_digital_arrest_phishing_present": true,
+    "check_10_legit_police_court_present": true,
+    "check_11_advisory_digital_arrest_present": true,
+    "check_12_semantic_overlap_confirmed": true,
+    "check_13_url_free_phishing_present": true,
+    "check_14_url_bearing_legit_advisory_present": true,
+    "check_15_pii_validation_passed": true,
+    "check_16_synthetic_provenance_verified": true,
+    "check_17_manifest_checksums_verified": true,
+    "check_18_qualification_unexposed": true,
+    "check_19_v3_files_unaltered": true,
+    "locked_eval_partition_unaltered": true
+  },
+  "verdict": "PASS"
+}

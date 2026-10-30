@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "description": "Seva Cyber Sandbox Locked Independent Test Partition Manifest",
+  "locked_record_count": 10,
+  "locked_records": [
+    "eval_legit_001",
+    "eval_legit_006",
+    "eval_legit_009",
+    "eval_phish_005",
+    "eval_phish_006",
+    "eval_phish_007",
+    "eval_phish_008",
+    "eval_phish_009",
+    "eval_phish_012",
+    "eval_phish_017"
+  ],
+  "locked_campaigns": [
+    "camp_bank_legitimate_alerts",
+    "camp_civic_gram_panchayat",
+    "camp_customs_digital_arrest",
+    "camp_fake_lottery_reward",
+    "camp_msedcl_refund_lure",
+    "camp_official_msedcl_billing",
+    "camp_part_time_task_scam",
+    "camp_sim_ekyc_deactivation"
+  ],
+  "sha256_checksum": "9b9c02d438cfca8bd07af89d60bc1d2fb42d460143d016365ab5a1d231ee0cda"
+}

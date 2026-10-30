@@ -1,0 +1,55 @@
+{
+  "manifest_schema_version": "4.0.0",
+  "partition": "development",
+  "lifecycle_state": "active_development",
+  "file_name": "synthetic_dev_corpus.jsonl",
+  "file_sha256": "4814d15a93119eb9934d0ef4127612009b60dc3f5ab607e58d45f349723f9930",
+  "record_count": 300,
+  "campaign_family_count": 6,
+  "campaign_families": [
+    "v4_dev_advisory_dot_sim_termination_alert",
+    "v4_dev_advisory_ed_money_laundering_scam",
+    "v4_dev_legit_property_tax_annual_assessment",
+    "v4_dev_legit_rto_smartcard_dispatch",
+    "v4_dev_phish_customs_fedex_contraband_threat",
+    "v4_dev_phish_highcourt_contempt_fine_scam"
+  ],
+  "scenario_count": 6,
+  "scenarios": [
+    "dev_advisory_dot_sim_termination_alert",
+    "dev_advisory_ed_money_laundering_scam",
+    "dev_legit_property_tax_annual_assessment",
+    "dev_legit_rto_smartcard_dispatch",
+    "dev_phish_customs_fedex_contraband_threat",
+    "dev_phish_highcourt_contempt_fine_scam"
+  ],
+  "distributions": {
+    "label_distribution": {
+      "legitimate": 100,
+      "phishing": 100,
+      "protective_advisory": 100
+    },
+    "language_distribution": {
+      "en": 72,
+      "mr": 78,
+      "mr-Latn": 78,
+      "mr-en": 72
+    },
+    "messaging_mode_distribution": {
+      "advisory_bulletin": 75,
+      "formal_notice": 137,
+      "sms": 75,
+      "whatsapp": 13
+    },
+    "url_presence_distribution": {
+      "False": 150,
+      "True": 150
+    }
+  },
+  "isolation_metadata": {
+    "is_qualification_held_back": false,
+    "disjoint_family_guarantee": true,
+    "locked_eval_accessible": false
+  },
+  "created_at_utc": "2026-10-30T20:30:00Z"
+}

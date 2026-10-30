@@ -1,0 +1,38 @@
+{
+  "ledger_schema_version": "1.0.0",
+  "created_at_utc": "2026-10-30T13:02:24Z",
+  "partitions": {
+    "197c62e7f0b305ce5965cf7bbeba8543fcd542a4a026d07dbd1172b3656f4a0f": {
+      "partition_file_name": "synthetic_qualification_corpus.jsonl",
+      "partition_sha256": "197c62e7f0b305ce5965cf7bbeba8543fcd542a4a026d07dbd1172b3656f4a0f",
+      "first_exposed_at_utc": "2026-10-30T13:02:24Z",
+      "exposure_count": 1,
+      "events": [
+        {
+          "event_type": "EVALUATION_IN_PROGRESS",
+          "timestamp_utc": "2026-10-30T13:02:24Z",
+          "candidate_id": "candidate_v3_seed202",
+          "baseline_id": "custom-mlp-v1.1.0-preproc",
+          "details": "Evaluation started. Partition records are now unsealed and accessed."
+        },
+        {
+          "event_type": "EVALUATION_COMPLETED",
+          "timestamp_utc": "2026-10-30T13:02:26Z",
+          "candidate_id": "candidate_v3_seed202",
+          "verdict": "FAIL",
+          "report_file": "C:\\Users\\prati\\seva-cyber-sandbox\\evaluation\\qualification\\candidate_v3_seed202_qualification.json",
+          "details": "Evaluation concluded with verdict 'FAIL'. Results saved to 'C:\\Users\\prati\\seva-cyber-sandbox\\evaluation\\qualification\\candidate_v3_seed202_qualification.json'."
+        }
+      ],
+      "is_exposed": true,
+      "current_status": "EVALUATION_COMPLETED",
+      "last_updated_utc": "2026-10-30T13:02:26Z",
+      "candidate_evaluated": "candidate_v3_seed202",
+      "baseline_compared": "custom-mlp-v1.1.0-preproc",
+      "final_verdict": "FAIL",
+      "report_file": "C:\\Users\\prati\\seva-cyber-sandbox\\evaluation\\qualification\\candidate_v3_seed202_qualification.json",
+      "completed_at_utc": "2026-10-30T13:02:26Z"
+    }
+  },
+  "last_updated_utc": "2026-10-30T13:02:26Z"
+}

@@ -30,9 +30,10 @@ INDICATOR_RULES: List[Dict[str, Any]] = [
             r"enter\s+your\s+(netbanking\s+password|otp|upi\s*pin|password|cvv)",
         ],
         "protective_negations": [
-            r"never\s+asks?\s+for\s+your\s+otp",
-            r"do\s+not\s+share\s+(your\s+)?(otp|pin)",
-            r"(ओटीपी|otp)\s*कोणालाही\s*सांगू\s*नका",
+            r"never\s+(?:asks?|share)\s+(?:for\s+)?(?:your\s+)?(?:otp|pin|password|cvv)",
+            r"do\s+not\s+share\s+(?:your\s+)?(?:otp|pin|password|cvv)",
+            r"(?:ओटीपी|otp|पिन|पासवर्ड)\s*कोणालाही\s*(?:सांगू|शेअर\s*करू|देवू)\s*नका",
+            r"(?:devu|sangu|share\s*karu)\s*naka",
         ],
         "why_it_matters_en": (
             "Legitimate banks, utilities, and government offices never ask you to share an OTP, "
@@ -69,12 +70,15 @@ INDICATOR_RULES: List[Dict[str, Any]] = [
         "weight": 22,
         "severity": "Moderate",
         "patterns": [
-            r"(आज\s*रात्री|तात्काळ|ताबडतोब|लगेच|24\s*तासात)",
+            r"(आज\s*रात्री.*(?:कट|बंद|मीटर|खंडित|कारवाई)|तात्काळ|ताबडतोब|24\s*तासात)",
             r"(कनेक्शन\s*कट|कनेक्शन\s*बंद|खाते\s*ब्लॉक|अटक\s*टाळण्यासाठी)",
-            r"\b(aaj\s*ratri|lagech|tatkal|block\s*honar|line\s*cut\s*hoil)\b",
-            r"\b(urgent\s*alert|immediately|within\s*\d+\s*hours|avoid\s*court\s*warrant)\b",
+            r"\b(aaj\s*ratri.*(?:cut|block|line|meter|band)|tatkal|block\s*honar|line\s*cut\s*hoil)\b",
+            r"\b(urgent\s*alert|immediately\s*(?:pay|call|download|click|verify)|within\s*\d+\s*hours|avoid\s*court\s*warrant)\b",
         ],
-        "protective_negations": [],
+        "protective_negations": [
+            r"(?:1930|cybercrime\.gov\.in).*(?:लगेच|तात्काळ|immediately|tatkal|contact|संपर्क|dial|तक्रार)",
+            r"(?:लगेच|तात्काळ|immediately|tatkal).*(?:1930|cybercrime\.gov\.in|तक्रार|हेल्पलाइन|helpline|dial)",
+        ],
         "why_it_matters_en": (
             "Scammers manufacture panic ('electricity cut tonight at 9:30 PM', 'arrest warrant', 'blocked in 24 hours') "
             "so victims act before verifying with an official office."
@@ -131,7 +135,10 @@ INDICATOR_RULES: List[Dict[str, Any]] = [
             r"\b(ghara\s*baslya\s*darroj|youtube\s*video\s*like\s*kara|registration\s*sathi.*fee)\b",
             r"\b(overpaid.*refund|instant\s*credit|daily\s*income\s*task)\b",
         ],
-        "protective_negations": [],
+        "protective_negations": [
+            r"(?:लॉटरी|lottery|बक्षीस|कॅशबॅक|cashback|link|लिंक).*(?:क्लिक\s*करू\s*नका|click\s*karu\s*naka|do\s+not\s+click)",
+            r"(?:do\s+not\s+click|क्लिक\s*करू\s*नका).*(?:लॉटरी|lottery|बक्षीस|कॅशबॅक|cashback|link|लिंक)",
+        ],
         "why_it_matters_en": (
             "Promises easy daily income for liking videos or unexpected refunds that require registration fees or PIN entry."
         ),
@@ -161,11 +168,20 @@ INDICATOR_RULES: List[Dict[str, Any]] = [
 ]
 
 
+MAX_MESSAGE_CHARACTERS = 10000
+
+# Zero-width characters often inserted for regex evasion:
+# U+200B (Zero-width space), U+200C (ZWNJ), U+200D (ZWJ), U+200E (LTR mark), U+200F (RTL mark), U+FEFF (BOM)
+ZERO_WIDTH_PATTERN = re.compile(r"[\u200b\u200c\u200d\u200e\u200f\ufeff]")
+
+
 def normalize_text(text: str) -> str:
-    """Normalizes Devanagari numerals to ASCII digits and collapses repeated whitespace."""
-    if not text:
+    """Normalizes Devanagari numerals to ASCII digits, strips zero-width evasion characters, and collapses repeated whitespace."""
+    if not text or not isinstance(text, str):
         return ""
-    translated = text.translate(DEVANAGARI_DIGIT_MAP)
+    bounded = text[:MAX_MESSAGE_CHARACTERS]
+    cleaned_zw = ZERO_WIDTH_PATTERN.sub("", bounded)
+    translated = cleaned_zw.translate(DEVANAGARI_DIGIT_MAP)
     return re.sub(r"\s+", " ", translated).strip()
 
 
@@ -201,6 +217,8 @@ def analyze_message_text(text: str) -> Dict[str, Any]:
             "protective_advisory_detected": False,
             "advice_en": "Paste or select a message to inspect its warning indicators.",
             "advice_mr": "कृपया तपासणीसाठी मेसेज टाका किंवा नमुना निवडा.",
+            "observed_facts": ["No input text received (empty, whitespace, or non-string)."],
+            "heuristic_inferences": ["Assessment skipped due to empty input."],
             "uncertainty_note": (
                 "Automated text analysis checks for known phishing patterns and cannot verify the sender's identity."
             ),
@@ -245,6 +263,10 @@ def analyze_message_text(text: str) -> Dict[str, Any]:
         context_only_suppressed = True
         findings = []
 
+    # Suppress residual urgency/utility findings if this is an explicit protective advisory
+    if protective_hit and not any(f["severity"] == "High" for f in findings):
+        findings = []
+
     if len(findings) >= 2 or any(f["severity"] == "High" for f in findings):
         assessment_label = "Suspicious (Multiple or High-Risk Indicators Detected)"
         advice_en = (
@@ -272,6 +294,24 @@ def analyze_message_text(text: str) -> Dict[str, Any]:
             "यात फसवणुकीचे ठळक संकेत आढळले नाहीत, तरीही अनोळखी मेसेजबाबत नेहमी सावधगिरी बाळगा."
         )
 
+    observed_facts = [
+        f"Input length: {len(raw_input)} characters",
+        f"Normalized length: {len(normalized)} characters",
+        f"Script classification: {script_type}",
+        f"Extracted web URLs count: {len(extracted_urls)}",
+        f"Triggered indicator rules count: {len(findings)}",
+        f"Protective advisory matched: {'Yes' if protective_hit else 'No'}",
+        f"Single-utility context suppressed: {'Yes' if context_only_suppressed else 'No'}",
+    ]
+
+    heuristic_inferences = [
+        f"Assessment verdict: {assessment_label}",
+    ]
+    for f in findings:
+        heuristic_inferences.append(
+            f"Rule [{f['id']}] weight {f['weight']}: {f['category']} (matched: '{f['matched_text']}')"
+        )
+
     return {
         "is_empty": False,
         "normalized_text": normalized,
@@ -283,6 +323,8 @@ def analyze_message_text(text: str) -> Dict[str, Any]:
         "protective_advisory_detected": protective_hit,
         "advice_en": advice_en,
         "advice_mr": advice_mr,
+        "observed_facts": observed_facts,
+        "heuristic_inferences": heuristic_inferences,
         "uncertainty_note": (
             "Rule-based language detection evaluates known Marathi, Romanized Marathi, and English scam patterns. "
             "It cannot understand every regional dialect or novel scam phrasing, and 'No Strong Indicators Detected' "

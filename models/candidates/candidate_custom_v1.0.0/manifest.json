@@ -1,0 +1,37 @@
+{
+  "manifest_schema_version": "1.0.0",
+  "candidate_id": "candidate_custom_v1.0.0",
+  "candidate_version": "1.0.0",
+  "lifecycle_state": "experimental",
+  "created_at_utc": "2026-10-30T11:32:09Z",
+  "architecture_version": "3-layer-mlp-ngram-v1",
+  "random_seed": 42,
+  "artifacts": {
+    "model_weights": {
+      "filename": "model_weights.npz",
+      "sha256": "5a1e50a1a9bde3355a1f48c9faa2a3ca14b6f04b9628266cb5d887f548d275ee"
+    },
+    "model_metadata": {
+      "filename": "model_metadata.json",
+      "sha256": "eae87e974763dad10fdbf48f802b331d0516dc35fc6b5aa1270b19a1cace3dbb"
+    },
+    "training_report": {
+      "filename": "candidate_training_report.json",
+      "sha256": "18d8a655deb4839dc2b383db54c59248beab269f8ccfce89bc826105bf2aa1d4"
+    }
+  },
+  "provenance_summary": {
+    "composition_policy": "synthetic_only",
+    "total_records": 360,
+    "human_reviewed_count": 0,
+    "synthetic_count": 360,
+    "class_distribution": {
+      "phishing": 120,
+      "legitimate": 120,
+      "protective_advisory": 120
+    },
+    "is_synthetic_only": true,
+    "demonstration_notice": "SYNTHETIC_ONLY_DEMONSTRATION: Zero human feedback records incorporated. Does NOT demonstrate feedback learning."
+  },
+  "disclaimer": "EXPERIMENTAL CANDIDATE MODEL ARTIFACT. Not approved for production or shadow deployment. Active registry and runtime configuration are untouched."
+}

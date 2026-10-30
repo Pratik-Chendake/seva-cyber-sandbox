@@ -45,6 +45,8 @@ def score_apk_analysis(apk_result: Dict[str, Any]) -> Dict[str, Any]:
                 "ही फाईल उघडण्याचा किंवा इन्स्टॉल करण्याचा प्रयत्न करू नका.",
                 "तुमच्या फोनमधून ही फाईल तात्काळ डिलीट करा.",
             ],
+            "observed_facts": ["Archive could not be validated or decompressed."],
+            "heuristic_inferences": [f"Risk assessment aborted: {err}"],
             "limitations": (
                 "Static inspection cannot analyze corrupted, encrypted, oversized, or non-APK files."
             ),
@@ -138,6 +140,9 @@ def score_apk_analysis(apk_result: Dict[str, Any]) -> Dict[str, Any]:
             "अधिकृत ॲप्स नेहमी Google Play Store वरूनच डाउनलोड करा.",
             "चुकून अशी फाईल इन्स्टॉल झाली असल्यास तात्काळ इंटरनेट बंद करा, सेटिंग्जमधून ॲप अनइन्स्टॉल करा आणि १९३० (1930) सायबर हेल्पलाईनवर संपर्क साधा.",
         ],
+        "observed_facts": apk_result.get("observed_facts", []),
+        "heuristic_inferences": apk_result.get("heuristic_inferences", [])
+        + [f"Calculated heuristic risk index: {final_score}/100 ({risk_level})"],
         "limitations": (
             "Heuristic Score Limitation: This 0-100 index is a weighted checklist of declared permissions and structural traits, "
             "NOT a probability of maliciousness. Legitimate apps may also request sensitive permissions, and static analysis does not inspect runtime code execution."
@@ -160,6 +165,8 @@ def score_message_analysis(msg_result: Dict[str, Any]) -> Dict[str, Any]:
             "evidence": [],
             "safe_next_steps_en": [],
             "safe_next_steps_mr": [],
+            "observed_facts": msg_result.get("observed_facts", ["Empty input"]),
+            "heuristic_inferences": msg_result.get("heuristic_inferences", ["No risk assessment performed"]),
             "limitations": msg_result.get("uncertainty_note", ""),
         }
 
@@ -233,8 +240,61 @@ def score_message_analysis(msg_result: Dict[str, Any]) -> Dict[str, Any]:
             "बँक, महावितरण किंवा पोलीस अधिकारी असल्याचा दावा करणाऱ्या कोणालाही तुमचा OTP किंवा UPI PIN सांगू नका.",
             "सायबर फसवणुकीची तक्रार १९३० (1930) या हेल्पलाईनवर किंवा cybercrime.gov.in वर नोंदवा.",
         ],
+        "observed_facts": msg_result.get("observed_facts", []),
+        "heuristic_inferences": msg_result.get("heuristic_inferences", [])
+        + [f"Calculated heuristic risk index: {final_score}/100 ({risk_level})"],
         "limitations": msg_result.get(
             "uncertainty_note",
             "Heuristic text scoring evaluates known patterns and is not a guarantee of safety.",
         ),
     }
+
+
+def apply_threat_intelligence_to_score(
+    scored_res: Dict[str, Any],
+    threat_intel: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Additive helper that integrates threat intelligence matches into risk assessment.
+
+    DECISION BOUNDARY:
+    - Only 'reviewed' threat indicators can increase the risk index (up to 20 pts, capped at 100).
+    - 'unreviewed' leads are treated as informational and do NOT increase the risk score.
+    - A threat intelligence match is NOT sole proof of fraud; it is added as corroborating evidence.
+    """
+    if not threat_intel or not threat_intel.get("has_matches"):
+        return scored_res
+
+    updated = dict(scored_res)
+    updated["observed_facts"] = list(scored_res.get("observed_facts", []))
+    updated["heuristic_inferences"] = list(scored_res.get("heuristic_inferences", []))
+    updated["evidence"] = list(scored_res.get("evidence", []))
+
+    trusted_count = threat_intel.get("trusted_matches_count", 0)
+    unreviewed_count = threat_intel.get("unreviewed_leads_count", 0)
+
+    if trusted_count > 0:
+        base_score = int(scored_res.get("score", 0))
+        bonus = min(20, trusted_count * 10)
+        new_score = min(100, base_score + bonus)
+        updated["score"] = new_score
+
+        if new_score >= 50 and updated.get("badge_color") != "red":
+            updated["badge_color"] = "red"
+            updated["risk_level"] = "High-Risk Threat Indicators Detected (Intelligence Match)"
+
+        evidence_str = (
+            f"[Threat Intelligence] Matched {trusted_count} verified indicator(s) in local repository "
+            f"(Severity: {threat_intel.get('highest_severity') or 'high'}, Confidence: {threat_intel.get('highest_confidence')}%)."
+        )
+        updated["evidence"].insert(0, evidence_str)
+        updated["heuristic_inferences"].append(
+            f"Threat Intelligence Adjustment: Added {bonus} risk points for verified indicator match."
+        )
+
+    if unreviewed_count > 0:
+        updated["observed_facts"].append(
+            f"Knowledge Base Lead: {unreviewed_count} unreviewed indicator(s) matched in local repository (requires analyst verification)."
+        )
+
+    return updated

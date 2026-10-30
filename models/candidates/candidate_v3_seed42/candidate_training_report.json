@@ -1,0 +1,344 @@
+{
+  "report_schema_version": "1.0.0",
+  "candidate_id": "candidate_v3_seed42",
+  "random_seed": 42,
+  "lifecycle_state": "experimental",
+  "created_at_utc": "2026-10-30T12:38:04Z",
+  "architecture": {
+    "model_type": "Multi-Layer Perceptron (MLP)",
+    "input_dim": 1024,
+    "hidden_dim1": 64,
+    "hidden_dim2": 32,
+    "num_classes": 3,
+    "activation": "LeakyReLU (alpha=0.01)",
+    "initialization": "He normal (hidden layers), Xavier uniform (output layer)"
+  },
+  "hyperparameters": {
+    "max_epochs": 50,
+    "early_stopping_patience": 10,
+    "batch_size": 32,
+    "initial_learning_rate": 0.005,
+    "weight_decay": 0.0005,
+    "dropout_rate": 0.2,
+    "lr_schedule_milestones": {
+      "21": 0.002,
+      "36": 0.001
+    }
+  },
+  "training_run_summary": {
+    "best_epoch": 8,
+    "total_epochs_trained": 18,
+    "stopped_early": true,
+    "best_dev_macro_f1": 0.9565,
+    "best_dev_accuracy": 0.9567
+  },
+  "dataset_provenance": {
+    "training_corpus": "data/generated/v3/synthetic_training_corpus.jsonl",
+    "training_examples": 1200,
+    "dev_corpus": "data/generated/v3/synthetic_dev_corpus.jsonl",
+    "dev_examples": 300,
+    "qualification_partition": "SEALED_INACCESSIBLE",
+    "feature_schema_version": "1.0.0",
+    "preprocessing_version": "neural-preproc-v1.1.0"
+  },
+  "dev_evaluation_metrics": {
+    "sample_count": 300,
+    "accuracy": 0.9567,
+    "accuracy_ci_95": [
+      0.9273,
+      0.9745
+    ],
+    "accuracy_fraction": "287/300",
+    "total_incorrect": 13,
+    "total_incorrect_fraction": "13/300",
+    "macro_f1": 0.9565,
+    "macro_precision": 0.9617,
+    "macro_recall": 0.9567,
+    "balanced_accuracy": 0.9567,
+    "weighted_f1": 0.9565,
+    "confusion_matrix": [
+      [
+        100,
+        0,
+        0
+      ],
+      [
+        13,
+        87,
+        0
+      ],
+      [
+        0,
+        0,
+        100
+      ]
+    ],
+    "per_class": {
+      "phishing": {
+        "class_index": 0,
+        "true_positives": 100,
+        "false_positives": 13,
+        "false_negatives": 0,
+        "support": 100,
+        "precision": 0.885,
+        "precision_ci_95": [
+          0.8131,
+          0.9315
+        ],
+        "precision_fraction": "100/113",
+        "recall": 1.0,
+        "recall_ci_95": [
+          0.963,
+          1.0
+        ],
+        "recall_fraction": "100/100",
+        "f1": 0.939
+      },
+      "legitimate": {
+        "class_index": 1,
+        "true_positives": 87,
+        "false_positives": 0,
+        "false_negatives": 13,
+        "support": 100,
+        "precision": 1.0,
+        "precision_ci_95": [
+          0.9577,
+          1.0
+        ],
+        "precision_fraction": "87/87",
+        "recall": 0.87,
+        "recall_ci_95": [
+          0.7902,
+          0.9224
+        ],
+        "recall_fraction": "87/100",
+        "f1": 0.9305
+      },
+      "protective_advisory": {
+        "class_index": 2,
+        "true_positives": 100,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "support": 100,
+        "precision": 1.0,
+        "precision_ci_95": [
+          0.963,
+          1.0
+        ],
+        "precision_fraction": "100/100",
+        "recall": 1.0,
+        "recall_ci_95": [
+          0.963,
+          1.0
+        ],
+        "recall_fraction": "100/100",
+        "f1": 1.0
+      }
+    },
+    "safety_metrics": {
+      "legitimate_fp_rate": 0.13,
+      "legitimate_fp_ci_95": [
+        0.0776,
+        0.2098
+      ],
+      "legitimate_fp_fraction": "13/100",
+      "protective_advisory_fp_rate": 0.0,
+      "protective_advisory_fp_ci_95": [
+        0.0,
+        0.037
+      ],
+      "protective_advisory_fp_fraction": "0/100",
+      "phishing_fn_rate": 0.0,
+      "phishing_fn_ci_95": [
+        0.0,
+        0.037
+      ],
+      "phishing_fn_fraction": "0/100",
+      "prediction_distribution": {
+        "phishing": 113,
+        "legitimate": 87,
+        "protective_advisory": 100
+      }
+    }
+  },
+  "epoch_history": [
+    {
+      "epoch": 1,
+      "lr": 0.005,
+      "train_loss": 0.4805,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.2325,
+      "dev_accuracy": 0.9333,
+      "dev_macro_f1": 0.9343
+    },
+    {
+      "epoch": 2,
+      "lr": 0.005,
+      "train_loss": 0.0844,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.2319,
+      "dev_accuracy": 0.92,
+      "dev_macro_f1": 0.921
+    },
+    {
+      "epoch": 3,
+      "lr": 0.005,
+      "train_loss": 0.071,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.2201,
+      "dev_accuracy": 0.9333,
+      "dev_macro_f1": 0.9343
+    },
+    {
+      "epoch": 4,
+      "lr": 0.005,
+      "train_loss": 0.0551,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1718,
+      "dev_accuracy": 0.94,
+      "dev_macro_f1": 0.9409
+    },
+    {
+      "epoch": 5,
+      "lr": 0.005,
+      "train_loss": 0.0451,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.206,
+      "dev_accuracy": 0.93,
+      "dev_macro_f1": 0.931
+    },
+    {
+      "epoch": 6,
+      "lr": 0.005,
+      "train_loss": 0.0388,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1755,
+      "dev_accuracy": 0.9367,
+      "dev_macro_f1": 0.9376
+    },
+    {
+      "epoch": 7,
+      "lr": 0.005,
+      "train_loss": 0.0362,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1817,
+      "dev_accuracy": 0.9333,
+      "dev_macro_f1": 0.9343
+    },
+    {
+      "epoch": 8,
+      "lr": 0.005,
+      "train_loss": 0.0336,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1497,
+      "dev_accuracy": 0.9567,
+      "dev_macro_f1": 0.9565
+    },
+    {
+      "epoch": 9,
+      "lr": 0.005,
+      "train_loss": 0.0329,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.2283,
+      "dev_accuracy": 0.9133,
+      "dev_macro_f1": 0.9145
+    },
+    {
+      "epoch": 10,
+      "lr": 0.005,
+      "train_loss": 0.0366,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.3298,
+      "dev_accuracy": 0.8933,
+      "dev_macro_f1": 0.8908
+    },
+    {
+      "epoch": 11,
+      "lr": 0.005,
+      "train_loss": 0.0393,
+      "train_accuracy": 0.9992,
+      "dev_loss": 0.5735,
+      "dev_accuracy": 0.8533,
+      "dev_macro_f1": 0.8504
+    },
+    {
+      "epoch": 12,
+      "lr": 0.005,
+      "train_loss": 0.0472,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.2566,
+      "dev_accuracy": 0.9067,
+      "dev_macro_f1": 0.9089
+    },
+    {
+      "epoch": 13,
+      "lr": 0.005,
+      "train_loss": 0.0463,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1656,
+      "dev_accuracy": 0.9433,
+      "dev_macro_f1": 0.9439
+    },
+    {
+      "epoch": 14,
+      "lr": 0.005,
+      "train_loss": 0.037,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1557,
+      "dev_accuracy": 0.9433,
+      "dev_macro_f1": 0.9439
+    },
+    {
+      "epoch": 15,
+      "lr": 0.005,
+      "train_loss": 0.0527,
+      "train_accuracy": 0.9942,
+      "dev_loss": 0.5723,
+      "dev_accuracy": 0.8833,
+      "dev_macro_f1": 0.8851
+    },
+    {
+      "epoch": 16,
+      "lr": 0.005,
+      "train_loss": 0.0837,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.5621,
+      "dev_accuracy": 0.83,
+      "dev_macro_f1": 0.8324
+    },
+    {
+      "epoch": 17,
+      "lr": 0.005,
+      "train_loss": 0.0675,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.353,
+      "dev_accuracy": 0.8667,
+      "dev_macro_f1": 0.8678
+    },
+    {
+      "epoch": 18,
+      "lr": 0.005,
+      "train_loss": 0.0465,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.2368,
+      "dev_accuracy": 0.8967,
+      "dev_macro_f1": 0.8986
+    }
+  ],
+  "artifacts": {
+    "model_weights": {
+      "filename": "model_weights.npz",
+      "sha256": "2229f3b8181d2291afa8dcae543ae95425edd1e8d9125268723d4bba5e7f8d06"
+    },
+    "model_metadata": {
+      "filename": "model_metadata.json",
+      "sha256": "555b9a0771c0c23849fac68b3959c3d11b8601b28cf160dfca6e54070fb06c9b"
+    }
+  },
+  "warnings_and_limitations": [
+    "EXPERIMENTAL_CANDIDATE_ONLY: Not evaluated or approved for shadow or production deployment.",
+    "LOCAL_BENCHMARK_EVALUATION: Generalization measured against v3 dev partition only.",
+    "INDEPENDENT_SEALED_QUALIFICATION_RESERVED: Final qualification partition remains strictly sealed."
+  ],
+  "status": "SUCCESS"
+}

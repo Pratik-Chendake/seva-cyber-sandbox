@@ -15,6 +15,7 @@ HOW THIS WORKS:
 
 import io
 import math
+import re
 import struct
 import subprocess
 import sys
@@ -29,8 +30,9 @@ def generate_alert_wav_bytes(badge_color: str) -> bytes:
     - 'orange': Two-pulse notice tone (520 Hz)
     - 'green' / other: Single soft confirmation chime (440 Hz)
     """
+    color = str(badge_color or "green").strip().lower()
     sample_rate = 22050
-    duration_sec = 1.2 if badge_color in ("red", "orange") else 0.6
+    duration_sec = 1.2 if color in ("red", "orange") else 0.6
     num_samples = int(sample_rate * duration_sec)
 
     buf = io.BytesIO()
@@ -42,10 +44,10 @@ def generate_alert_wav_bytes(badge_color: str) -> bytes:
         frames = bytearray()
         for i in range(num_samples):
             t = i / sample_rate
-            if badge_color == "red":
+            if color == "red":
                 freq = 660.0 if int(t * 4) % 2 == 0 else 520.0
                 amplitude = 0.35
-            elif badge_color == "orange":
+            elif color == "orange":
                 freq = 520.0 if int(t * 3) % 2 == 0 else 0.0
                 amplitude = 0.30
             else:
@@ -143,21 +145,21 @@ def speak_offline_windows_tts(text_to_speak: str) -> Tuple[bool, str]:
     Speaks text_to_speak aloud using Windows offline SAPI5 (pyttsx3) in a separate subprocess.
     Never crashes the calling Streamlit thread even if audio hardware or drivers are unavailable.
     """
-    safe_text = (text_to_speak or "Alert.").replace('"', "").replace("'", "")[:400]
+    safe_text = re.sub(r"[^a-zA-Z0-9\s.,!?-]", " ", str(text_to_speak or "Alert."))[:300].strip() or "Alert."
     tts_script = (
-        "import pyttsx3; "
+        "import sys, pyttsx3; "
         "engine = pyttsx3.init(); "
         "engine.setProperty('rate', 165); "
-        f"engine.say('{safe_text}'); "
+        "engine.say(sys.argv[1]); "
         "engine.runAndWait(); "
         "engine.stop()"
     )
     try:
         proc = subprocess.run(
-            [sys.executable, "-c", tts_script],
+            [sys.executable, "-c", tts_script, safe_text],
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=8,
             check=False,
         )
         if proc.returncode == 0:
