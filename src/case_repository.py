@@ -790,6 +790,78 @@ class CaseRepository:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_features_eligibility ON training_feature_records(eligibility_state);")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_features_created ON training_feature_records(created_at_utc DESC);")
 
+            # -----------------------------------------------------------------
+            # Phase 6.6: Model Disagreement Events & Human-in-the-Loop Reviews
+            # -----------------------------------------------------------------
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS model_disagreement_events (
+                    event_id TEXT PRIMARY KEY,
+                    event_type TEXT NOT NULL,
+                    rule_decision TEXT NOT NULL,
+                    model_prediction TEXT,
+                    model_version TEXT,
+                    rule_engine_version TEXT,
+                    model_confidence REAL,
+                    model_confidence_bucket TEXT,
+                    rule_score INTEGER,
+                    rule_score_bucket TEXT,
+                    language_category TEXT DEFAULT 'unknown',
+                    script_category TEXT DEFAULT 'unknown',
+                    message_length_bucket TEXT DEFAULT 'short (<100)',
+                    review_state TEXT NOT NULL DEFAULT 'pending',
+                    created_at_utc TEXT NOT NULL,
+                    consent_given INTEGER NOT NULL DEFAULT 0,
+                    feature_record_id TEXT,
+                    case_id TEXT,
+                    metadata_json TEXT NOT NULL DEFAULT '{}'
+                );
+                """
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_disagreement_review_state ON model_disagreement_events(review_state);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_disagreement_created_at ON model_disagreement_events(created_at_utc DESC);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_disagreement_event_type ON model_disagreement_events(event_type);")
+
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS disagreement_reviews (
+                    review_id TEXT PRIMARY KEY,
+                    event_id TEXT NOT NULL,
+                    review_state TEXT NOT NULL DEFAULT 'completed',
+                    outcome_label TEXT NOT NULL,
+                    reviewer_assessment TEXT NOT NULL,
+                    confidence_rating TEXT NOT NULL DEFAULT 'medium',
+                    reviewer_label TEXT NOT NULL DEFAULT 'local_operator_unauthenticated',
+                    notes TEXT NOT NULL DEFAULT '',
+                    created_at_utc TEXT NOT NULL,
+                    updated_at_utc TEXT NOT NULL,
+                    is_superseded INTEGER NOT NULL DEFAULT 0,
+                    superseded_by TEXT,
+                    metadata_json TEXT NOT NULL DEFAULT '{}',
+                    FOREIGN KEY (event_id) REFERENCES model_disagreement_events(event_id)
+                );
+                """
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_disagree_rev_event ON disagreement_reviews(event_id);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_disagree_rev_state ON disagreement_reviews(review_state);")
+
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS disagreement_review_audit (
+                    audit_id TEXT PRIMARY KEY,
+                    review_id TEXT NOT NULL,
+                    event_id TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    actor TEXT NOT NULL DEFAULT 'local_operator_unauthenticated',
+                    timestamp_utc TEXT NOT NULL,
+                    reason TEXT NOT NULL DEFAULT '',
+                    details_json TEXT NOT NULL DEFAULT '{}'
+                );
+                """
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_disagree_audit_event ON disagreement_review_audit(event_id);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_disagree_audit_time ON disagreement_review_audit(timestamp_utc DESC);")
+
     def save_case(
         self,
         case_record: Dict[str, Any],
@@ -2041,6 +2113,8 @@ class CaseRepository:
 
         case = self.get_case(case_id)
         if not case:
+            case = self.get_disagreement_event(case_id)
+        if not case:
             raise FeedbackCurationValidationError(f"Target case '{case_id}' does not exist.")
 
         if not isinstance(feature_vector, list):
@@ -2192,6 +2266,18 @@ class CaseRepository:
                     (json.dumps(meta, ensure_ascii=False), fid),
                 )
                 count += 1
+
+            # Phase 6.6: Also ensure corresponding disagreement event consent is revoked
+            if case_id:
+                conn.execute(
+                    "UPDATE model_disagreement_events SET consent_given = 0 WHERE event_id = ? OR case_id = ?;",
+                    (case_id, case_id),
+                )
+            if feature_record_id:
+                conn.execute(
+                    "UPDATE model_disagreement_events SET consent_given = 0 WHERE feature_record_id = ?;",
+                    (feature_record_id,),
+                )
             return count
 
     def curate_training_features(
@@ -2269,12 +2355,20 @@ class CaseRepository:
                     })
                     continue
 
-                # Check 3: Associated case exists
+                # Check 3: Associated case exists (threat case OR disagreement event)
                 c_row = conn.execute(
                     "SELECT case_id, is_deleted FROM threat_cases WHERE case_id = ? LIMIT 1;",
                     (case_id,),
                 ).fetchone()
-                if not c_row or c_row["is_deleted"]:
+
+                disagree_row = None
+                if not c_row:
+                    disagree_row = conn.execute(
+                        "SELECT event_id, review_state, consent_given FROM model_disagreement_events WHERE event_id = ? OR feature_record_id = ? OR case_id = ? LIMIT 1;",
+                        (case_id, rec_id, case_id),
+                    ).fetchone()
+
+                if not c_row and not disagree_row:
                     ineligible_records.append({
                         "feature_record_id": rec_id,
                         "case_id": case_id,
@@ -2282,16 +2376,40 @@ class CaseRepository:
                     })
                     continue
 
-                # Check 4: Review existence and state
+                if c_row and c_row["is_deleted"]:
+                    ineligible_records.append({
+                        "feature_record_id": rec_id,
+                        "case_id": case_id,
+                        "reason": "case_not_found_or_deleted",
+                    })
+                    continue
+
+                # Check 4: Review existence and state (from human_reviews OR disagreement_reviews)
                 r_row = conn.execute(
                     "SELECT * FROM human_reviews WHERE case_id = ? ORDER BY updated_at DESC LIMIT 1;",
                     (case_id,),
                 ).fetchone()
+
+                if not r_row and disagree_row:
+                    d_rev = conn.execute(
+                        "SELECT * FROM disagreement_reviews WHERE event_id = ? AND is_superseded = 0 ORDER BY updated_at_utc DESC LIMIT 1;",
+                        (disagree_row["event_id"],),
+                    ).fetchone()
+                    if d_rev:
+                        r_row = {
+                            "review_state": d_rev["review_state"],
+                            "outcome_category": d_rev["outcome_label"],
+                            "confidence_rating": d_rev["confidence_rating"],
+                            "reviewer_label": d_rev["reviewer_label"],
+                            "updated_at": d_rev["updated_at_utc"],
+                        }
+
                 if not r_row:
+                    pending_reason = "review_pending" if (disagree_row and disagree_row["review_state"] == "pending") else "unreviewed_case"
                     ineligible_records.append({
                         "feature_record_id": rec_id,
                         "case_id": case_id,
-                        "reason": "unreviewed_case",
+                        "reason": pending_reason,
                     })
                     continue
 
@@ -2570,6 +2688,396 @@ class CaseRepository:
             "eligibility_state": row["eligibility_state"],
             "dedup_fingerprint": row["dedup_fingerprint"],
             "provenance_category": row["provenance_category"],
+            "metadata": json.loads(row["metadata_json"] or "{}") if "metadata_json" in row_keys else {},
+        }
+
+    # -------------------------------------------------------------------------
+    # Phase 6.6: Model Disagreement Events & Human-in-the-Loop Review Methods
+    # -------------------------------------------------------------------------
+
+    def record_disagreement_event(
+        self,
+        event_data: Dict[str, Any],
+        consent_given: bool = False,
+        feature_record_id: Optional[str] = None,
+        case_id: Optional[str] = None,
+    ) -> str:
+        """
+        Persists a structured model-rule disagreement (or agreement) event into SQLite.
+        Guarantees ZERO raw message text, zero URLs, and zero direct citizen identifiers are stored.
+        """
+        event_id = event_data.get("event_id") or f"EVT-{uuid.uuid4().hex[:12].upper()}"
+        event_type = event_data.get("event_type", "non_comparable")
+        rule_decision = event_data.get("rule_decision", "unclassified")
+        model_prediction = event_data.get("model_prediction")
+        model_version = event_data.get("model_version")
+        rule_engine_version = event_data.get("rule_engine_version", "hybrid-engine-v1.0.0")
+        model_confidence = event_data.get("model_confidence")
+        model_confidence_bucket = event_data.get("model_confidence_bucket")
+        rule_score = event_data.get("rule_score")
+        rule_score_bucket = event_data.get("rule_score_bucket")
+        language_category = event_data.get("language_category", "unknown")
+        script_category = event_data.get("script_category", "unknown")
+        message_length_bucket = event_data.get("message_length_bucket", "short (<100)")
+        review_state = event_data.get("review_state", "pending")
+        created_at_utc = event_data.get("created_at_utc") or get_utc_now_iso()
+        meta = event_data.get("structural_observations") or event_data.get("metadata", {})
+        meta_json = json.dumps(meta, ensure_ascii=False)
+
+        with self.get_connection() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO model_disagreement_events (
+                    event_id, event_type, rule_decision, model_prediction,
+                    model_version, rule_engine_version, model_confidence,
+                    model_confidence_bucket, rule_score, rule_score_bucket,
+                    language_category, script_category, message_length_bucket,
+                    review_state, created_at_utc, consent_given, feature_record_id,
+                    case_id, metadata_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                """,
+                (
+                    event_id,
+                    event_type,
+                    rule_decision,
+                    model_prediction,
+                    model_version,
+                    rule_engine_version,
+                    model_confidence,
+                    model_confidence_bucket,
+                    rule_score,
+                    rule_score_bucket,
+                    language_category,
+                    script_category,
+                    message_length_bucket,
+                    review_state,
+                    created_at_utc,
+                    1 if consent_given else 0,
+                    feature_record_id,
+                    case_id,
+                    meta_json,
+                ),
+            )
+        return event_id
+
+    def get_disagreement_event(self, event_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieves a single disagreement event by ID."""
+        with self.get_connection() as conn:
+            cur = conn.execute(
+                "SELECT * FROM model_disagreement_events WHERE event_id = ? LIMIT 1;",
+                (event_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return self._row_to_disagreement_event_dict(row)
+
+    def list_disagreement_events(
+        self,
+        review_state: Optional[str] = None,
+        event_type: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """Lists disagreement events with optional state and event_type filters."""
+        query = "SELECT * FROM model_disagreement_events"
+        conditions: List[str] = []
+        params: List[Any] = []
+
+        if review_state:
+            conditions.append("review_state = ?")
+            params.append(review_state)
+        if event_type:
+            conditions.append("event_type = ?")
+            params.append(event_type)
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY created_at_utc DESC LIMIT ?;"
+        params.append(max(1, min(limit, 500)))
+
+        with self.get_connection() as conn:
+            cur = conn.execute(query, params)
+            return [self._row_to_disagreement_event_dict(r) for r in cur.fetchall()]
+
+    def get_disagreement_stats(self) -> Dict[str, Any]:
+        """Calculates aggregate statistics for model disagreement events."""
+        with self.get_connection() as conn:
+            total = conn.execute("SELECT COUNT(*) AS c FROM model_disagreement_events;").fetchone()["c"]
+            pending = conn.execute("SELECT COUNT(*) AS c FROM model_disagreement_events WHERE review_state = 'pending';").fetchone()["c"]
+            completed = conn.execute("SELECT COUNT(*) AS c FROM model_disagreement_events WHERE review_state = 'completed';").fetchone()["c"]
+            insufficient = conn.execute("SELECT COUNT(*) AS c FROM model_disagreement_events WHERE review_state = 'insufficient_evidence';").fetchone()["c"]
+            agreements = conn.execute("SELECT COUNT(*) AS c FROM model_disagreement_events WHERE event_type = 'agreement';").fetchone()["c"]
+            non_comparable = conn.execute("SELECT COUNT(*) AS c FROM model_disagreement_events WHERE event_type = 'non_comparable';").fetchone()["c"]
+            consented = conn.execute("SELECT COUNT(*) AS c FROM model_disagreement_events WHERE consent_given = 1;").fetchone()["c"]
+
+            type_rows = conn.execute("SELECT event_type, COUNT(*) AS c FROM model_disagreement_events GROUP BY event_type;").fetchall()
+            by_type = {r["event_type"]: r["c"] for r in type_rows}
+
+            ver_rows = conn.execute("SELECT model_version, COUNT(*) AS c FROM model_disagreement_events GROUP BY model_version;").fetchall()
+            by_version = {r["model_version"] or "unknown": r["c"] for r in ver_rows}
+
+            disagreements = total - agreements - non_comparable
+
+            return {
+                "total_events": total,
+                "pending_reviews": pending,
+                "completed_reviews": completed,
+                "insufficient_evidence_reviews": insufficient,
+                "agreements_count": agreements,
+                "disagreements_count": max(0, disagreements),
+                "non_comparable_count": non_comparable,
+                "consented_events_count": consented,
+                "events_by_type": by_type,
+                "events_by_model_version": by_version,
+            }
+
+    def submit_disagreement_review(
+        self,
+        event_id: str,
+        outcome_label: str,
+        reviewer_assessment: str,
+        confidence_rating: str = "medium",
+        reviewer_label: str = "local_operator_unauthenticated",
+        notes: str = "",
+        supersede_existing: bool = False,
+        reason: str = "",
+    ) -> Dict[str, Any]:
+        """
+        Submits an operator review for a model-rule disagreement event.
+        Guarantees:
+        - Validates outcome_label in {'phishing', 'legitimate', 'protective_advisory', 'insufficient_evidence'}.
+        - Validates reviewer_assessment in {'rules_correct', 'model_correct', 'both_investigate', 'neither_sufficient'}.
+        - Rejects duplicate submission without explicit supersede flag.
+        - Records complete append-only audit trail in disagreement_review_audit.
+        """
+        valid_outcomes = {"phishing", "legitimate", "protective_advisory", "insufficient_evidence"}
+        valid_assessments = {"rules_correct", "model_correct", "both_investigate", "neither_sufficient"}
+        valid_confidences = {"high", "medium", "low"}
+
+        if outcome_label not in valid_outcomes:
+            raise ValueError(f"Invalid outcome_label '{outcome_label}'; must be one of {valid_outcomes}.")
+        if reviewer_assessment not in valid_assessments:
+            raise ValueError(f"Invalid reviewer_assessment '{reviewer_assessment}'; must be one of {valid_assessments}.")
+        if confidence_rating not in valid_confidences:
+            raise ValueError(f"Invalid confidence_rating '{confidence_rating}'; must be one of {valid_confidences}.")
+
+        with self.get_connection() as conn:
+            event_row = conn.execute(
+                "SELECT * FROM model_disagreement_events WHERE event_id = ? LIMIT 1;",
+                (event_id,),
+            ).fetchone()
+            if not event_row:
+                raise ValueError(f"Target disagreement event '{event_id}' not found.")
+
+            # Check existing active review
+            existing = conn.execute(
+                "SELECT * FROM disagreement_reviews WHERE event_id = ? AND is_superseded = 0 ORDER BY updated_at_utc DESC LIMIT 1;",
+                (event_id,),
+            ).fetchone()
+
+            if existing and not supersede_existing:
+                raise ValueError(
+                    f"Duplicate review submission: Event '{event_id}' has already been reviewed ({existing['review_id']}). "
+                    "Set supersede_existing=True with a justification reason to supersede prior adjudication."
+                )
+
+            now_utc = get_utc_now_iso()
+            review_id = f"REV-DISAGREE-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
+
+            if existing and supersede_existing:
+                conn.execute(
+                    """
+                    UPDATE disagreement_reviews
+                    SET is_superseded = 1, superseded_by = ?, review_state = 'superseded', updated_at_utc = ?
+                    WHERE review_id = ?;
+                    """,
+                    (review_id, now_utc, existing["review_id"]),
+                )
+                # Audit superseding
+                conn.execute(
+                    """
+                    INSERT INTO disagreement_review_audit (
+                        audit_id, review_id, event_id, action, actor, timestamp_utc, reason, details_json
+                    ) VALUES (?, ?, ?, 'superseded', ?, ?, ?, ?);
+                    """,
+                    (
+                        f"AUD-DISAGREE-{uuid.uuid4().hex[:8].upper()}",
+                        existing["review_id"],
+                        event_id,
+                        reviewer_label,
+                        now_utc,
+                        reason or "Operator superseded existing review",
+                        json.dumps({"superseded_by": review_id, "previous_outcome": existing["outcome_label"]}),
+                    ),
+                )
+
+            # Determine new review state
+            new_review_state = "insufficient_evidence" if outcome_label == "insufficient_evidence" else "completed"
+
+            # Insert new review
+            meta_json = json.dumps({"notes_length": len(notes)})
+            conn.execute(
+                """
+                INSERT INTO disagreement_reviews (
+                    review_id, event_id, review_state, outcome_label, reviewer_assessment,
+                    confidence_rating, reviewer_label, notes, created_at_utc, updated_at_utc,
+                    is_superseded, superseded_by, metadata_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, ?);
+                """,
+                (
+                    review_id,
+                    event_id,
+                    new_review_state,
+                    outcome_label,
+                    reviewer_assessment,
+                    confidence_rating,
+                    reviewer_label,
+                    notes.strip()[:1000],
+                    now_utc,
+                    now_utc,
+                    meta_json,
+                ),
+            )
+
+            # Update event review state
+            conn.execute(
+                "UPDATE model_disagreement_events SET review_state = ? WHERE event_id = ?;",
+                (new_review_state, event_id),
+            )
+
+            # Record creation audit log
+            conn.execute(
+                """
+                INSERT INTO disagreement_review_audit (
+                    audit_id, review_id, event_id, action, actor, timestamp_utc, reason, details_json
+                ) VALUES (?, ?, ?, 'created', ?, ?, ?, ?);
+                """,
+                (
+                    f"AUD-DISAGREE-{uuid.uuid4().hex[:8].upper()}",
+                    review_id,
+                    event_id,
+                    reviewer_label,
+                    now_utc,
+                    reason or "Operator completed disagreement review adjudication",
+                    json.dumps({
+                        "outcome_label": outcome_label,
+                        "reviewer_assessment": reviewer_assessment,
+                        "confidence_rating": confidence_rating,
+                        "review_state": new_review_state,
+                    }),
+                ),
+            )
+
+            return {
+                "review_id": review_id,
+                "event_id": event_id,
+                "review_state": new_review_state,
+                "outcome_label": outcome_label,
+                "reviewer_assessment": reviewer_assessment,
+                "confidence_rating": confidence_rating,
+                "reviewer_label": reviewer_label,
+                "created_at_utc": now_utc,
+                "updated_at_utc": now_utc,
+                "is_superseded": False,
+            }
+
+    def get_disagreement_review(self, identifier: str) -> Optional[Dict[str, Any]]:
+        """Retrieves review by review_id, or active (non-superseded) review for an event_id."""
+        with self.get_connection() as conn:
+            cur = conn.execute("SELECT * FROM disagreement_reviews WHERE review_id = ? LIMIT 1;", (identifier,))
+            row = cur.fetchone()
+            if not row:
+                cur = conn.execute(
+                    "SELECT * FROM disagreement_reviews WHERE event_id = ? AND is_superseded = 0 ORDER BY updated_at_utc DESC LIMIT 1;",
+                    (identifier,),
+                )
+                row = cur.fetchone()
+            if not row:
+                return None
+            return self._row_to_disagreement_review_dict(row)
+
+    def list_disagreement_reviews(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """Lists disagreement reviews ordered by updated_at_utc DESC."""
+        with self.get_connection() as conn:
+            cur = conn.execute(
+                "SELECT * FROM disagreement_reviews ORDER BY updated_at_utc DESC LIMIT ?;",
+                (max(1, min(limit, 500)),),
+            )
+            return [self._row_to_disagreement_review_dict(r) for r in cur.fetchall()]
+
+    def list_disagreement_audit_logs(
+        self,
+        event_id: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[Dict[str, Any]]:
+        """Lists disagreement review audit logs."""
+        query = "SELECT * FROM disagreement_review_audit"
+        params: List[Any] = []
+        if event_id:
+            query += " WHERE event_id = ?"
+            params.append(event_id)
+        query += " ORDER BY timestamp_utc DESC LIMIT ?;"
+        params.append(max(1, min(limit, 200)))
+
+        with self.get_connection() as conn:
+            cur = conn.execute(query, params)
+            results = []
+            for r in cur.fetchall():
+                results.append({
+                    "audit_id": r["audit_id"],
+                    "review_id": r["review_id"],
+                    "event_id": r["event_id"],
+                    "action": r["action"],
+                    "actor": r["actor"],
+                    "timestamp_utc": r["timestamp_utc"],
+                    "reason": r["reason"],
+                    "details": json.loads(r["details_json"] or "{}"),
+                })
+            return results
+
+    def _row_to_disagreement_event_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
+        """Maps an SQLite model_disagreement_events row to a dictionary."""
+        row_keys = row.keys()
+        return {
+            "event_id": row["event_id"],
+            "event_type": row["event_type"],
+            "rule_decision": row["rule_decision"],
+            "model_prediction": row["model_prediction"],
+            "model_version": row["model_version"],
+            "rule_engine_version": row["rule_engine_version"],
+            "model_confidence": row["model_confidence"],
+            "model_confidence_bucket": row["model_confidence_bucket"],
+            "rule_score": row["rule_score"],
+            "rule_score_bucket": row["rule_score_bucket"],
+            "language_category": row["language_category"],
+            "script_category": row["script_category"],
+            "message_length_bucket": row["message_length_bucket"],
+            "review_state": row["review_state"],
+            "created_at_utc": row["created_at_utc"],
+            "consent_given": bool(row["consent_given"]),
+            "feature_record_id": row["feature_record_id"],
+            "case_id": row["case_id"],
+            "metadata": json.loads(row["metadata_json"] or "{}") if "metadata_json" in row_keys else {},
+            "structural_observations": json.loads(row["metadata_json"] or "{}") if "metadata_json" in row_keys else {},
+        }
+
+    def _row_to_disagreement_review_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
+        """Maps an SQLite disagreement_reviews row to a dictionary."""
+        row_keys = row.keys()
+        return {
+            "review_id": row["review_id"],
+            "event_id": row["event_id"],
+            "review_state": row["review_state"],
+            "outcome_label": row["outcome_label"],
+            "reviewer_assessment": row["reviewer_assessment"],
+            "confidence_rating": row["confidence_rating"],
+            "reviewer_label": row["reviewer_label"],
+            "notes": row["notes"],
+            "created_at_utc": row["created_at_utc"],
+            "updated_at_utc": row["updated_at_utc"],
+            "is_superseded": bool(row["is_superseded"]),
+            "superseded_by": row["superseded_by"],
             "metadata": json.loads(row["metadata_json"] or "{}") if "metadata_json" in row_keys else {},
         }
 

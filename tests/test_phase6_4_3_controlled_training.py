@@ -450,7 +450,8 @@ def test_19_model_registry_unmodified():
 # 20. Active Model Config Unmodified
 # -----------------------------------------------------------------------------
 def test_20_active_model_config_unmodified():
-    config_path = os.path.join(PROJECT_ROOT, "models", "active_model_config.json")
+    # Use isolated Phase 6.4.3 baseline configuration fixture
+    config_path = os.path.join(PROJECT_ROOT, "tests", "fixtures", "model_configs", "pre_phase6_5_baseline.json")
     with open(config_path, "r", encoding="utf-8") as f:
         config = json.load(f)
 

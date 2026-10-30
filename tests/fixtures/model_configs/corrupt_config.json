@@ -1,0 +1,7 @@
+{
+  "active_model_version": null,
+  "last_known_good_version": "invalid-nonexistent-version",
+  "operating_mode": "unknown_mode",
+  "checkpoint_rel_path": "invalid/path/does/not/exist",
+  "is_production_authoritative": "not-a-bool"
+}

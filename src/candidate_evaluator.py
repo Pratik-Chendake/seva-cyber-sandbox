@@ -290,15 +290,23 @@ class CandidateEvaluator:
         self,
         project_root: Optional[str] = None,
         policy: Optional[BenchmarkPolicy] = None,
+        models_dir: Optional[str] = None,
+        active_config_path: Optional[str] = None,
     ):
         if project_root is None:
             self.project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         else:
             self.project_root = os.path.abspath(project_root)
 
-        self.models_dir = os.path.abspath(os.path.join(self.project_root, DEFAULT_MODELS_DIR))
+        self.models_dir = os.path.abspath(models_dir) if models_dir else os.path.abspath(os.path.join(self.project_root, DEFAULT_MODELS_DIR))
         self.candidates_dir = os.path.abspath(os.path.join(self.project_root, DEFAULT_CANDIDATES_DIR))
         self.policy = policy or BenchmarkPolicy()
+        if active_config_path:
+            self.active_config_path = os.path.abspath(active_config_path)
+        elif "SEVA_ACTIVE_CONFIG_PATH" in os.environ:
+            self.active_config_path = os.path.abspath(os.environ["SEVA_ACTIVE_CONFIG_PATH"])
+        else:
+            self.active_config_path = os.path.join(self.models_dir, "active_model_config.json")
 
     def validate_safe_model_path(self, path: str) -> str:
         """
@@ -325,21 +333,21 @@ class CandidateEvaluator:
 
         return abs_path
 
-    def discover_baseline_model(self) -> Dict[str, Any]:
+    def discover_baseline_model(self, active_config_path: Optional[str] = None) -> Dict[str, Any]:
         """
         Discovers and verifies the currently active model from the registry and active config.
         """
         registry_path = os.path.join(self.models_dir, "model_registry.json")
-        active_config_path = os.path.join(self.models_dir, "active_model_config.json")
+        cfg_path = active_config_path or self.active_config_path
 
         if not os.path.isfile(registry_path):
             raise ArtifactIntegrityError(f"Model registry not found at '{registry_path}'")
-        if not os.path.isfile(active_config_path):
-            raise ArtifactIntegrityError(f"Active model config not found at '{active_config_path}'")
+        if not os.path.isfile(cfg_path):
+            raise ArtifactIntegrityError(f"Active model config not found at '{cfg_path}'")
 
         with open(registry_path, "r", encoding="utf-8") as f:
             registry_data = json.load(f)
-        with open(active_config_path, "r", encoding="utf-8") as f:
+        with open(cfg_path, "r", encoding="utf-8") as f:
             active_data = json.load(f)
 
         active_version = active_data.get("active_model_version")

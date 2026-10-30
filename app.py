@@ -359,6 +359,11 @@ def main() -> None:
                     message_text=message_input,
                     rule_analysis=msg_res,
                 )
+                try:
+                    from src.shadow_controller import ShadowMonitorController
+                    ShadowMonitorController().record_inference_telemetry(hybrid_eval)
+                except Exception:
+                    pass
                 with st.expander("🛡️ Hybrid Decision Engine & Guardrails Diagnostics", expanded=False):
                     c_h1, c_h2, c_h3 = st.columns(3)
                     c_h1.metric("Engine Mode", hybrid_eval["operating_mode"].upper(), help="Configured via HYBRID_ENGINE_MODE (Default: shadow)")
@@ -1212,11 +1217,12 @@ def main() -> None:
             "Do not treat local audit trails as non-repudiable forensic proof."
         )
 
-        subtab_desk, subtab_registry, subtab_discovery = st.tabs(
+        subtab_desk, subtab_registry, subtab_discovery, subtab_disagreement = st.tabs(
             [
                 "07A // HUMAN REVIEW DESK",
                 "07B // MODEL REGISTRY & ROLLBACK",
                 "07C // FRAUD PATTERN DISCOVERY",
+                "07D // MODEL DISAGREEMENT REVIEW",
             ]
         )
 
@@ -1414,6 +1420,38 @@ def main() -> None:
                         st.success(f"✅ **Cryptographic Integrity Verified:** {v_msg}")
                     else:
                         st.error(f"🚨 **Cryptographic Integrity FAILED:** {v_msg}")
+
+                # Shadow diagnostics telemetry and operator controls
+                try:
+                    from src.shadow_controller import ShadowMonitorController
+                    smc = ShadowMonitorController(registry=registry)
+                    smc_status = smc.get_shadow_load_status()
+                    smc_counts = smc.get_aggregate_prediction_counts()
+
+                    st.markdown("##### 🩺 Shadow Diagnostics Telemetry & Controls")
+                    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+                    col_m1.metric("Shadow Status", smc_status.get("status_label", "UNKNOWN"))
+                    col_m2.metric("Total Inferences", smc_counts.get("total_evaluations", 0))
+                    col_m3.metric("Rule/Model Agreements", smc_counts.get("agreements", 0))
+                    col_m4.metric("Disagreements", smc_counts.get("disagreements", 0))
+
+                    col_t1, col_t2 = st.columns([2, 1])
+                    with col_t1:
+                        st.caption(
+                            "Disabling shadow inference switches the engine to rules_only mode. "
+                            "Authoritative deterministic scoring remains 100% functional."
+                        )
+                    with col_t2:
+                        if active_cfg.get("operating_mode") == "shadow":
+                            if st.button("⏹️ Disable Shadow Diagnostics", type="secondary", key="btn_disable_shadow"):
+                                smc.disable_shadow_inference(operator_label="operator_local")
+                                st.rerun()
+                        else:
+                            if st.button("▶️ Enable Shadow Diagnostics", type="primary", key="btn_enable_shadow"):
+                                smc.enable_shadow_inference(operator_label="operator_local")
+                                st.rerun()
+                except Exception as smc_err:
+                    st.caption(f"Telemetry controller notice: {smc_err}")
 
                 st.markdown("---")
                 st.markdown("#### 📚 Registered Neural Models in Local Catalog")
@@ -1640,6 +1678,211 @@ def main() -> None:
                     st.dataframe(audit_logs, use_container_width=True)
                 else:
                     st.info("No pattern review decisions recorded yet.")
+
+        # ---------------------------------------------------------------------
+        # SECTION D: MODEL DISAGREEMENT REVIEW DESK & ANALYTICS (Phase 6.6)
+        # ---------------------------------------------------------------------
+        with subtab_disagreement:
+            st.markdown("#### ⚖️ Model Disagreement Review Desk & Feedback Analytics")
+            st.caption(
+                "Detects and manages disagreements between deterministic rules and the shadow neural model. "
+                "Enables local human adjudication, records comparative assessments, and curates consented training features. "
+                "Production threat scoring remains 100% governed by deterministic rules (GR-01)."
+            )
+
+            st.warning(
+                "🔒 **HITL PRIVACY & GOVERNANCE BOUNDARIES:**\n"
+                "- **Zero Raw Text Retention:** The review desk operates strictly on sanitized structural metadata. "
+                "Original message text is not retained on disk (GR-08).\n"
+                "- **Unauthenticated Operator Attribution:** Review decisions are attributed to `local_operator_unauthenticated`. "
+                "Do not interpret reviewer assessments as certified ground truth.\n"
+                "- **Zero Automated Production Modification:** Human reviews or candidate pattern approvals NEVER "
+                "automatically activate production rules, retrain models, or alter risk scores."
+            )
+
+            store: SessionCaseStore = st.session_state.case_store
+            disagree_stats = store.get_disagreement_stats()
+
+            # Metric Cards
+            col_d1, col_d2, col_d3, col_d4, col_d5 = st.columns(5)
+            col_d1.metric("Total Events", disagree_stats.get("total_events", 0))
+            col_d2.metric("Disagreements", disagree_stats.get("disagreements_count", 0))
+            col_d3.metric("Agreements", disagree_stats.get("agreements_count", 0))
+            col_d4.metric("Pending Reviews", disagree_stats.get("pending_reviews", 0))
+            col_d5.metric("Completed Reviews", disagree_stats.get("completed_reviews", 0))
+
+            st.markdown("---")
+            st.markdown("##### 📥 Disagreement Events & Review Queue")
+
+            # Filters
+            col_f1, col_f2 = st.columns(2)
+            with col_f1:
+                filter_state = st.selectbox(
+                    "Filter by Review State:",
+                    ["all", "pending", "completed", "insufficient_evidence", "superseded"],
+                    key="sel_filter_disagree_state",
+                )
+            with col_f2:
+                filter_type = st.selectbox(
+                    "Filter by Event Type:",
+                    ["all", "rule_phishing_model_legitimate", "rule_phishing_model_advisory",
+                     "rule_legitimate_model_phishing", "rule_legitimate_model_advisory",
+                     "rule_advisory_model_phishing", "rule_advisory_model_legitimate",
+                     "agreement", "non_comparable"],
+                    key="sel_filter_disagree_type",
+                )
+
+            req_state = None if filter_state == "all" else filter_state
+            req_type = None if filter_type == "all" else filter_type
+            disagree_events = store.list_disagreement_events(review_state=req_state, event_type=req_type, limit=50)
+
+            if not disagree_events:
+                st.info("No disagreement events matching the selected filters found.")
+            else:
+                event_table_rows = []
+                for ev in disagree_events:
+                    event_table_rows.append({
+                        "Event ID": ev["event_id"],
+                        "Event Type": ev["event_type"],
+                        "Rule Decision": f"{ev['rule_decision']} (Score: {ev.get('rule_score', 'N/A')})",
+                        "Model Prediction": f"{ev.get('model_prediction', 'None')} ({ev.get('model_confidence_bucket', 'N/A')})",
+                        "Model Version": ev.get("model_version", "N/A"),
+                        "Length Bucket": ev.get("message_length_bucket", "N/A"),
+                        "Consented": "Yes" if ev.get("consent_given") else "No",
+                        "Review State": ev["review_state"].upper(),
+                    })
+                st.dataframe(event_table_rows, use_container_width=True)
+
+                st.markdown("##### ✍️ Disagreement Adjudication Form")
+                ev_ids = [e["event_id"] for e in disagree_events]
+                chosen_ev_id = st.selectbox("Select Event ID to Review:", ev_ids, key="sel_disagree_ev")
+
+                if chosen_ev_id:
+                    chosen_ev = next(e for e in disagree_events if e["event_id"] == chosen_ev_id)
+                    existing_rev = store.get_disagreement_review(chosen_ev_id)
+
+                    st.markdown("###### 🔍 Event Metadata & Structural Observations (Zero Raw Content)")
+                    ev_c1, ev_c2 = st.columns(2)
+                    with ev_c1:
+                        st.markdown(f"- **Event ID:** `{chosen_ev['event_id']}`")
+                        st.markdown(f"- **Event Type:** `{chosen_ev['event_type']}`")
+                        st.markdown(f"- **Rule Decision:** `{chosen_ev['rule_decision']}` (Score: `{chosen_ev.get('rule_score')}`) [{chosen_ev.get('rule_score_bucket')}]")
+                        st.markdown(f"- **Model Prediction:** `{chosen_ev.get('model_prediction')}` (Conf: `{chosen_ev.get('model_confidence')}`) [{chosen_ev.get('model_confidence_bucket')}]")
+                        st.markdown(f"- **Model Version:** `{chosen_ev.get('model_version')}`")
+                    with ev_c2:
+                        st.markdown(f"- **Timestamp (UTC):** `{chosen_ev.get('created_at_utc')}`")
+                        st.markdown(f"- **Language / Script:** `{chosen_ev.get('language_category')}` / `{chosen_ev.get('script_category')}`")
+                        st.markdown(f"- **Length Bucket:** `{chosen_ev.get('message_length_bucket')}`")
+                        st.markdown(f"- **Current Review State:** `{chosen_ev.get('review_state').upper()}`")
+                        st.markdown(f"- **Training Feature Consented:** `{'YES' if chosen_ev.get('consent_given') else 'NO'}`")
+
+                    obs = chosen_ev.get("metadata", {}).get("structural_observations", {})
+                    if obs:
+                        with st.expander("View Passively Observed Structural Traits", expanded=False):
+                            st.json(obs)
+
+                    if existing_rev:
+                        st.info(
+                            f"📌 **Current Adjudication:** `{existing_rev.get('outcome_label')}` | "
+                            f"Assessment: `{existing_rev.get('reviewer_assessment')}` | "
+                            f"Confidence: `{existing_rev.get('confidence_rating')}` by `{existing_rev.get('reviewer_label')}`"
+                        )
+
+                    with st.form(key=f"form_disagree_review_{chosen_ev_id}"):
+                        form_outcome = st.selectbox(
+                            "Adjudicated Ground-Truth Classification:",
+                            ["phishing", "legitimate", "protective_advisory", "insufficient_evidence"],
+                            index=0 if not existing_rev else ["phishing", "legitimate", "protective_advisory", "insufficient_evidence"].index(existing_rev.get("outcome_label", "phishing")),
+                            help="Adjudicate the correct classification based on structural evidence.",
+                        )
+                        form_assessment = st.selectbox(
+                            "Operator Comparative Assessment:",
+                            ["rules_correct", "model_correct", "both_investigate", "neither_sufficient"],
+                            index=0 if not existing_rev else ["rules_correct", "model_correct", "both_investigate", "neither_sufficient"].index(existing_rev.get("reviewer_assessment", "rules_correct")),
+                            help="Record which decision system was judged more accurate.",
+                        )
+                        form_conf = st.radio(
+                            "Reviewer Confidence Rating:",
+                            ["high", "medium", "low"],
+                            index=1 if not existing_rev else ["high", "medium", "low"].index(existing_rev.get("confidence_rating", "medium")),
+                            horizontal=True,
+                        )
+                        form_notes = st.text_area(
+                            "Adjudication Rationale / Notes (Max 1000 chars — No PII allowed):",
+                            value=existing_rev.get("notes", "") if existing_rev else "",
+                            max_chars=1000,
+                            placeholder="State objective rationale for this adjudication...",
+                        )
+                        form_supersede = st.checkbox(
+                            "Supersede existing review if already completed",
+                            value=bool(existing_rev),
+                            help="Check to supersede prior adjudication with an auditable reason.",
+                        )
+                        form_supersede_reason = st.text_input(
+                            "Supersede Justification (Required if superseding):",
+                            value="Operator re-adjudication based on updated structural evidence" if existing_rev else "",
+                        )
+
+                        submit_disagree_btn = st.form_submit_button("💾 Submit Disagreement Adjudication", type="primary")
+
+                        if submit_disagree_btn:
+                            try:
+                                rev_res = store.submit_disagreement_review(
+                                    event_id=chosen_ev_id,
+                                    outcome_label=form_outcome,
+                                    reviewer_assessment=form_assessment,
+                                    confidence_rating=form_conf,
+                                    reviewer_label="local_operator_unauthenticated",
+                                    notes=form_notes,
+                                    supersede_existing=form_supersede,
+                                    reason=form_supersede_reason,
+                                )
+                                st.success(f"Review `{rev_res['review_id']}` submitted successfully! State: `{rev_res['review_state']}`.")
+                                st.rerun()
+                            except Exception as d_err:
+                                st.error(f"Review submission failed: {d_err}")
+
+            st.markdown("---")
+            st.markdown("##### 📊 Operational Feedback Analytics & Trends")
+            try:
+                from src.feedback_analytics import FeedbackAnalytics
+                analytics = FeedbackAnalytics(repository=store.repository)
+                analytics_data = analytics.compute_analytics()
+
+                a_col1, a_col2, a_col3 = st.columns(3)
+                with a_col1:
+                    st.metric("Agreement Rate", f"{analytics_data['disagreement_metrics']['agreement_rate'] * 100:.1f}%")
+                with a_col2:
+                    st.metric("Rules Judged Correct", f"{analytics_data['operator_accuracy_assessments']['rules_judged_correct_percentage']}%")
+                with a_col3:
+                    st.metric("Model Judged Correct", f"{analytics_data['operator_accuracy_assessments']['model_judged_correct_percentage']}%")
+
+                with st.expander("🔬 View Detailed Feedback Analytics & Comparative Accuracy", expanded=False):
+                    st.json(analytics_data)
+
+                # Download buttons for reports
+                report_md = analytics.generate_markdown_report()
+                report_json = json.dumps(analytics_data, indent=2, ensure_ascii=False)
+
+                dl_c1, dl_c2 = st.columns(2)
+                with dl_c1:
+                    st.download_button(
+                        label="📥 Download Analytics Report (Markdown)",
+                        data=report_md,
+                        file_name="feedback_analytics_report.md",
+                        mime="text/markdown",
+                        key="dl_analytics_md",
+                    )
+                with dl_c2:
+                    st.download_button(
+                        label="📊 Download Analytics Data (JSON)",
+                        data=report_json,
+                        file_name="feedback_analytics_report.json",
+                        mime="application/json",
+                        key="dl_analytics_json",
+                    )
+            except Exception as an_err:
+                st.info(f"Feedback analytics preview unavailable: {an_err}")
 
 
 if __name__ == "__main__":

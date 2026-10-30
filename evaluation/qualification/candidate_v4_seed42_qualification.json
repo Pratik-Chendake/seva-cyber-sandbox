@@ -1,0 +1,641 @@
+{
+  "report_schema_version": "1.0.0",
+  "phase": "6.4.8",
+  "timestamp_utc": "2026-10-30T16:14:57Z",
+  "qualification_verdict": "PASS",
+  "candidate_id": "candidate_v4_seed42",
+  "baseline_id": "custom-mlp-v1.1.0-preproc",
+  "dataset_provenance": {
+    "partition": "qualification",
+    "file_name": "synthetic_qualification_corpus.jsonl",
+    "file_sha256": "d9a3f4a861d971dfb8716f96f7233c42d8291de85ff070ed93893643caa81f7e",
+    "record_count": 450,
+    "campaign_family_count": 9,
+    "lifecycle_state_at_start": "sealed_independent_benchmark",
+    "exposure_ledger_path": "C:\\Users\\prati\\seva-cyber-sandbox\\evaluation\\qualification\\exposure_ledger_v4.json"
+  },
+  "baseline_evaluation": {
+    "model_id": "custom-mlp-v1.1.0-preproc",
+    "overall_metrics": {
+      "sample_count": 450,
+      "accuracy": 0.6844,
+      "accuracy_ci_95": [
+        0.6401,
+        0.7257
+      ],
+      "accuracy_fraction": "308/450",
+      "total_incorrect": 142,
+      "total_incorrect_fraction": "142/450",
+      "macro_f1": 0.6828,
+      "macro_precision": 0.682,
+      "macro_recall": 0.6844,
+      "balanced_accuracy": 0.6844,
+      "weighted_f1": 0.6828,
+      "confusion_matrix": [
+        [
+          85,
+          35,
+          30
+        ],
+        [
+          32,
+          106,
+          12
+        ],
+        [
+          25,
+          8,
+          117
+        ]
+      ],
+      "per_class": {
+        "phishing": {
+          "class_index": 0,
+          "true_positives": 85,
+          "false_positives": 57,
+          "false_negatives": 65,
+          "support": 150,
+          "precision": 0.5986,
+          "precision_ci_95": [
+            0.5164,
+            0.6756
+          ],
+          "precision_fraction": "85/142",
+          "recall": 0.5667,
+          "recall_ci_95": [
+            0.4867,
+            0.6433
+          ],
+          "recall_fraction": "85/150",
+          "f1": 0.5822
+        },
+        "legitimate": {
+          "class_index": 1,
+          "true_positives": 106,
+          "false_positives": 43,
+          "false_negatives": 44,
+          "support": 150,
+          "precision": 0.7114,
+          "precision_ci_95": [
+            0.6341,
+            0.7781
+          ],
+          "precision_fraction": "106/149",
+          "recall": 0.7067,
+          "recall_ci_95": [
+            0.6294,
+            0.7736
+          ],
+          "recall_fraction": "106/150",
+          "f1": 0.709
+        },
+        "protective_advisory": {
+          "class_index": 2,
+          "true_positives": 117,
+          "false_positives": 42,
+          "false_negatives": 33,
+          "support": 150,
+          "precision": 0.7358,
+          "precision_ci_95": [
+            0.6623,
+            0.7982
+          ],
+          "precision_fraction": "117/159",
+          "recall": 0.78,
+          "recall_ci_95": [
+            0.7072,
+            0.8388
+          ],
+          "recall_fraction": "117/150",
+          "f1": 0.7573
+        }
+      },
+      "safety_metrics": {
+        "legitimate_fp_rate": 0.2133,
+        "legitimate_fp_ci_95": [
+          0.1554,
+          0.2856
+        ],
+        "legitimate_fp_fraction": "32/150",
+        "protective_advisory_fp_rate": 0.1667,
+        "protective_advisory_fp_ci_95": [
+          0.1155,
+          0.2345
+        ],
+        "protective_advisory_fp_fraction": "25/150",
+        "phishing_fn_rate": 0.4333,
+        "phishing_fn_ci_95": [
+          0.3567,
+          0.5133
+        ],
+        "phishing_fn_fraction": "65/150",
+        "prediction_distribution": {
+          "phishing": 142,
+          "legitimate": 149,
+          "protective_advisory": 159
+        }
+      }
+    },
+    "safety_metrics": {
+      "citizen_safety_metrics": {
+        "legitimate_to_phishing_false_alarm_rate": 0.2133,
+        "legitimate_to_phishing_fraction": "32/150",
+        "legitimate_to_phishing_ci_95": [
+          0.1554,
+          0.2856
+        ],
+        "protective_advisory_to_phishing_false_alarm_rate": 0.1667,
+        "protective_advisory_to_phishing_fraction": "25/150",
+        "protective_advisory_to_phishing_ci_95": [
+          0.1155,
+          0.2345
+        ],
+        "phishing_false_negative_rate": 0.4333,
+        "phishing_false_negative_fraction": "65/150",
+        "phishing_false_negative_ci_95": [
+          0.3567,
+          0.5133
+        ]
+      },
+      "conventional_one_vs_rest_fp_metrics": {
+        "phishing_ovr_fp_rate": 0.19,
+        "phishing_ovr_fp_fraction": "57/300",
+        "legitimate_ovr_fp_rate": 0.1433,
+        "legitimate_ovr_fp_fraction": "43/300",
+        "protective_advisory_ovr_fp_rate": 0.14,
+        "protective_advisory_ovr_fp_fraction": "42/300"
+      }
+    }
+  },
+  "candidate_evaluation": {
+    "model_id": "candidate_v4_seed42",
+    "overall_metrics": {
+      "sample_count": 450,
+      "accuracy": 0.9756,
+      "accuracy_ci_95": [
+        0.9568,
+        0.9863
+      ],
+      "accuracy_fraction": "439/450",
+      "total_incorrect": 11,
+      "total_incorrect_fraction": "11/450",
+      "macro_f1": 0.9755,
+      "macro_precision": 0.9772,
+      "macro_recall": 0.9756,
+      "balanced_accuracy": 0.9756,
+      "weighted_f1": 0.9755,
+      "confusion_matrix": [
+        [
+          150,
+          0,
+          0
+        ],
+        [
+          0,
+          139,
+          11
+        ],
+        [
+          0,
+          0,
+          150
+        ]
+      ],
+      "per_class": {
+        "phishing": {
+          "class_index": 0,
+          "true_positives": 150,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "support": 150,
+          "precision": 1.0,
+          "precision_ci_95": [
+            0.975,
+            1.0
+          ],
+          "precision_fraction": "150/150",
+          "recall": 1.0,
+          "recall_ci_95": [
+            0.975,
+            1.0
+          ],
+          "recall_fraction": "150/150",
+          "f1": 1.0
+        },
+        "legitimate": {
+          "class_index": 1,
+          "true_positives": 139,
+          "false_positives": 0,
+          "false_negatives": 11,
+          "support": 150,
+          "precision": 1.0,
+          "precision_ci_95": [
+            0.9731,
+            1.0
+          ],
+          "precision_fraction": "139/139",
+          "recall": 0.9267,
+          "recall_ci_95": [
+            0.8735,
+            0.9586
+          ],
+          "recall_fraction": "139/150",
+          "f1": 0.9619
+        },
+        "protective_advisory": {
+          "class_index": 2,
+          "true_positives": 150,
+          "false_positives": 11,
+          "false_negatives": 0,
+          "support": 150,
+          "precision": 0.9317,
+          "precision_ci_95": [
+            0.8818,
+            0.9614
+          ],
+          "precision_fraction": "150/161",
+          "recall": 1.0,
+          "recall_ci_95": [
+            0.975,
+            1.0
+          ],
+          "recall_fraction": "150/150",
+          "f1": 0.9646
+        }
+      },
+      "safety_metrics": {
+        "legitimate_fp_rate": 0.0,
+        "legitimate_fp_ci_95": [
+          0.0,
+          0.025
+        ],
+        "legitimate_fp_fraction": "0/150",
+        "protective_advisory_fp_rate": 0.0,
+        "protective_advisory_fp_ci_95": [
+          0.0,
+          0.025
+        ],
+        "protective_advisory_fp_fraction": "0/150",
+        "phishing_fn_rate": 0.0,
+        "phishing_fn_ci_95": [
+          0.0,
+          0.025
+        ],
+        "phishing_fn_fraction": "0/150",
+        "prediction_distribution": {
+          "phishing": 150,
+          "legitimate": 139,
+          "protective_advisory": 161
+        }
+      }
+    },
+    "safety_metrics": {
+      "citizen_safety_metrics": {
+        "legitimate_to_phishing_false_alarm_rate": 0.0,
+        "legitimate_to_phishing_fraction": "0/150",
+        "legitimate_to_phishing_ci_95": [
+          0.0,
+          0.025
+        ],
+        "protective_advisory_to_phishing_false_alarm_rate": 0.0,
+        "protective_advisory_to_phishing_fraction": "0/150",
+        "protective_advisory_to_phishing_ci_95": [
+          0.0,
+          0.025
+        ],
+        "phishing_false_negative_rate": 0.0,
+        "phishing_false_negative_fraction": "0/150",
+        "phishing_false_negative_ci_95": [
+          0.0,
+          0.025
+        ]
+      },
+      "conventional_one_vs_rest_fp_metrics": {
+        "phishing_ovr_fp_rate": 0.0,
+        "phishing_ovr_fp_fraction": "0/300",
+        "legitimate_ovr_fp_rate": 0.0,
+        "legitimate_ovr_fp_fraction": "0/300",
+        "protective_advisory_ovr_fp_rate": 0.0367,
+        "protective_advisory_ovr_fp_fraction": "11/300"
+      }
+    }
+  },
+  "campaign_family_analysis": {
+    "family_breakdown": [
+      {
+        "campaign_family_id": "v4_qual_advisory_bar_council_fake_legal_summons",
+        "ground_truth_class": "protective_advisory",
+        "sample_count": 50,
+        "baseline_accuracy": 0.84,
+        "baseline_correct_fraction": "42/50",
+        "candidate_accuracy": 1.0,
+        "candidate_correct_fraction": "50/50",
+        "candidate_serious_false_alarms": 0,
+        "candidate_phishing_misses": 0,
+        "baseline_serious_false_alarms": 0,
+        "baseline_phishing_misses": 0
+      },
+      {
+        "campaign_family_id": "v4_qual_advisory_i4c_digital_arrest_sop",
+        "ground_truth_class": "protective_advisory",
+        "sample_count": 50,
+        "baseline_accuracy": 0.76,
+        "baseline_correct_fraction": "38/50",
+        "candidate_accuracy": 1.0,
+        "candidate_correct_fraction": "50/50",
+        "candidate_serious_false_alarms": 0,
+        "candidate_phishing_misses": 0,
+        "baseline_serious_false_alarms": 12,
+        "baseline_phishing_misses": 0
+      },
+      {
+        "campaign_family_id": "v4_qual_advisory_trai_cyber_arrest_ivr",
+        "ground_truth_class": "protective_advisory",
+        "sample_count": 50,
+        "baseline_accuracy": 0.74,
+        "baseline_correct_fraction": "37/50",
+        "candidate_accuracy": 1.0,
+        "candidate_correct_fraction": "50/50",
+        "candidate_serious_false_alarms": 0,
+        "candidate_phishing_misses": 0,
+        "baseline_serious_false_alarms": 13,
+        "baseline_phishing_misses": 0
+      },
+      {
+        "campaign_family_id": "v4_qual_legit_lok_adalat_dispute_hearing",
+        "ground_truth_class": "legitimate",
+        "sample_count": 50,
+        "baseline_accuracy": 0.64,
+        "baseline_correct_fraction": "32/50",
+        "candidate_accuracy": 1.0,
+        "candidate_correct_fraction": "50/50",
+        "candidate_serious_false_alarms": 0,
+        "candidate_phishing_misses": 0,
+        "baseline_serious_false_alarms": 18,
+        "baseline_phishing_misses": 0
+      },
+      {
+        "campaign_family_id": "v4_qual_legit_municipal_trade_license_reminder",
+        "ground_truth_class": "legitimate",
+        "sample_count": 50,
+        "baseline_accuracy": 0.84,
+        "baseline_correct_fraction": "42/50",
+        "candidate_accuracy": 0.94,
+        "candidate_correct_fraction": "47/50",
+        "candidate_serious_false_alarms": 0,
+        "candidate_phishing_misses": 0,
+        "baseline_serious_false_alarms": 7,
+        "baseline_phishing_misses": 0
+      },
+      {
+        "campaign_family_id": "v4_qual_legit_police_clearance_certificate_ready",
+        "ground_truth_class": "legitimate",
+        "sample_count": 50,
+        "baseline_accuracy": 0.64,
+        "baseline_correct_fraction": "32/50",
+        "candidate_accuracy": 0.84,
+        "candidate_correct_fraction": "42/50",
+        "candidate_serious_false_alarms": 0,
+        "candidate_phishing_misses": 0,
+        "baseline_serious_false_alarms": 7,
+        "baseline_phishing_misses": 0
+      },
+      {
+        "campaign_family_id": "v4_qual_phish_acb_disproportionate_assets_fine",
+        "ground_truth_class": "phishing",
+        "sample_count": 50,
+        "baseline_accuracy": 0.64,
+        "baseline_correct_fraction": "32/50",
+        "candidate_accuracy": 1.0,
+        "candidate_correct_fraction": "50/50",
+        "candidate_serious_false_alarms": 0,
+        "candidate_phishing_misses": 0,
+        "baseline_serious_false_alarms": 0,
+        "baseline_phishing_misses": 18
+      },
+      {
+        "campaign_family_id": "v4_qual_phish_nia_terror_funding_interrogation",
+        "ground_truth_class": "phishing",
+        "sample_count": 50,
+        "baseline_accuracy": 0.5,
+        "baseline_correct_fraction": "25/50",
+        "candidate_accuracy": 1.0,
+        "candidate_correct_fraction": "50/50",
+        "candidate_serious_false_alarms": 0,
+        "candidate_phishing_misses": 0,
+        "baseline_serious_false_alarms": 0,
+        "baseline_phishing_misses": 25
+      },
+      {
+        "campaign_family_id": "v4_qual_phish_supremecourt_arrest_injunction",
+        "ground_truth_class": "phishing",
+        "sample_count": 50,
+        "baseline_accuracy": 0.56,
+        "baseline_correct_fraction": "28/50",
+        "candidate_accuracy": 1.0,
+        "candidate_correct_fraction": "50/50",
+        "candidate_serious_false_alarms": 0,
+        "candidate_phishing_misses": 0,
+        "baseline_serious_false_alarms": 0,
+        "baseline_phishing_misses": 22
+      }
+    ],
+    "baseline_family_macro_accuracy": 0.6844,
+    "candidate_family_macro_accuracy": 0.9756,
+    "baseline_families_with_serious_false_alarms": 5,
+    "candidate_families_with_serious_false_alarms": 0,
+    "baseline_families_with_phishing_misses": 3,
+    "candidate_families_with_phishing_misses": 0,
+    "candidate_macro_f1_cluster_bootstrap_95ci": [
+      0.65,
+      1.0
+    ],
+    "baseline_macro_f1_cluster_bootstrap_95ci": [
+      0.4572,
+      0.718
+    ],
+    "bootstrap_iterations": 1000,
+    "limitation_note": "Evaluated on exactly 9 campaign families. The 450 records represent clustered instances of 9 campaign families, not 450 independent distributions."
+  },
+  "subgroup_analysis": {
+    "by_language": {
+      "mr": {
+        "sample_count": 117,
+        "baseline_accuracy": 0.547,
+        "baseline_fraction": "64/117",
+        "candidate_accuracy": 0.9744,
+        "candidate_fraction": "114/117"
+      },
+      "mr-Latn": {
+        "sample_count": 117,
+        "baseline_accuracy": 0.7949,
+        "baseline_fraction": "93/117",
+        "candidate_accuracy": 0.9402,
+        "candidate_fraction": "110/117"
+      },
+      "en": {
+        "sample_count": 108,
+        "baseline_accuracy": 0.7593,
+        "baseline_fraction": "82/108",
+        "candidate_accuracy": 1.0,
+        "candidate_fraction": "108/108"
+      },
+      "mr-en": {
+        "sample_count": 108,
+        "baseline_accuracy": 0.6389,
+        "baseline_fraction": "69/108",
+        "candidate_accuracy": 0.9907,
+        "candidate_fraction": "107/108"
+      }
+    },
+    "by_messaging_mode": {
+      "formal_notice": {
+        "sample_count": 249,
+        "baseline_accuracy": 0.6586,
+        "baseline_fraction": "164/249",
+        "candidate_accuracy": 0.988,
+        "candidate_fraction": "246/249"
+      },
+      "sms": {
+        "sample_count": 88,
+        "baseline_accuracy": 0.6364,
+        "baseline_fraction": "56/88",
+        "candidate_accuracy": 0.9091,
+        "candidate_fraction": "80/88"
+      },
+      "whatsapp": {
+        "sample_count": 13,
+        "baseline_accuracy": 1.0,
+        "baseline_fraction": "13/13",
+        "candidate_accuracy": 1.0,
+        "candidate_fraction": "13/13"
+      },
+      "advisory_bulletin": {
+        "sample_count": 100,
+        "baseline_accuracy": 0.75,
+        "baseline_fraction": "75/100",
+        "candidate_accuracy": 1.0,
+        "candidate_fraction": "100/100"
+      }
+    },
+    "by_url_presence": {
+      "True": {
+        "sample_count": 225,
+        "baseline_accuracy": 0.6267,
+        "baseline_fraction": "141/225",
+        "candidate_accuracy": 0.9867,
+        "candidate_fraction": "222/225"
+      },
+      "False": {
+        "sample_count": 225,
+        "baseline_accuracy": 0.7422,
+        "baseline_fraction": "167/225",
+        "candidate_accuracy": 0.9644,
+        "candidate_fraction": "217/225"
+      }
+    }
+  },
+  "counterfactual_robustness": {
+    "whitespace_normalization": {
+      "eligible_samples": 450,
+      "baseline_flips": 0,
+      "baseline_flip_rate": 0.0,
+      "candidate_flips": 0,
+      "candidate_flip_rate": 0.0
+    },
+    "zero_width_character_obfuscation": {
+      "eligible_samples": 450,
+      "baseline_flips": 0,
+      "baseline_flip_rate": 0.0,
+      "candidate_flips": 0,
+      "candidate_flip_rate": 0.0
+    },
+    "devanagari_numeral_translation": {
+      "eligible_samples": 280,
+      "baseline_flips": 0,
+      "baseline_flip_rate": 0.0,
+      "candidate_flips": 0,
+      "candidate_flip_rate": 0.0
+    },
+    "case_inversion": {
+      "eligible_samples": 420,
+      "baseline_flips": 0,
+      "baseline_flip_rate": 0.0,
+      "candidate_flips": 0,
+      "candidate_flip_rate": 0.0
+    },
+    "url_removal_sensitivity": {
+      "eligible_samples": 225,
+      "baseline_flips": 40,
+      "baseline_flip_rate": 0.1778,
+      "candidate_flips": 10,
+      "candidate_flip_rate": 0.0444,
+      "candidate_flips_by_class": {
+        "phishing": 6,
+        "legitimate": 4
+      }
+    },
+    "benign_url_insertion": {
+      "eligible_samples": 225,
+      "baseline_flips": 50,
+      "baseline_flip_rate": 0.2222,
+      "candidate_flips": 14,
+      "candidate_flip_rate": 0.0622,
+      "candidate_flips_by_class": {
+        "legitimate": 8,
+        "protective_advisory": 6
+      }
+    },
+    "url_position_shift": {
+      "eligible_samples": 225,
+      "baseline_flips": 44,
+      "baseline_flip_rate": 0.1956,
+      "candidate_flips": 3,
+      "candidate_flip_rate": 0.0133
+    }
+  },
+  "benchmark_policy_evaluation": {
+    "policy_name": "Phase 6.4.8 Qualification Benchmark Policy",
+    "verdict": "PASS",
+    "gate_details": {
+      "gate_1_min_macro_f1": {
+        "required": ">= 0.9",
+        "actual": 0.9755,
+        "passed": true
+      },
+      "gate_2_max_macro_f1_drop": {
+        "required": ">= -0.02",
+        "actual": 0.2927,
+        "passed": true
+      },
+      "gate_3_legit_fp_rate": {
+        "required": "<= 0.15",
+        "actual": 0.0,
+        "passed": true
+      },
+      "gate_4_advisory_fp_rate": {
+        "required": "<= 0.05",
+        "actual": 0.0,
+        "passed": true
+      },
+      "gate_5_phish_fn_rate": {
+        "required": "<= 0.05",
+        "actual": 0.0,
+        "passed": true
+      },
+      "gate_6_normalization_robustness": {
+        "required": "0 flips on normalized representations",
+        "passed": true
+      }
+    },
+    "failing_gates": []
+  },
+  "governance_guarantees": {
+    "locked_eval_partition_sha256": "9b9c02d438cfca8bd07af89d60bc1d2fb42d460143d016365ab5a1d231ee0cda",
+    "qualification_partition_exposed": true,
+    "production_registry_modified": false,
+    "active_model_config_modified": false,
+    "production_score_delta": 0,
+    "human_decision_required_for_promotion": true
+  }
+}

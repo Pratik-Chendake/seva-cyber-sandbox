@@ -1,0 +1,170 @@
+{
+  "samples": [
+    {
+      "id": "APK-001",
+      "filename": "MSEDCL_Bill_Update_Malicious.apk",
+      "file_size_bytes": 3145728,
+      "sha256_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "is_valid_apk": true,
+      "is_synthetic_fixture": false,
+      "package_name": "com.fraud.msedcl.helper",
+      "manifest_format": "Binary AXML (0x00080003)",
+      "parser_used": "Structural Android Binary XML Attribute Parser",
+      "dex_format": "Dalvik Executable (dex\\n035)",
+      "score": 95,
+      "risk_level": "CRITICAL RISK (DANGEROUS PERMISSIONS DETECTED)",
+      "badge_color": "red",
+      "analysis_type": "Android APK Static Security Analysis",
+      "summary_en": "Critical security risk! This application requests invasive SMS interception, call logging, and Accessibility Service bindings commonly weaponized by banking trojans to steal one-time passcodes and credentials.",
+      "summary_mr": "अतिधोकादायक ॲप! या ॲप्लिकेशनमध्ये मोबाईलमधील मेसेज वाचण्याची, फोन कॉल्स रेकॉर्ड करण्याची आणि फोनवर पूर्ण नियंत्रण मिळवण्याची धोकादायक परवानगी मागितली आहे.",
+      "evidence": [
+        "Requests android.permission.RECEIVE_SMS (Invasive SMS interception capability)",
+        "Requests android.permission.READ_SMS (Targeted bank OTP harvesting vector)",
+        "Requests android.permission.BIND_ACCESSIBILITY_SERVICE (Full UI overlay and credential keylogging capability)",
+        "Passively extracted 2 suspicious command-and-control endpoint URLs"
+      ],
+      "observed_facts": [
+        "Package: com.fraud.msedcl.helper",
+        "Manifest: Android Binary XML (Compiled Resource Chunk 0x00080003)",
+        "Bytecode: Dalvik dex 035 verified",
+        "Permissions count: 5 declared, 3 critical high-weight capabilities",
+        "Target SDK: 33 (Android 13)"
+      ],
+      "heuristic_inferences": [
+        "SMS reading permissions in non-messaging utility indicate financial OTP interception trojan (+40 weight)",
+        "Accessibility Service misuse grants automated keystroke recording and screen capture (+45 weight)",
+        "Direct installation outside Google Play bypasses Play Protect security gating (+10 weight)"
+      ],
+      "permissions_found": [
+        {
+          "short_name": "RECEIVE_SMS",
+          "family": "SMS & Banking Interception",
+          "severity": "CRITICAL",
+          "weight": 35,
+          "reason_en": "Allows the app to intercept incoming SMS messages in real-time, enabling covert bank OTP theft.",
+          "reason_mr": "बँकेकडून येणारा गुप्त OTP हा ॲप युझरला समजण्यापूर्वीच चोरू शकतो."
+        },
+        {
+          "short_name": "READ_SMS",
+          "family": "SMS & Banking Interception",
+          "severity": "CRITICAL",
+          "weight": 35,
+          "reason_en": "Allows reading stored SMS messages, exposing private OTPs and transactional history.",
+          "reason_mr": "मोबाईलमधील जुने आणि नवीन सर्व मेसेज व बँकेचे व्यवहार वाचण्याची परवानगी देते."
+        },
+        {
+          "short_name": "BIND_ACCESSIBILITY_SERVICE",
+          "family": "Device & UI Keylogging",
+          "severity": "CRITICAL",
+          "weight": 40,
+          "reason_en": "Grants complete control over the device screen, enabling invisible keylogging and fake screen overlays.",
+          "reason_mr": "फोनच्या स्क्रीनवर काय टाईप केले जात आहे ते पाहण्याची व परस्पर ॲप्स चालवण्याची घातक क्षमता."
+        },
+        {
+          "short_name": "INTERNET",
+          "family": "Network Transmission",
+          "severity": "LOW",
+          "weight": 5,
+          "reason_en": "Required for external command-and-control telemetry exfiltration.",
+          "reason_mr": "इंटरनेट वापरून डेटा बाहेर पाठवण्याची परवानगी."
+        }
+      ],
+      "confirmed_observations": [
+        "Valid ZIP container structure with AndroidManifest.xml and classes.dex present",
+        "Header byte match: 0x00080003 (AXML Chunk)",
+        "No Google Play signing certificates discovered"
+      ],
+      "all_raw_permissions": [
+        "android.permission.INTERNET",
+        "android.permission.RECEIVE_SMS",
+        "android.permission.READ_SMS",
+        "android.permission.BIND_ACCESSIBILITY_SERVICE",
+        "android.permission.RECEIVE_BOOT_COMPLETED"
+      ],
+      "passive_urls": [
+        "http://c2-collector-stream.xyz/api/v1/sms-sync",
+        "http://msedcl-bill-update-maharashtra.xyz/telemetry"
+      ],
+      "files_inside_zip": [
+        "AndroidManifest.xml",
+        "classes.dex",
+        "resources.arsc",
+        "res/drawable-xhdpi/ic_launcher.png",
+        "META-INF/CERT.RSA",
+        "META-INF/CERT.SF",
+        "META-INF/MANIFEST.MF"
+      ],
+      "safe_next_steps_en": [
+        "Immediately delete this APK file from your downloads folder. Do NOT install it.",
+        "If already installed, immediately disconnect the phone from Wi-Fi/Mobile data and power off.",
+        "Change your netbanking passwords and contact your bank branch to pause online transactions.",
+        "Report the malicious package distribution to 1930."
+      ],
+      "safe_next_steps_mr": [
+        "ही APK फाईल तात्काळ डिलीट करा. चुकूनही इन्स्टॉल करू नका.",
+        "जर आधीच इन्स्टॉल केली असेल, तर मोबाईलचा डेटा त्वरित बंद करा किंवा फोन बंद करा.",
+        "आपल्या बँक खात्याचा पासवर्ड आणि UPI PIN तातडीने बदला.",
+        "१९३० या सायबर हेल्पलाइनवर तात्काळ तक्रार नोंदवा."
+      ]
+    },
+    {
+      "id": "APK-002",
+      "filename": "sample_test_synthetic.apk",
+      "file_size_bytes": 10240,
+      "sha256_hash": "a1b2c3d4e5f60718293a4b5c6d7e8f901234567890abcdef1234567890abcdef",
+      "is_valid_apk": true,
+      "is_synthetic_fixture": true,
+      "package_name": "gov.maharashtra.seva.testfixture",
+      "manifest_format": "Plain-Text Synthetic XML Fixture (Non-Binary)",
+      "parser_used": "Synthetic XML Test Fixture Handler",
+      "dex_format": "Synthetic Stub (0-byte DEX)",
+      "score": 10,
+      "risk_level": "LOW RISK (BENIGN SYNTHETIC TEST FIXTURE)",
+      "badge_color": "green",
+      "analysis_type": "Android APK Static Security Analysis",
+      "summary_en": "Harmless synthetic test fixture. Created for offline educational and testing purposes with no active malicious payload or binary executable bytecode.",
+      "summary_mr": "चाचणीसाठी तयार केलेली सुरक्षित फाईल. यामध्ये कोणताही घातक कोड अथवा धोकादायक परवानगी समाविष्ट नाही.",
+      "evidence": [
+        "Explicitly marked as synthetic test fixture",
+        "Zero invasive SMS or Accessibility permissions declared",
+        "Only standard INTERNET permission present"
+      ],
+      "observed_facts": [
+        "Package: gov.maharashtra.seva.testfixture",
+        "Synthetic fixture flag: True",
+        "Bytecode: Non-executable stub"
+      ],
+      "heuristic_inferences": [
+        "Educational test fixture with minimal attack surface (Score 10)"
+      ],
+      "permissions_found": [
+        {
+          "short_name": "INTERNET",
+          "family": "Network Access",
+          "severity": "LOW",
+          "weight": 5,
+          "reason_en": "Standard permission for web communication.",
+          "reason_mr": "सामान्य इंटरनेट वापरण्याची परवानगी."
+        }
+      ],
+      "confirmed_observations": [
+        "Plaintext AndroidManifest.xml parsed cleanly",
+        "Safe stub fixture verified"
+      ],
+      "all_raw_permissions": [
+        "android.permission.INTERNET"
+      ],
+      "passive_urls": [],
+      "files_inside_zip": [
+        "AndroidManifest.xml",
+        "classes.dex"
+      ],
+      "safe_next_steps_en": [
+        "This is a verified safe test fixture. No remediation action is necessary."
+      ],
+      "safe_next_steps_mr": [
+        "ही सुरक्षित चाचणी फाईल आहे. कोणतीही काळजी करण्याची गरज नाही."
+      ]
+    }
+  ]
+}

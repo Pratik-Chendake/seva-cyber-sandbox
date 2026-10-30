@@ -73,6 +73,67 @@
       "lifecycle_state": "approved_for_shadow",
       "is_production_authoritative": false,
       "notes": "Phase 5 custom neural classifier with canonical Devanagari numeral normalization."
+    },
+    "custom-mlp-v4.0.0-seed42": {
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "architecture_version": "3-layer-mlp-ngram-v1",
+      "checkpoint_rel_path": "models/candidates/candidate_v4_seed42",
+      "weights_sha256": "3affa8908153924e1ab6c66f1f9597b61de0e45a8ba1740e9bc472045888348f",
+      "metadata_sha256": "8bf388271453b805c148b17232972f6adbe1a4689370893159454b7fe61cafa3",
+      "preprocessing_version": "neural-preproc-v1.1.0",
+      "label_mapping": {
+        "phishing": 0,
+        "legitimate": 1,
+        "protective_advisory": 2
+      },
+      "hyperparameters": {
+        "input_dim": 1024,
+        "hidden_dim1": 64,
+        "hidden_dim2": 32,
+        "num_classes": 3,
+        "learning_rate": 0.0025,
+        "weight_decay": 0.0005,
+        "seed": 42
+      },
+      "training_corpus_id": "synthetic_training_v4",
+      "training_corpus_digest": "synthetic_training_corpus.jsonl",
+      "validation_corpus_id": "synthetic_qualification_v4",
+      "validation_corpus_digest": "d9a3f4a861d971dfb8716f96f7233c42d8291de85ff070ed93893643caa81f7e",
+      "validation_metrics": {
+        "accuracy": 0.9756,
+        "macro_f1": 0.9755,
+        "phishing_recall": 1.0,
+        "note": "Evaluated on sealed synthetic v4 qualification partition (Phase 6.4.8)."
+      },
+      "registered_at_utc": "2026-10-30T16:38:41.916012+00:00",
+      "registered_by": "local_operator",
+      "lifecycle_state": "approved_for_shadow",
+      "is_production_authoritative": false,
+      "notes": "Phase 6.5 shadow-mode registration of qualified candidate_v4_seed42",
+      "candidate_id": "candidate_v4_seed42",
+      "qualification_report_ref": "docs/PHASE_6_4_8_FINAL_QUALIFICATION_REPORT.md",
+      "qualification_provenance": {
+        "candidate_id": "candidate_v4_seed42",
+        "qualification_report_ref": "docs/PHASE_6_4_8_FINAL_QUALIFICATION_REPORT.md",
+        "qualification_verdict": "PASS",
+        "dataset_sha256": "d9a3f4a861d971dfb8716f96f7233c42d8291de85ff070ed93893643caa81f7e",
+        "record_count": 450,
+        "campaign_family_count": 9,
+        "qualification_accuracy": 0.9756,
+        "qualification_macro_f1": 0.9755,
+        "phishing_recall": 1.0,
+        "legitimate_fp_rate": 0.0,
+        "advisory_fp_rate": 0.0,
+        "phishing_fn_rate": 0.0,
+        "cluster_bootstrap_95ci": [
+          0.65,
+          1.0
+        ],
+        "disclaimer": "Evaluated on sealed synthetic v4 qualification partition. Synthetic metrics do not establish certified real-world distribution invariance."
+      },
+      "aliases": [
+        "candidate_v4_seed42"
+      ]
     }
   },
   "audit_log": [
@@ -112,6 +173,300 @@
       "details": {
         "prior_version": "custom-mlp-v1.0.0",
         "checkpoint": "models/experimental_custom_v1"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:38:41.916012+00:00",
+      "action": "REGISTER_MODEL",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "local_operator",
+      "lifecycle_state": "approved_for_shadow",
+      "weights_sha256": "3affa8908153924e1ab6c66f1f9597b61de0e45a8ba1740e9bc472045888348f"
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:38:41.976607+00:00",
+      "action": "ACTIVATE_DIAGNOSTIC_MODEL",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "local_operator",
+      "reason": "Activated Phase 6.5 shadow-mode qualified candidate",
+      "details": {
+        "prior_version": "custom-mlp-v1.1.0-preproc",
+        "checkpoint": "models/candidates/candidate_v4_seed42"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:39:07.007426+00:00",
+      "action": "ROLLBACK_DIAGNOSTIC_MODEL",
+      "model_version": "custom-mlp-v1.1.0-preproc",
+      "operator_label": "test_operator",
+      "reason": "Rolled back from custom-mlp-v4.0.0-seed42 to custom-mlp-v1.1.0-preproc. Test rollback verification",
+      "details": {
+        "rolled_back_from": "custom-mlp-v4.0.0-seed42",
+        "rolled_back_to": "custom-mlp-v1.1.0-preproc"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:39:07.014916+00:00",
+      "action": "ACTIVATE_DIAGNOSTIC_MODEL",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_operator",
+      "reason": "Re-activated candidate for Phase 6.5",
+      "details": {
+        "prior_version": "custom-mlp-v1.1.0-preproc",
+        "checkpoint": "models/candidates/candidate_v4_seed42"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:41:17.579282+00:00",
+      "action": "ROLLBACK_DIAGNOSTIC_MODEL",
+      "model_version": "custom-mlp-v1.1.0-preproc",
+      "operator_label": "test_suite",
+      "reason": "Rolled back from custom-mlp-v4.0.0-seed42 to custom-mlp-v1.1.0-preproc. Unit test rollback",
+      "details": {
+        "rolled_back_from": "custom-mlp-v4.0.0-seed42",
+        "rolled_back_to": "custom-mlp-v1.1.0-preproc"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:41:17.588520+00:00",
+      "action": "ACTIVATE_DIAGNOSTIC_MODEL",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_suite",
+      "reason": "Re-activating candidate after rollback test",
+      "details": {
+        "prior_version": "custom-mlp-v1.1.0-preproc",
+        "checkpoint": "models/candidates/candidate_v4_seed42"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:41:17.648209+00:00",
+      "action": "DISABLE_SHADOW_INFERENCE",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_suite",
+      "reason": "Operator disabled shadow diagnostics",
+      "details": {
+        "prior_mode": "shadow",
+        "new_mode": "rules_only"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:42:16.426709+00:00",
+      "action": "ROLLBACK_DIAGNOSTIC_MODEL",
+      "model_version": "custom-mlp-v1.1.0-preproc",
+      "operator_label": "test_suite",
+      "reason": "Rolled back from custom-mlp-v4.0.0-seed42 to custom-mlp-v1.1.0-preproc. Unit test rollback",
+      "details": {
+        "rolled_back_from": "custom-mlp-v4.0.0-seed42",
+        "rolled_back_to": "custom-mlp-v1.1.0-preproc"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:42:16.433845+00:00",
+      "action": "ACTIVATE_DIAGNOSTIC_MODEL",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_suite",
+      "reason": "Re-activating candidate after rollback test",
+      "details": {
+        "prior_version": "custom-mlp-v1.1.0-preproc",
+        "checkpoint": "models/candidates/candidate_v4_seed42"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:42:16.498132+00:00",
+      "action": "DISABLE_SHADOW_INFERENCE",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_suite",
+      "reason": "Operator disabled shadow diagnostics",
+      "details": {
+        "prior_mode": "shadow",
+        "new_mode": "rules_only"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:42:16.505379+00:00",
+      "action": "ENABLE_SHADOW_INFERENCE",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_suite",
+      "reason": "Operator enabled shadow diagnostics",
+      "details": {
+        "prior_mode": "rules_only",
+        "new_mode": "shadow"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:42:28.458634+00:00",
+      "action": "ROLLBACK_DIAGNOSTIC_MODEL",
+      "model_version": "custom-mlp-v1.1.0-preproc",
+      "operator_label": "test_suite",
+      "reason": "Rolled back from custom-mlp-v4.0.0-seed42 to custom-mlp-v1.1.0-preproc. Unit test rollback",
+      "details": {
+        "rolled_back_from": "custom-mlp-v4.0.0-seed42",
+        "rolled_back_to": "custom-mlp-v1.1.0-preproc"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:42:28.465615+00:00",
+      "action": "ACTIVATE_DIAGNOSTIC_MODEL",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_suite",
+      "reason": "Re-activating candidate after rollback test",
+      "details": {
+        "prior_version": "custom-mlp-v1.1.0-preproc",
+        "checkpoint": "models/candidates/candidate_v4_seed42"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:42:28.524064+00:00",
+      "action": "DISABLE_SHADOW_INFERENCE",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_suite",
+      "reason": "Operator disabled shadow diagnostics",
+      "details": {
+        "prior_mode": "shadow",
+        "new_mode": "rules_only"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:42:28.530950+00:00",
+      "action": "ENABLE_SHADOW_INFERENCE",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_suite",
+      "reason": "Operator enabled shadow diagnostics",
+      "details": {
+        "prior_mode": "rules_only",
+        "new_mode": "shadow"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:44:26.149743+00:00",
+      "action": "ROLLBACK_DIAGNOSTIC_MODEL",
+      "model_version": "custom-mlp-v1.1.0-preproc",
+      "operator_label": "test_suite",
+      "reason": "Rolled back from custom-mlp-v4.0.0-seed42 to custom-mlp-v1.1.0-preproc. Unit test rollback",
+      "details": {
+        "rolled_back_from": "custom-mlp-v4.0.0-seed42",
+        "rolled_back_to": "custom-mlp-v1.1.0-preproc"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:44:26.159815+00:00",
+      "action": "ACTIVATE_DIAGNOSTIC_MODEL",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_suite",
+      "reason": "Re-activating candidate after rollback test",
+      "details": {
+        "prior_version": "custom-mlp-v1.1.0-preproc",
+        "checkpoint": "models/candidates/candidate_v4_seed42"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:44:26.314462+00:00",
+      "action": "DISABLE_SHADOW_INFERENCE",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_suite",
+      "reason": "Operator disabled shadow diagnostics",
+      "details": {
+        "prior_mode": "shadow",
+        "new_mode": "rules_only"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:44:26.324637+00:00",
+      "action": "ENABLE_SHADOW_INFERENCE",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_suite",
+      "reason": "Operator enabled shadow diagnostics",
+      "details": {
+        "prior_mode": "rules_only",
+        "new_mode": "shadow"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:46:34.630642+00:00",
+      "action": "ROLLBACK_DIAGNOSTIC_MODEL",
+      "model_version": "custom-mlp-v1.1.0-preproc",
+      "operator_label": "test_suite",
+      "reason": "Rolled back from custom-mlp-v4.0.0-seed42 to custom-mlp-v1.1.0-preproc. Unit test rollback",
+      "details": {
+        "rolled_back_from": "custom-mlp-v4.0.0-seed42",
+        "rolled_back_to": "custom-mlp-v1.1.0-preproc"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:46:34.643292+00:00",
+      "action": "ACTIVATE_DIAGNOSTIC_MODEL",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_suite",
+      "reason": "Re-activating candidate after rollback test",
+      "details": {
+        "prior_version": "custom-mlp-v1.1.0-preproc",
+        "checkpoint": "models/candidates/candidate_v4_seed42"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:46:34.738210+00:00",
+      "action": "DISABLE_SHADOW_INFERENCE",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_suite",
+      "reason": "Operator disabled shadow diagnostics",
+      "details": {
+        "prior_mode": "shadow",
+        "new_mode": "rules_only"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:46:34.748158+00:00",
+      "action": "ENABLE_SHADOW_INFERENCE",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_suite",
+      "reason": "Operator enabled shadow diagnostics",
+      "details": {
+        "prior_mode": "rules_only",
+        "new_mode": "shadow"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T17:15:36.891556+00:00",
+      "action": "ROLLBACK_DIAGNOSTIC_MODEL",
+      "model_version": "custom-mlp-v1.1.0-preproc",
+      "operator_label": "test_suite",
+      "reason": "Rolled back from custom-mlp-v4.0.0-seed42 to custom-mlp-v1.1.0-preproc. Unit test rollback",
+      "details": {
+        "rolled_back_from": "custom-mlp-v4.0.0-seed42",
+        "rolled_back_to": "custom-mlp-v1.1.0-preproc"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T17:15:36.903906+00:00",
+      "action": "ACTIVATE_DIAGNOSTIC_MODEL",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_suite",
+      "reason": "Re-activating candidate after rollback test",
+      "details": {
+        "prior_version": "custom-mlp-v1.1.0-preproc",
+        "checkpoint": "models/candidates/candidate_v4_seed42"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T17:15:37.105515+00:00",
+      "action": "DISABLE_SHADOW_INFERENCE",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_suite",
+      "reason": "Operator disabled shadow diagnostics",
+      "details": {
+        "prior_mode": "shadow",
+        "new_mode": "rules_only"
+      }
+    },
+    {
+      "timestamp_utc": "2026-10-30T17:15:37.115530+00:00",
+      "action": "ENABLE_SHADOW_INFERENCE",
+      "model_version": "custom-mlp-v4.0.0-seed42",
+      "operator_label": "test_suite",
+      "reason": "Operator enabled shadow diagnostics",
+      "details": {
+        "prior_mode": "rules_only",
+        "new_mode": "shadow"
       }
     }
   ]

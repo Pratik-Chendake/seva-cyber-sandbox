@@ -78,11 +78,23 @@ class HybridOperatingMode(str, Enum):
 def parse_operating_mode(mode_val: Optional[Union[str, HybridOperatingMode]]) -> HybridOperatingMode:
     """
     Parses and validates the operating mode.
-    Fails safe to SHADOW if missing, invalid, or malformed.
+    Checks explicit parameter, environment variable, active configuration file,
+    and fails safe to SHADOW if missing, invalid, or malformed.
     """
     if mode_val is None:
-        raw_env = os.environ.get(ENV_OPERATING_MODE_KEY, "shadow").strip().lower()
-        mode_val = raw_env
+        if ENV_OPERATING_MODE_KEY in os.environ:
+            mode_val = os.environ.get(ENV_OPERATING_MODE_KEY, "").strip().lower()
+        else:
+            active_cfg_path = os.environ.get("SEVA_ACTIVE_CONFIG_PATH") or os.path.join("models", "active_model_config.json")
+            if os.path.isfile(active_cfg_path):
+                try:
+                    with open(active_cfg_path, "r", encoding="utf-8") as f:
+                        cfg = json.load(f)
+                    mode_val = cfg.get("operating_mode")
+                except Exception:
+                    mode_val = "shadow"
+            else:
+                mode_val = "shadow"
 
     if isinstance(mode_val, HybridOperatingMode):
         return mode_val
@@ -115,16 +127,23 @@ class SafeModelHolder:
         self.explicit_checkpoint_dir = checkpoint_dir
         self.registry = registry
         if checkpoint_dir is None:
-            active_cfg_path = os.path.join("models", "active_model_config.json")
-            if os.path.isfile(active_cfg_path):
+            if registry is not None and hasattr(registry, "get_active_model_config"):
                 try:
-                    with open(active_cfg_path, "r", encoding="utf-8") as f:
-                        cfg = json.load(f)
+                    cfg = registry.get_active_model_config()
                     checkpoint_dir = cfg.get("checkpoint_rel_path") or DEFAULT_CHECKPOINT_DIR
                 except Exception:
                     checkpoint_dir = DEFAULT_CHECKPOINT_DIR
             else:
-                checkpoint_dir = DEFAULT_CHECKPOINT_DIR
+                active_cfg_path = os.environ.get("SEVA_ACTIVE_CONFIG_PATH") or os.path.join("models", "active_model_config.json")
+                if os.path.isfile(active_cfg_path):
+                    try:
+                        with open(active_cfg_path, "r", encoding="utf-8") as f:
+                            cfg = json.load(f)
+                        checkpoint_dir = cfg.get("checkpoint_rel_path") or DEFAULT_CHECKPOINT_DIR
+                    except Exception:
+                        checkpoint_dir = DEFAULT_CHECKPOINT_DIR
+                else:
+                    checkpoint_dir = DEFAULT_CHECKPOINT_DIR
         self.checkpoint_dir = checkpoint_dir
         self._model: Optional[CustomNeuralClassifier] = None
         self._hasher: Optional[CharacterNGramHasher] = None
@@ -310,6 +329,12 @@ class HybridDecisionEngine:
         case_repository: Optional[Any] = None,
         model_registry: Optional[Any] = None,
     ):
+        if operating_mode is None and model_registry is not None and hasattr(model_registry, "get_active_model_config"):
+            try:
+                active_cfg = model_registry.get_active_model_config()
+                operating_mode = active_cfg.get("operating_mode")
+            except Exception:
+                operating_mode = None
         self.operating_mode = parse_operating_mode(operating_mode)
         self.model_registry = model_registry
         self.model_holder = SafeModelHolder(checkpoint_dir, registry=model_registry)
@@ -589,7 +614,10 @@ class HybridDecisionEngine:
         else:
             len_bucket = "long (>300)"
 
-        # Random non-message-derived event ID for safe ephemeral log correlation
+        # Random non-message-derived event ID for safe ephemeral log correlation.
+        # Governance note: Pseudorandom IDs must not be characterized as inherently anonymous
+        # if correlated with local process logs; local operational logs should be purged after
+        # the minimum necessary operational period.
         diagnostic_event_id = f"EVT-{uuid.uuid4().hex[:12].upper()}"
 
         audit_metadata = {

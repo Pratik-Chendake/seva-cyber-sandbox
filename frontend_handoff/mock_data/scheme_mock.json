@@ -1,0 +1,118 @@
+{
+  "scenarios": [
+    {
+      "id": "SCHEME-001",
+      "claim_text": "Register through this WhatsApp link to receive ₹3,000 under Mukhyamantri Majhi Ladki Bahin Yojana.",
+      "suspicious_url": "http://ladki-bahin-apply-fast.xyz/register",
+      "classification": "CONFLICTING EVIDENCE FOUND",
+      "badge_color": "red",
+      "matched_scheme_title": "Mukhyamantri Majhi Ladki Bahin Yojana",
+      "summary_en": "Conflicting evidence identified. Official Government Resolution No. WCD-2024/CR-102 mandates a monthly DBT disbursement of ₹1,500, not ₹3,000. Furthermore, applications must be made via the official portal ladakibahin.maharashtra.gov.in, not unofficial .xyz domains.",
+      "summary_mr": "माहितीमध्ये तफावत व विसंगती आढळली! अधिकृत शासन निर्णयानुसार (GR) दरमहा मिळणारी रक्कम ₹१,५०० आहे (₹३,००० नाही). तसेच दिलेली वेबसाईट पूर्णपणे अनधिकृत आणि बनावट आहे.",
+      "supporting_evidence": [
+        "Matched registered state initiative: 'Mukhyamantri Majhi Ladki Bahin Yojana'",
+        "Department of Women & Child Development, Government of Maharashtra verified"
+      ],
+      "conflicting_evidence": [
+        "Financial Discrepancy: Claim asserts ₹3,000 benefit; Official GR establishes ₹1,500/month stipend.",
+        "Unauthorized Channel: Official applications are processed via ladakibahin.maharashtra.gov.in and Nari Shakti Doot App, never third-party .xyz portals.",
+        "Unofficial Registration Form: Claim points to external phishing lure http://ladki-bahin-apply-fast.xyz/register"
+      ],
+      "url_assessment": {
+        "has_url": true,
+        "hostname": "ladki-bahin-apply-fast.xyz",
+        "is_official_domain": false,
+        "warnings_en": [
+          "Domain is not an official Government of Maharashtra portal (.gov.in / .maharashtra.gov.in).",
+          "High risk of identity theft and bank detail harvesting."
+        ],
+        "warnings_mr": [
+          "हे शासकीय संकेतस्थळ नाही. यावर माहिती भरल्यास आधार आणि बँक खात्याची फसवणूक होऊ शकते."
+        ]
+      },
+      "official_sources": [
+        {
+          "title": "Mukhyamantri Majhi Ladki Bahin Yojana Scheme Guidelines",
+          "title_mr": "मुख्यमंत्री माझी लाडकी बहीण योजना मार्गदर्शक सूचना",
+          "department": "Women & Child Development Department, Govt of Maharashtra",
+          "gr_number": "WCD-2024/CR-102/Desk-03",
+          "publication_date": "2024-06-28",
+          "portal_url": "https://ladakibahin.maharashtra.gov.in/"
+        }
+      ],
+      "retrieval_metadata": {
+        "retrieval_timestamp": "2026-10-30T16:00:00Z",
+        "source_freshness": "Certified GR Database (Offline Snapshot)",
+        "mode": "AIR_GAPPED_PASSIVE_VERIFICATION",
+        "live_health": {
+          "is_reachable": false,
+          "latency_ms": null,
+          "status_code": null,
+          "error": "Probe disabled for non-official domain"
+        }
+      },
+      "safe_next_steps_en": [
+        "Do not enter personal identity or bank details on http://ladki-bahin-apply-fast.xyz/register.",
+        "Check your eligibility and register solely through https://ladakibahin.maharashtra.gov.in or at local Anganwadi / Setu Suvidha Kendras.",
+        "Report fraudulent scheme solicitations to the 1930 Cyber Helpline."
+      ],
+      "safe_next_steps_mr": [
+        "दिलेल्या अनधिकृत लिंकवर आधार कार्ड अथवा बँक तपशील भरू नका.",
+        "केवळ https://ladakibahin.maharashtra.gov.in किंवा आपल्या नजीकच्या सेतू सुविधा केंद्रावर जाऊनच अर्ज करा.",
+        "योजनेच्या नावाने पैशांची मागणी करणाऱ्यांविरुद्ध सायबर पोलिसांत तक्रार करा."
+      ],
+      "limitations": "Verification cross-references approved state GR repositories. Unindexed municipal schemes require manual clerk verification."
+    },
+    {
+      "id": "SCHEME-002",
+      "claim_text": "मुख्यमंत्री माझी लाडकी बहीण योजनेअंतर्गत पात्र महिलांना दरमहा ₹१,५०० चा थेट लाभ अधिकृत पोर्टलद्वारे दिला जातो.",
+      "suspicious_url": "https://ladakibahin.maharashtra.gov.in/",
+      "classification": "SUPPORTED BY OFFICIAL SOURCE",
+      "badge_color": "green",
+      "matched_scheme_title": "Mukhyamantri Majhi Ladki Bahin Yojana",
+      "summary_en": "Supported by official records. The claim accurately reflects the ₹1,500/month Direct Benefit Transfer (DBT) provision confirmed in Government Resolution WCD-2024/CR-102 and references the certified official state domain.",
+      "summary_mr": "शासकीय नियमांनुसार पूर्णपणे सत्य व अधिकृत माहिती! दरमहा ₹१,५०० चा लाभ थेट बँक खात्यात दिला जातो आणि दिलेली वेबसाईट अधिकृत शासकीय पोर्टल आहे.",
+      "supporting_evidence": [
+        "Benefit amount ₹1,500/month matches official Government Resolution",
+        "Target beneficiary criteria aligns with WCD department guidelines",
+        "Domain ladakibahin.maharashtra.gov.in is verified in official state allowlist"
+      ],
+      "conflicting_evidence": [],
+      "url_assessment": {
+        "has_url": true,
+        "hostname": "ladakibahin.maharashtra.gov.in",
+        "is_official_domain": true,
+        "warnings_en": [],
+        "warnings_mr": []
+      },
+      "official_sources": [
+        {
+          "title": "Mukhyamantri Majhi Ladki Bahin Yojana Notification",
+          "title_mr": "मुख्यमंत्री माझी लाडकी बहीण योजना शासन निर्णय",
+          "department": "Women & Child Development Department",
+          "gr_number": "WCD-2024/CR-102/Desk-03",
+          "publication_date": "2024-06-28",
+          "portal_url": "https://ladakibahin.maharashtra.gov.in/"
+        }
+      ],
+      "retrieval_metadata": {
+        "retrieval_timestamp": "2026-10-30T16:00:00Z",
+        "source_freshness": "Certified GR Database",
+        "mode": "AIR_GAPPED_PASSIVE_VERIFICATION",
+        "live_health": {
+          "is_reachable": true,
+          "latency_ms": 142,
+          "status_code": 200,
+          "error": null
+        }
+      },
+      "safe_next_steps_en": [
+        "This announcement is genuine. You may consult the official portal for eligibility details."
+      ],
+      "safe_next_steps_mr": [
+        "ही माहिती खरी आहे. अधिक माहितीसाठी अधिकृत संकेतस्थळाला भेट द्या."
+      ],
+      "limitations": "Verified against certified Government of Maharashtra gazette resolutions."
+    }
+  ]
+}

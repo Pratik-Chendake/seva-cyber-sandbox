@@ -59,6 +59,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 CANDIDATE_PATH = "models/candidates/candidate_custom_v1.0.0"
 VAL_CORPUS_PATH = "data/generated/v2/synthetic_validation_corpus.jsonl"
 TRAIN_CORPUS_PATH = "data/generated/v2/synthetic_training_corpus.jsonl"
+BASELINE_FIXTURE_PATH = os.path.join(PROJECT_ROOT, "tests", "fixtures", "model_configs", "pre_phase6_5_baseline.json")
 
 
 @pytest.fixture
@@ -70,7 +71,7 @@ def evaluator():
 # 1. Correct baseline model identification
 # -----------------------------------------------------------------------------
 def test_01_correct_baseline_model_identification(evaluator):
-    base_info = evaluator.discover_baseline_model()
+    base_info = evaluator.discover_baseline_model(active_config_path=BASELINE_FIXTURE_PATH)
     assert base_info["model_version"] == "custom-mlp-v1.1.0-preproc"
     assert "models/experimental_custom_v1" in base_info["checkpoint_dir"].replace("\\", "/")
     assert base_info["operating_mode"] == "shadow"

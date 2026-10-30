@@ -259,6 +259,87 @@ class SessionCaseStore:
             min_support=min_support,
         )
 
+    # -------------------------------------------------------------------------
+    # Phase 6.6: Model Disagreement & Human-in-the-Loop Methods
+    # -------------------------------------------------------------------------
+
+    def record_disagreement(
+        self,
+        message_text: str,
+        evaluation_result: Dict[str, Any],
+        consent_given: bool = False,
+        case_id: Optional[str] = None,
+        secret: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Classifies and records a model-rule disagreement event with consent-gated feature capture."""
+        from src.disagreement_engine import DisagreementEngine
+        engine = DisagreementEngine(repository=self.repository)
+        return engine.process_and_record(
+            message_text=message_text,
+            evaluation_result=evaluation_result,
+            consent_given=consent_given,
+            case_id=case_id,
+            secret=secret,
+        )
+
+    def get_disagreement_event(self, event_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieves a disagreement event by ID."""
+        return self.repository.get_disagreement_event(event_id)
+
+    def list_disagreement_events(
+        self,
+        review_state: Optional[str] = None,
+        event_type: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """Lists disagreement events."""
+        return self.repository.list_disagreement_events(review_state=review_state, event_type=event_type, limit=limit)
+
+    def get_disagreement_stats(self) -> Dict[str, Any]:
+        """Returns disagreement event statistics."""
+        return self.repository.get_disagreement_stats()
+
+    def submit_disagreement_review(
+        self,
+        event_id: str,
+        outcome_label: str,
+        reviewer_assessment: str,
+        confidence_rating: str = "medium",
+        reviewer_label: str = "local_operator_unauthenticated",
+        notes: str = "",
+        supersede_existing: bool = False,
+        reason: str = "",
+    ) -> Dict[str, Any]:
+        """Submits an operator adjudication review for a disagreement event."""
+        return self.repository.submit_disagreement_review(
+            event_id=event_id,
+            outcome_label=outcome_label,
+            reviewer_assessment=reviewer_assessment,
+            confidence_rating=confidence_rating,
+            reviewer_label=reviewer_label,
+            notes=notes,
+            supersede_existing=supersede_existing,
+            reason=reason,
+        )
+
+    def get_disagreement_review(self, event_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieves the active review for a disagreement event."""
+        return self.repository.get_disagreement_review(event_id)
+
+    def list_disagreement_reviews(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """Lists disagreement reviews."""
+        return self.repository.list_disagreement_reviews(limit=limit)
+
+    def list_disagreement_audit_logs(self, event_id: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+        """Lists review audit entries."""
+        return self.repository.list_disagreement_audit_logs(event_id=event_id, limit=limit)
+
+    def generate_feedback_analytics(self) -> Dict[str, Any]:
+        """Generates comprehensive feedback analytics."""
+        from src.feedback_analytics import FeedbackAnalytics
+        analytics = FeedbackAnalytics(repository=self.repository)
+        return analytics.compute_analytics()
+
 
 # =============================================================================
 # CASE CREATION FACTORIES (Privacy-Preserving Feature Extraction)

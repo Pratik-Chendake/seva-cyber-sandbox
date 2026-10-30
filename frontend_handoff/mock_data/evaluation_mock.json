@@ -1,0 +1,83 @@
+{
+  "dataset_metadata": {
+    "total_records": 39,
+    "unique_campaigns_count": 14,
+    "label_distribution": {
+      "phishing": 18,
+      "legitimate": 12,
+      "protective_advisory": 6,
+      "ambiguous_needs_review": 3
+    },
+    "provenance_distribution": {
+      "authentic_incident_report": 12,
+      "regional_cybercrime_advisory": 11,
+      "verified_government_source": 9,
+      "synthetic_boundary_test": 7
+    },
+    "language_distribution": {
+      "mr_Deva": 17,
+      "mr_Latn": 9,
+      "en_Latn": 8,
+      "mr_en_code_mixed": 5
+    }
+  },
+  "sample_size_warning": "N=39 evaluation benchmark corpus. Statistically significant for unit validation and regression prevention, but insufficient for generalizable machine-learning claims without synthetic augmentation warnings.",
+  "rule_based_evaluation": {
+    "overall_binary_metrics": {
+      "accuracy_pct": 100.0,
+      "precision_pct": 100.0,
+      "recall_pct": 100.0,
+      "specificity_pct": 100.0,
+      "f1_score_pct": 100.0,
+      "true_positives": 18,
+      "true_negatives": 12,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "total_samples": 30
+    },
+    "protective_advisory_evaluation": {
+      "safeguard_success_pct": 100.0,
+      "correctly_cleared_count": 6,
+      "total_advisories": 6
+    }
+  },
+  "ml_baseline_evaluation": {
+    "is_available": true,
+    "overall_binary_metrics": {
+      "accuracy_pct": 73.3,
+      "precision_pct": 75.0,
+      "recall_pct": 80.0,
+      "specificity_pct": 60.0,
+      "f1_score_pct": 77.4,
+      "true_positives": 8,
+      "true_negatives": 3,
+      "false_positives": 2,
+      "false_negatives": 2,
+      "total_samples": 15
+    },
+    "protective_advisory_evaluation": {
+      "advisory_false_alarm_rate_pct": 66.7,
+      "falsely_flagged_by_ml": 4,
+      "total_advisories": 6
+    }
+  },
+  "model_comparison": {
+    "comparison_available": true,
+    "test_samples_compared": 15,
+    "concordance_rate_pct": 73.3,
+    "agreements_count": 11,
+    "disagreements_count": 4,
+    "architectural_distinction": "Deterministic semantic rules correctly handle protective negation and utility context, whereas bag-of-words ML triggers false positives on awareness advisories that contain scam terms."
+  },
+  "legacy_educational_baseline": {
+    "is_available": true,
+    "total_samples": 20,
+    "cross_validation_accuracy_pct": 85.0,
+    "cross_validation_f1_pct": 85.7,
+    "test_accuracy_pct": 80.0,
+    "true_positives": 9,
+    "true_negatives": 7,
+    "false_positives": 2,
+    "false_negatives": 2
+  }
+}

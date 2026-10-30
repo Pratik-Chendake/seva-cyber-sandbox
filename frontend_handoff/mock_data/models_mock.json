@@ -1,0 +1,88 @@
+{
+  "active_configuration": {
+    "active_model_version": "nn_v2_focal_loss",
+    "operating_mode": "shadow",
+    "last_known_good_version": "nn_v1_baseline",
+    "preprocessing_version": "v1.2.0-ngram-1024d",
+    "activated_at_utc": "2026-10-30T14:22:00Z",
+    "activated_by": "operator_local",
+    "integrity_status": "VALID",
+    "integrity_message": "Computed SHA-256 matches catalog entry exactly"
+  },
+  "registered_models": [
+    {
+      "model_version": "nn_v2_focal_loss",
+      "lifecycle_state": "approved_for_shadow",
+      "architecture_version": "MLP-1024-128-32-1",
+      "hyperparameters": {
+        "hidden_dim1": 128,
+        "hidden_dim2": 32,
+        "dropout": 0.2,
+        "learning_rate": 0.001
+      },
+      "validation_metrics": {
+        "accuracy": 0.9333,
+        "f1_score": 0.9250,
+        "loss": 0.1824
+      },
+      "weights_sha256": "4d9f8e21a0b3c5e7d91245890abcdeff1234567890abcdef1234567890abcdef",
+      "preprocessing_version": "v1.2.0-ngram-1024d",
+      "registered_at_utc": "2026-10-30T12:00:00Z"
+    },
+    {
+      "model_version": "nn_v1_baseline",
+      "lifecycle_state": "approved_for_shadow",
+      "architecture_version": "MLP-1024-64-16-1",
+      "hyperparameters": {
+        "hidden_dim1": 64,
+        "hidden_dim2": 16,
+        "dropout": 0.1,
+        "learning_rate": 0.002
+      },
+      "validation_metrics": {
+        "accuracy": 0.8667,
+        "f1_score": 0.8500,
+        "loss": 0.2951
+      },
+      "weights_sha256": "9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b",
+      "preprocessing_version": "v1.0.0-ngram-1024d",
+      "registered_at_utc": "2026-10-29T10:00:00Z"
+    },
+    {
+      "model_version": "nn_v3_multilingual_embed",
+      "lifecycle_state": "experimental",
+      "architecture_version": "MLP-1024-256-64-1",
+      "hyperparameters": {
+        "hidden_dim1": 256,
+        "hidden_dim2": 64,
+        "dropout": 0.3,
+        "learning_rate": 0.0005
+      },
+      "validation_metrics": {
+        "accuracy": 0.9000,
+        "f1_score": 0.8950,
+        "loss": 0.2205
+      },
+      "weights_sha256": "11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff",
+      "preprocessing_version": "v1.2.0-ngram-1024d",
+      "registered_at_utc": "2026-10-30T15:30:00Z"
+    }
+  ],
+  "audit_trail": [
+    {
+      "timestamp_utc": "2026-10-30T14:22:00Z",
+      "action": "ACTIVATE_MODEL",
+      "model_version": "nn_v2_focal_loss",
+      "previous_model_version": "nn_v1_baseline",
+      "operator_label": "operator_local",
+      "reason": "Evaluation in shadow mode with improved focal loss handling on imbalanced vernacular data"
+    },
+    {
+      "timestamp_utc": "2026-10-29T10:15:00Z",
+      "action": "REGISTER_MODEL",
+      "model_version": "nn_v1_baseline",
+      "operator_label": "system_bootstrap",
+      "reason": "Initial verified neural diagnostic baseline registration"
+    }
+  ]
+}

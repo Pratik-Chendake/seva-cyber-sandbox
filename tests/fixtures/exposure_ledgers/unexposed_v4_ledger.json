@@ -1,0 +1,16 @@
+{
+  "ledger_schema_version": "1.0.0",
+  "created_at_utc": "2026-10-30T20:30:00Z",
+  "partitions": {
+    "d9a3f4a861d971dfb8716f96f7233c42d8291de85ff070ed93893643caa81f7e": {
+      "partition_file_name": "synthetic_qualification_corpus.jsonl",
+      "partition_sha256": "d9a3f4a861d971dfb8716f96f7233c42d8291de85ff070ed93893643caa81f7e",
+      "first_exposed_at_utc": null,
+      "exposure_count": 0,
+      "events": [],
+      "is_exposed": false,
+      "current_status": "UNEXPOSED"
+    }
+  },
+  "last_updated_utc": "2026-10-30T20:30:00Z"
+}

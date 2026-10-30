@@ -1,0 +1,78 @@
+{
+  "catalog_version": "catalog_v20261030_160000",
+  "candidate_count": 2,
+  "created_at_utc": "2026-10-30T16:00:00Z",
+  "provenance_filter": "local_curated_feedback",
+  "candidate_patterns": [
+    {
+      "candidate_id": "PAT-20261030-001",
+      "candidate_pattern_type": "ngram_cluster",
+      "target_class": "phishing",
+      "supporting_example_count": 4,
+      "lifecycle_state": "approved_by_human",
+      "opaque_feature_identifiers": [
+        "ngram_h342_msedcl",
+        "ngram_h781_light_cut",
+        "url_tld_xyz"
+      ],
+      "statistical_evidence": {
+        "support_count": 4,
+        "total_target_count": 18,
+        "support_ratio": 0.222,
+        "wilson_lower_bound": 0.089,
+        "lift": 3.45,
+        "p_value_fisher": 0.002
+      },
+      "operator_rationale": "Confirmed regional power disconnection campaign cluster in rural Western Maharashtra",
+      "review_audit": [
+        {
+          "timestamp_utc": "2026-10-30T16:05:00Z",
+          "reviewer": "operator_analyst_01",
+          "action": "UPDATE_STATE",
+          "previous_state": "ready_for_human_review",
+          "new_state": "approved_by_human",
+          "reason": "Analyst verified correlation with active WhatsApp forward campaign telemetry"
+        }
+      ]
+    },
+    {
+      "candidate_id": "PAT-20261030-002",
+      "candidate_pattern_type": "structural_url_association",
+      "target_class": "phishing",
+      "supporting_example_count": 3,
+      "lifecycle_state": "ready_for_human_review",
+      "opaque_feature_identifiers": [
+        "url_has_apk_download",
+        "ngram_h109_ladki_bahin",
+        "url_domain_top"
+      ],
+      "statistical_evidence": {
+        "support_count": 3,
+        "total_target_count": 18,
+        "support_ratio": 0.167,
+        "wilson_lower_bound": 0.058,
+        "lift": 2.89,
+        "p_value_fisher": 0.015
+      },
+      "operator_rationale": "Candidate association between fake Ladki Bahin welfare scheme lures and .top APK downloads",
+      "review_audit": []
+    }
+  ],
+  "audit_trail": [
+    {
+      "timestamp_utc": "2026-10-30T16:00:00Z",
+      "action": "MINE_PATTERNS",
+      "min_support_threshold": 3,
+      "candidates_discovered": 2,
+      "provenance_filter": "local_curated_feedback"
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:05:00Z",
+      "candidate_id": "PAT-20261030-001",
+      "action": "ADJUDICATE_PATTERN",
+      "decision": "approved_by_human",
+      "reviewer": "operator_analyst_01",
+      "reason": "Analyst verified correlation with active WhatsApp forward campaign telemetry"
+    }
+  ]
+}

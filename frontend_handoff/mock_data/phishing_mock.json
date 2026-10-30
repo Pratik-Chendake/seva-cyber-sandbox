@@ -1,0 +1,248 @@
+{
+  "test_samples": [
+    {
+      "id": "MSG-001",
+      "title": "MSEDCL Electricity Disconnection Threat (Devanagari)",
+      "language": "Marathi",
+      "label": "phishing",
+      "text": "प्रिय महावितरण ग्राहक, तुमचे मागील महिन्याचे वीज बिल ₹२,४५० थकीत आहे. आज रात्री ९:३० वाजता वीज पुरवठा खंडित केला जाईल. कारवाई टाळण्यासाठी तात्काळ खालील लिंकवरून MSEDCL_Bill_Pay.apk डाउनलोड करा आणि अपडेट करा: http://msedcl-bill-update-maharashtra.xyz/quick-pay",
+      "script_detected": "DEVANAGARI",
+      "score": 92,
+      "risk_level": "CRITICAL RISK (IMMEDIATE ACTION REQUIRED)",
+      "badge_color": "red",
+      "analysis_type": "WhatsApp Vernacular Phishing Analysis",
+      "summary_en": "Critical threat detected. This message uses a classic utility disconnection lure claiming unpaid MSEDCL bills, combines extreme urgency ('tonight 9:30 PM'), demands downloading an untrusted third-party Android APK file, and links to an unofficial domain.",
+      "summary_mr": "अतिधोकादायक संदेश! यामध्ये महावितरणचे थकीत वीज बिल भरण्यासाठी तात्काळ अनधिकृत APK फाईल डाउनलोड करण्याचा आणि संशयास्पद लिंकवर क्लिक करण्याचा दबाव आणला जात आहे.",
+      "evidence": [
+        "Matched high-urgency disconnection threat: 'आज रात्री ९:३० वाजता वीज पुरवठा खंडित केला जाईल'",
+        "Direct APK download solicitation outside Google Play: 'MSEDCL_Bill_Pay.apk'",
+        "Unofficial domain spoofing Maharashtra state utility: 'msedcl-bill-update-maharashtra.xyz'",
+        "Social-engineering pressure tactic demanding immediate compliance"
+      ],
+      "observed_facts": [
+        "Script: Devanagari (Marathi)",
+        "Character length: 248 chars",
+        "Targeted entity: Maharashtra State Electricity Distribution Co. Ltd. (MSEDCL)",
+        "Extracted URL: http://msedcl-bill-update-maharashtra.xyz/quick-pay",
+        "Declared file artifact: MSEDCL_Bill_Pay.apk"
+      ],
+      "heuristic_inferences": [
+        "Disconnection ultimatum creates high cognitive stress to bypass critical scrutiny (+35 weight)",
+        "Unofficial top-level domain (.xyz) miming official .mahadiscom.in portal (+30 weight)",
+        "External APK distribution bypasses Google Play Protect verification (+27 weight)"
+      ],
+      "findings": [
+        {
+          "category": "Disconnection Threat",
+          "severity": "CRITICAL",
+          "matched_text": "वीज पुरवठा खंडित केला जाईल",
+          "why_it_matters_en": "Attackers fabricate utility shut-off ultimatums to induce rapid panic without verification.",
+          "why_it_matters_mr": "नागरिकांना घाबरवून घाईगडबडीत आर्थिक फसवणूक करण्यासाठी वीज कापण्याची खोटी भीती दाखवली जाते."
+        },
+        {
+          "category": "Malicious APK Solicitation",
+          "severity": "CRITICAL",
+          "matched_text": "MSEDCL_Bill_Pay.apk डाउनलोड करा",
+          "why_it_matters_en": "Unverified APKs frequently bundle SMS-intercepting banking trojans and accessibility sniffers.",
+          "why_it_matters_mr": "अशा अनोळखी ॲप्समधून फोनमधील मेसेज, बँकेचे OTP आणि पासवर्ड चोरी केले जातात."
+        },
+        {
+          "category": "Unofficial Utility Domain",
+          "severity": "HIGH",
+          "matched_text": "msedcl-bill-update-maharashtra.xyz",
+          "why_it_matters_en": "Official Maharashtra electricity portal is mahadiscom.in; .xyz domains are commonly rogue.",
+          "why_it_matters_mr": "महावितरणची खरी वेबसाईट mahadiscom.in आहे. इतर अनधिकृत लिंकवर कधीही जाऊ नका."
+        }
+      ],
+      "extracted_urls": [
+        "http://msedcl-bill-update-maharashtra.xyz/quick-pay"
+      ],
+      "safe_next_steps_en": [
+        "Do not click the link or install the requested .apk application under any circumstances.",
+        "Check your electricity bill status directly inside the official Mahavitaran mobile app or via https://www.mahadiscom.in.",
+        "Block the sender on WhatsApp and report the incident via the national cyber helpline 1930."
+      ],
+      "safe_next_steps_mr": [
+        "दिलेल्या लिंकवर क्लिक करू नका किंवा कसलीही APK फाईल डाऊनलोड करू नका.",
+        "अधिकृत 'Mahavitaran' ॲप किंवा mahadiscom.in वेबसाईटवर जाऊन तुमचे खरे बिल तपासा.",
+        "हा नंबर तात्काळ ब्लॉक करा आणि सायबर हेल्पलाइन १९३० वर तक्रार नोंदवा."
+      ],
+      "hybrid_diagnostics": {
+        "operating_mode": "SHADOW",
+        "rule_score": 92,
+        "concordance_status": "AGREEMENT",
+        "rule_verdict": "PHISHING",
+        "neural_prediction": "PHISHING",
+        "neural_confidence": 0.984,
+        "neural_model_version": "nn_v2_focal_loss",
+        "guardrails_applied": [
+          "GUARDRAIL_RULE_AUTHORITATIVE_ENFORCED",
+          "GUARDRAIL_NEURAL_SCORE_DELTA_ZEROED"
+        ]
+      }
+    },
+    {
+      "id": "MSG-002",
+      "title": "Romanized Marathi Electricity Disconnection Scam",
+      "language": "Romanized Marathi (Latn)",
+      "label": "phishing",
+      "text": "Dear customer tumche Mahavitaran electricity bill update zalela nahi. Aaj ratri light cut karnar. Urgent call kara electricity officer Sharma ji 9823091823 var ani MSEDCL_QuickPay.apk install kara.",
+      "script_detected": "LATIN (ROMANIZED MARATHI)",
+      "score": 88,
+      "risk_level": "CRITICAL RISK (IMMEDIATE ACTION REQUIRED)",
+      "badge_color": "red",
+      "analysis_type": "WhatsApp Vernacular Phishing Analysis",
+      "summary_en": "High-risk Romanized Marathi phishing message detected. Uses informal Latin-script colloquial phrasing ('light cut karnar'), impersonates utility staff with an unverified mobile number, and urges APK installation.",
+      "summary_mr": "रोमनाईज्ड मराठीतील धोकादायक मेसेज! वीज बिल न भरल्याने 'लाईट कट' करण्याची भीती दाखवून बनावट अधिकाऱ्याशी संपर्क साधायला सांगत आहेत.",
+      "evidence": [
+        "Romanized vernacular urgency keyword: 'light cut karnar'",
+        "Utility impersonation with personal mobile phone contact",
+        "Untrusted APK side-loading lure: 'MSEDCL_QuickPay.apk'"
+      ],
+      "observed_facts": [
+        "Script: Latin (Romanized Marathi)",
+        "Colloquial terminology: 'light cut karnar', 'tumche bill'",
+        "Impersonated authority: 'officer Sharma ji 9823091823'"
+      ],
+      "heuristic_inferences": [
+        "Impersonation of utility official with personal cell number indicates social engineering (+30 weight)",
+        "Disconnection threat combined with side-loading request (+58 weight)"
+      ],
+      "findings": [
+        {
+          "category": "Colloquial Disconnection Threat",
+          "severity": "CRITICAL",
+          "matched_text": "light cut karnar",
+          "why_it_matters_en": "Fraudsters use regional informal idioms to bypass English-only corporate email filters.",
+          "why_it_matters_mr": "प्रादेशिक भाषेचा वापर करून नागरिकांमध्ये भीती निर्माण केली जाते."
+        },
+        {
+          "category": "Personal Mobile Impersonation",
+          "severity": "HIGH",
+          "matched_text": "officer Sharma ji 9823091823",
+          "why_it_matters_en": "Government and utility authorities never manage disconnections via individual personal numbers.",
+          "why_it_matters_mr": "शासकीय किंवा वीज वितरण अधिकारी कधीही वैयक्तिक मोबाईल नंबरवरून बिल भरण्यासाठी फोन करत नाहीत."
+        }
+      ],
+      "extracted_urls": [],
+      "safe_next_steps_en": [
+        "Do not call the mobile number mentioned in the chat.",
+        "Verify your payment history on the official Mahadiscom portal.",
+        "Report the suspicious mobile number to 1930."
+      ],
+      "safe_next_steps_mr": [
+        "मेसेजमध्ये दिलेल्या कोणत्याही मोबाईल नंबरवर संपर्क करू नका.",
+        "महावितरणच्या अधिकृत ग्राहक केंद्राशी किंवा १९१२ या टोल-फ्री क्रमांकावर संपर्क साधा.",
+        "अनोळखी नंबर तात्काळ ब्लॉक करा."
+      ],
+      "hybrid_diagnostics": {
+        "operating_mode": "SHADOW",
+        "rule_score": 88,
+        "concordance_status": "AGREEMENT",
+        "rule_verdict": "PHISHING",
+        "neural_prediction": "PHISHING",
+        "neural_confidence": 0.941,
+        "neural_model_version": "nn_v2_focal_loss",
+        "guardrails_applied": [
+          "GUARDRAIL_RULE_AUTHORITATIVE_ENFORCED"
+        ]
+      }
+    },
+    {
+      "id": "MSG-003",
+      "title": "Official MSEDCL Awareness & Protective Advisory",
+      "language": "Marathi",
+      "label": "protective_advisory",
+      "text": "महावितरण जनहितार्थ सूचना: वीज बिल भरण्यासाठी महावितरण कधीही अनोळखी क्रमांकावरून फोन करत नाही किंवा APK फाईल पाठवत नाही. कोणत्याही व्यक्तीला बँक खात्याची माहिती, OTP किंवा पासवर्ड देऊ नका. फसवणूक झाल्यास त्वरित १९३० वर संपर्क साधा.",
+      "script_detected": "DEVANAGARI",
+      "score": 0,
+      "risk_level": "PROTECTIVE ADVISORY (SECURITY AWARENESS)",
+      "badge_color": "green",
+      "analysis_type": "WhatsApp Vernacular Phishing Analysis",
+      "summary_en": "Legitimate protective advisory message detected. This communication explicitly cautions citizens against sharing OTPs or downloading unauthorized APKs, and directs victims to the official 1930 helpline.",
+      "summary_mr": "हा एक अधिकृत जनजागृती संदेश आहे. यामध्ये नागरिकांना अनोळखी ॲप्स डाऊनलोड न करण्याचा आणि बँकेची गुप्त माहिती न देण्याचा सुरक्षित सल्ला दिला आहे.",
+      "evidence": [
+        "Protective negation detected: 'कधीही APK फाईल पाठवत नाही'",
+        "Credential protection advisory: 'माहिती, OTP किंवा पासवर्ड देऊ नका'",
+        "Official national cyber helpline citation: '१९३० वर संपर्क साधा'"
+      ],
+      "observed_facts": [
+        "Protective negation patterns matched: 3",
+        "Threat indicators suppressed by negation: True",
+        "Official helpline 1930 confirmed"
+      ],
+      "heuristic_inferences": [
+        "Contextual negation safeguard confirmed benign public awareness advisory (Score set to 0)"
+      ],
+      "findings": [],
+      "extracted_urls": [],
+      "safe_next_steps_en": [
+        "This is an educational advisory. You may safely forward this to family and community groups to raise awareness.",
+        "Remember the 1930 national helpline for any cyber fraud incidents."
+      ],
+      "safe_next_steps_mr": [
+        "हा सुरक्षित जनजागृती संदेश आहे, तो आपल्या मित्र आणि कुटुंबात नक्की शेअर करा.",
+        "लक्षात ठेवा: अधिकृत संस्था कधीही फोनवर OTP मागत नाहीत."
+      ],
+      "hybrid_diagnostics": {
+        "operating_mode": "SHADOW",
+        "rule_score": 0,
+        "concordance_status": "AGREEMENT",
+        "rule_verdict": "PROTECTIVE_ADVISORY",
+        "neural_prediction": "LEGITIMATE",
+        "neural_confidence": 0.992,
+        "neural_model_version": "nn_v2_focal_loss",
+        "guardrails_applied": [
+          "GUARDRAIL_PROTECTIVE_NEGATION_SUPPRESSION",
+          "GUARDRAIL_RULE_AUTHORITATIVE_ENFORCED"
+        ]
+      }
+    },
+    {
+      "id": "MSG-004",
+      "title": "Benign Electricity Bill Receipt Notification",
+      "language": "English",
+      "label": "legitimate",
+      "text": "Dear Consumer, payment of Rs 1,420 for Consumer No 0192837465 has been successfully received by MSEDCL on 28-OCT-2026. Receipt No: MSEDCL-892831. Thank you.",
+      "script_detected": "LATIN (ENGLISH)",
+      "score": 0,
+      "risk_level": "LOW RISK (BENIGN COMMUNICATION)",
+      "badge_color": "green",
+      "analysis_type": "WhatsApp Vernacular Phishing Analysis",
+      "summary_en": "Benign transactional notification. Contains no urgency, no external links, no credential solicitations, and no executable payload requests.",
+      "summary_mr": "हा एक सामान्य व अधिकृत पावती संदेश आहे. यात कोणतीही संशयास्पद लिंक अथवा मागणी नाही.",
+      "evidence": [
+        "Transactional acknowledgment phrasing: 'payment successfully received'",
+        "Standard receipt reference number present",
+        "Zero urgency or coercion indicators"
+      ],
+      "observed_facts": [
+        "Mentions MSEDCL with contextual safeguard active",
+        "Zero URLs, zero phone lures, zero APK references"
+      ],
+      "heuristic_inferences": [
+        "Legitimate informational transaction notice (Score 0)"
+      ],
+      "findings": [],
+      "extracted_urls": [],
+      "safe_next_steps_en": [
+        "No security action required. Keep the receipt reference for your utility records."
+      ],
+      "safe_next_steps_mr": [
+        "कोणतीही कृती करण्याची आवश्यकता नाही. हा संदेश केवळ माहितीसाठी आहे."
+      ],
+      "hybrid_diagnostics": {
+        "operating_mode": "SHADOW",
+        "rule_score": 0,
+        "concordance_status": "AGREEMENT",
+        "rule_verdict": "LEGITIMATE",
+        "neural_prediction": "LEGITIMATE",
+        "neural_confidence": 0.978,
+        "neural_model_version": "nn_v2_focal_loss",
+        "guardrails_applied": [
+          "GUARDRAIL_CONTEXT_SAFEGUARD_ACTIVE"
+        ]
+      }
+    }
+  ]
+}

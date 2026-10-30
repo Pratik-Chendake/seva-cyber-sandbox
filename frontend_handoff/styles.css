@@ -1,0 +1,851 @@
+/* ==========================================================================
+   SEVA CYBER SANDBOX — DESIGN SYSTEM & EDITORIAL SWISS-BRUTALIST STYLESHEET
+   Aesthetic Identity: Editorial Typography + Swiss Grid + Brutalist Controls 
+   + Bento Information Tiles + Dark Mode UI + Subtle Cyberpunk Accents
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --bg-main: #101110;
+    --bg-secondary: #151715;
+    --bg-card: #1A1C1A;
+    --bg-card-elevated: #222522;
+    --bg-input: #151715;
+    --text-primary: #F2F0E8;
+    --text-secondary: #A6AAA2;
+    --text-muted: #6E736B;
+    --border-color: #393D37;
+    --border-highlight: #4A5048;
+    --border-focus: #C6FF4D;
+    --accent-lime: #C6FF4D;
+    --accent-danger: #FF5C5C;
+    --accent-warning: #FFB84D;
+    --accent-info: #70D6FF;
+    --font-heading: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', "SFMono-Regular", Consolas, monospace;
+    --radius-brutalist: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   01. GLOBAL RESET & BASE
+   -------------------------------------------------------------------------- */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+}
+
+/* --------------------------------------------------------------------------
+   02. APPLICATION LAYOUT (SIDEBAR + MAIN SHELL)
+   -------------------------------------------------------------------------- */
+.app-container {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 320px;
+    min-width: 320px;
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    padding: 1.5rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    overflow-y: auto;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+}
+
+.main-content {
+    flex: 1;
+    padding: 1.75rem 2.5rem;
+    max-width: 1440px;
+    margin: 0 auto;
+    width: calc(100% - 320px);
+    overflow-x: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   03. TYPOGRAPHY (SWISS & EDITORIAL HIERARCHY)
+   -------------------------------------------------------------------------- */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    color: var(--text-primary);
+    letter-spacing: -0.03em;
+    font-weight: 700;
+}
+
+h1 {
+    font-size: 2.2rem;
+    line-height: 1.15;
+}
+
+h2 {
+    font-size: 1.6rem;
+    line-height: 1.2;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+h4, h5 {
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent-lime);
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+p {
+    margin-bottom: 0.75rem;
+    color: var(--text-primary);
+}
+
+.caption {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+/* Code & Telemetry Monospace */
+code, pre {
+    font-family: var(--font-mono);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-brutalist);
+    color: var(--accent-lime);
+    font-size: 0.85rem;
+}
+
+pre {
+    padding: 1rem;
+    overflow-x: auto;
+    margin: 0.75rem 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+/* --------------------------------------------------------------------------
+   04. TOPBAR & EDITORIAL HERO
+   -------------------------------------------------------------------------- */
+.editorial-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding: 8px 0;
+    margin-bottom: 1.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+}
+
+.editorial-topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.editorial-brand-badge {
+    background: #000000;
+    color: var(--accent-lime);
+    border: 1px solid var(--accent-lime);
+    padding: 2px 8px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    font-size: 0.72rem;
+    border-radius: var(--radius-brutalist);
+}
+
+.editorial-telemetry-tag {
+    color: var(--text-secondary);
+    border-left: 1px solid var(--border-color);
+    padding-left: 12px;
+}
+
+.editorial-hero {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.editorial-hero-tagline {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--accent-lime);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.editorial-hero-title {
+    font-family: var(--font-heading);
+    font-size: 2.8rem;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    color: var(--text-primary);
+    margin: 0 0 12px 0;
+}
+
+.editorial-hero-sub {
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    max-width: 960px;
+    margin: 0 0 1.2rem 0;
+}
+
+/* --------------------------------------------------------------------------
+   05. BENTO GRID MODULES & METRIC TILES
+   -------------------------------------------------------------------------- */
+.bento-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.bento-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 1rem;
+}
+
+.bento-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 1rem;
+}
+
+.bento-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-brutalist);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.4);
+    transition: border-color 0.15s ease;
+}
+
+.bento-card:hover {
+    border-color: var(--border-highlight);
+}
+
+.bento-card-elevated {
+    background-color: var(--bg-card-elevated);
+    border: 1px solid var(--border-highlight);
+}
+
+.bento-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+}
+
+.bento-card-label {
+    font-family: var(--font-heading);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent-lime);
+    font-weight: 700;
+}
+
+.bento-card-meta {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+}
+
+.metric-tile {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-brutalist);
+    padding: 1rem 1.2rem;
+    box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.metric-tile-label {
+    font-family: var(--font-heading);
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.metric-tile-value {
+    font-family: var(--font-mono);
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.metric-tile-help {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+/* --------------------------------------------------------------------------
+   06. BRUTALIST & SWISS TABS
+   -------------------------------------------------------------------------- */
+.tabs-navigation {
+    display: flex;
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 6px 6px 0 6px;
+    gap: 6px;
+    border-radius: var(--radius-brutalist) var(--radius-brutalist) 0 0;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+}
+
+.tab-btn {
+    background-color: var(--bg-card);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-bottom: none;
+    border-radius: var(--radius-brutalist) var(--radius-brutalist) 0 0;
+    font-family: var(--font-heading);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 10px 16px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease-in-out;
+}
+
+.tab-btn:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-card-elevated);
+    border-color: var(--border-highlight);
+}
+
+.tab-btn.active {
+    background-color: var(--bg-main);
+    color: var(--accent-lime);
+    border: 1px solid var(--border-color);
+    border-top: 2px solid var(--accent-lime);
+    border-bottom: 1px solid var(--bg-main);
+    font-weight: 700;
+}
+
+.tab-panel {
+    display: none;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+/* Subtabs for Tab 07 */
+.subtabs-navigation {
+    display: flex;
+    background-color: var(--bg-card-elevated);
+    border-bottom: 1px solid var(--border-color);
+    padding: 4px 4px 0 4px;
+    gap: 4px;
+    margin-top: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.subtab-btn {
+    background-color: var(--bg-card);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-bottom: none;
+    font-family: var(--font-heading);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 8px 14px;
+    cursor: pointer;
+}
+
+.subtab-btn.active {
+    background-color: var(--bg-main);
+    color: var(--accent-lime);
+    border-top: 2px solid var(--accent-lime);
+    border-bottom: 1px solid var(--bg-main);
+}
+
+.subtab-panel {
+    display: none;
+}
+
+.subtab-panel.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --------------------------------------------------------------------------
+   07. CONTROLS, INPUTS & BUTTONS
+   -------------------------------------------------------------------------- */
+label {
+    display: block;
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+input[type="text"], input[type="number"], select, textarea {
+    width: 100%;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-brutalist);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 0.92rem;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    margin-bottom: 1rem;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 1px var(--border-focus);
+}
+
+input::placeholder, textarea::placeholder {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-body);
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    margin-bottom: 1rem;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.checkbox-label input[type="checkbox"] {
+    accent-color: var(--accent-lime);
+    width: 16px;
+    height: 16px;
+}
+
+/* Brutalist Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: var(--radius-brutalist);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 0.88rem;
+    letter-spacing: 0.06em;
+    padding: 0.65rem 1.4rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+}
+
+.btn-primary {
+    background-color: var(--accent-lime);
+    color: #101110;
+    border-color: var(--accent-lime);
+    box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.8);
+}
+
+.btn-primary:hover {
+    background-color: #d4ff70;
+    border-color: #d4ff70;
+    transform: translateY(-1px);
+    box-shadow: 3px 3px 0px rgba(198, 255, 77, 0.4);
+}
+
+.btn-secondary {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.btn-secondary:hover {
+    border-color: var(--accent-lime);
+    color: var(--accent-lime);
+    background-color: var(--bg-card-elevated);
+}
+
+.btn-danger {
+    background-color: #241414;
+    color: var(--accent-danger);
+    border-color: var(--accent-danger);
+}
+
+.btn-danger:hover {
+    background-color: var(--accent-danger);
+    color: #101110;
+}
+
+.btn-sm {
+    padding: 0.35rem 0.8rem;
+    font-size: 0.78rem;
+}
+
+/* --------------------------------------------------------------------------
+   08. BRUTALIST RESULT BANNERS & ACCORDIONS
+   -------------------------------------------------------------------------- */
+.threat-banner-red {
+    background-color: #241414;
+    border: 1px solid var(--accent-danger);
+    border-left: 4px solid var(--accent-danger);
+    border-radius: var(--radius-brutalist);
+    padding: 14px 18px;
+    margin: 14px 0;
+}
+
+.threat-banner-orange {
+    background-color: #241E14;
+    border: 1px solid var(--accent-warning);
+    border-left: 4px solid var(--accent-warning);
+    border-radius: var(--radius-brutalist);
+    padding: 14px 18px;
+    margin: 14px 0;
+}
+
+.threat-banner-green {
+    background-color: #162414;
+    border: 1px solid var(--accent-lime);
+    border-left: 4px solid var(--accent-lime);
+    border-radius: var(--radius-brutalist);
+    padding: 14px 18px;
+    margin: 14px 0;
+}
+
+.threat-banner-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.threat-badge-tag {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+
+.threat-banner-title {
+    font-family: var(--font-heading);
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #F2F0E8;
+    margin-top: 2px;
+}
+
+.threat-score-box {
+    text-align: right;
+}
+
+.threat-score-val {
+    font-family: var(--font-mono);
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+/* Expanders / Accordions */
+.expander {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-brutalist);
+    margin-bottom: 0.8rem;
+}
+
+.expander-header {
+    padding: 10px 14px;
+    font-family: var(--font-heading);
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+}
+
+.expander-header:hover {
+    color: var(--accent-lime);
+}
+
+.expander-body {
+    padding: 14px;
+    border-top: 1px solid var(--border-color);
+    display: none;
+    font-size: 0.9rem;
+}
+
+.expander.open .expander-body {
+    display: block;
+}
+
+/* Micro pill badges */
+.tech-pill {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 2px 7px;
+    border-radius: var(--radius-brutalist);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    margin: 2px 4px 2px 0;
+}
+
+.tech-pill-lime {
+    border-color: var(--accent-lime);
+    color: var(--accent-lime);
+}
+
+.tech-pill-danger {
+    border-color: var(--accent-danger);
+    color: var(--accent-danger);
+}
+
+.tech-pill-warning {
+    border-color: var(--accent-warning);
+    color: var(--accent-warning);
+}
+
+.tech-pill-info {
+    border-color: var(--accent-info);
+    color: var(--accent-info);
+}
+
+/* --------------------------------------------------------------------------
+   09. DATA TABLES & EVIDENCE MATRICES
+   -------------------------------------------------------------------------- */
+.data-table-container {
+    overflow-x: auto;
+    margin: 1rem 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-brutalist);
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+}
+
+th {
+    background-color: var(--bg-card-elevated);
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    text-align: left;
+}
+
+td {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    padding: 9px 12px;
+    border: 1px solid var(--border-color);
+}
+
+tr:nth-child(even) td {
+    background-color: var(--bg-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   10. INTERACTIVE 3D CANVAS & THREAT RADAR CONTAINER (PLACEHOLDER FOR THREE.JS)
+   -------------------------------------------------------------------------- */
+.canvas-3d-wrapper {
+    background: #0b0c0b;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-brutalist);
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.canvas-3d-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    background: rgba(21, 23, 21, 0.9);
+    border-bottom: 1px solid var(--border-color);
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--text-secondary);
+}
+
+.canvas-3d-viewport {
+    height: 340px;
+    width: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-image: 
+        radial-gradient(circle at center, rgba(198, 255, 77, 0.04) 0%, transparent 70%),
+        linear-gradient(rgba(57, 61, 55, 0.25) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(57, 61, 55, 0.25) 1px, transparent 1px);
+    background-size: 100% 100%, 30px 30px, 30px 30px;
+}
+
+.canvas-3d-placeholder-overlay {
+    text-align: center;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.radar-sweep-effect {
+    position: absolute;
+    width: 240px;
+    height: 240px;
+    border: 1px solid rgba(198, 255, 77, 0.35);
+    border-radius: 50%;
+    animation: pulseRadar 3s infinite linear;
+}
+
+@keyframes pulseRadar {
+    0% { transform: scale(0.6); opacity: 0.8; }
+    50% { opacity: 0.4; }
+    100% { transform: scale(1.4); opacity: 0; }
+}
+
+/* --------------------------------------------------------------------------
+   11. NOTIFICATIONS & ALERTS
+   -------------------------------------------------------------------------- */
+.alert-box {
+    border-radius: var(--radius-brutalist);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.alert-danger {
+    border-left: 4px solid var(--accent-danger);
+    background-color: #241414;
+}
+
+.alert-warning {
+    border-left: 4px solid var(--accent-warning);
+    background-color: #241E14;
+}
+
+.alert-success {
+    border-left: 4px solid var(--accent-lime);
+    background-color: #162414;
+}
+
+.alert-info {
+    border-left: 4px solid var(--accent-info);
+    background-color: #141c24;
+}
+
+/* --------------------------------------------------------------------------
+   12. RESPONSIVENESS
+   -------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+    .app-container {
+        flex-direction: column;
+    }
+    .sidebar {
+        width: 100%;
+        min-width: 100%;
+        height: auto;
+        position: relative;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .main-content {
+        width: 100%;
+        padding: 1.25rem;
+    }
+    .bento-grid-4, .bento-grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .bento-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .bento-grid-4, .bento-grid-3 {
+        grid-template-columns: 1fr;
+    }
+    .editorial-hero-title {
+        font-size: 2rem;
+    }
+}

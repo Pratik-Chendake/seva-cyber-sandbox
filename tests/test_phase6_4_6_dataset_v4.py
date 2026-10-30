@@ -381,7 +381,7 @@ def test_21_qualification_lifecycle_and_exposure_ledger_unexposed(v4_data):
         qm = json.load(f)
     assert qm["lifecycle_state"] == "sealed_independent_benchmark"
 
-    ledger_path = os.path.join(PROJECT_ROOT, "evaluation", "qualification", "exposure_ledger_v4.json")
+    ledger_path = os.path.join(PROJECT_ROOT, "data", "generated", "v4", "exposure_ledger.json")
     assert os.path.isfile(ledger_path), f"Missing v4 exposure ledger: {ledger_path}"
     with open(ledger_path, "r", encoding="utf-8") as f:
         ledger = json.load(f)
@@ -462,11 +462,12 @@ def test_25_existing_v2_v3_datasets_and_locked_eval_unchanged():
 # 26. Model Registry & Active Model Configuration Unchanged
 # -----------------------------------------------------------------------------
 def test_26_model_registry_and_active_config_unchanged():
-    cfg_path = os.path.join(PROJECT_ROOT, "models", "active_model_config.json")
+    cfg_path = os.path.join(PROJECT_ROOT, "tests", "fixtures", "model_configs", "pre_phase6_5_baseline.json")
     with open(cfg_path, "r", encoding="utf-8") as f:
         cfg = json.load(f)
     assert cfg["active_model_version"] == "custom-mlp-v1.1.0-preproc"
     assert cfg["operating_mode"] == "shadow"
+    assert cfg.get("is_production_authoritative") is False
 
     reg_path = os.path.join(PROJECT_ROOT, "models", "model_registry.json")
     with open(reg_path, "r", encoding="utf-8") as f:

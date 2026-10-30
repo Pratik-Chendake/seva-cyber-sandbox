@@ -1,0 +1,155 @@
+{
+  "summary_metrics": {
+    "total_cases": 4,
+    "high_risk_count": 2,
+    "warning_count": 1,
+    "cleared_count": 1
+  },
+  "review_stats": {
+    "pending": 2,
+    "under_review": 1,
+    "completed": 1,
+    "inconclusive": 0
+  },
+  "cases": [
+    {
+      "case_id": "CASE-20261030-MSG-8F2A",
+      "analysis_type": "WhatsApp Vernacular Phishing Analysis",
+      "risk_level": "CRITICAL RISK",
+      "risk_score": 92,
+      "badge_color": "red",
+      "risk_category": "CRITICAL",
+      "target_identifier": "[Devanagari text - 248 chars - MSEDCL Bill Scam]",
+      "timestamp_utc": "2026-10-30T16:15:22Z",
+      "analysis_status": "COMPLETED",
+      "recommended_action": "Block sender immediately; report to 1930; do not install APK",
+      "summary_en": "Critical threat detected. Urgent MSEDCL power shutoff lure with rogue APK payload and spoofed .xyz link.",
+      "summary_mr": "महावितरण वीज बिल भरण्यासाठी अनधिकृत APK फाईल डाऊनलोड करण्याचा दबाव आणणारा अतिधोकादायक मेसेज.",
+      "observed_evidence": [
+        "Matched high-urgency disconnection threat: 'आज रात्री ९:३० वाजता वीज पुरवठा खंडित केला जाईल'",
+        "Direct APK download solicitation: 'MSEDCL_Bill_Pay.apk'",
+        "Unofficial domain spoofing: 'msedcl-bill-update-maharashtra.xyz'"
+      ],
+      "heuristic_inferences": [
+        "Disconnection ultimatum bypasses critical scrutiny (+35 weight)",
+        "Unofficial .xyz domain miming official .mahadiscom.in (+30 weight)",
+        "External APK distribution bypasses Google Play Protect (+27 weight)"
+      ],
+      "extracted_urls": [
+        "http://msedcl-bill-update-maharashtra.xyz/quick-pay"
+      ],
+      "review_state": "completed",
+      "outcome_category": "phishing",
+      "confidence_rating": "high",
+      "notes": "Confirmed classic regional Mahavitaran bill cutoff campaign targeting rural consumers. Matches known Q4 fraud pattern.",
+      "reviewer_label": "operator_analyst_01"
+    },
+    {
+      "case_id": "CASE-20261030-APK-4B1C",
+      "analysis_type": "Android APK Static Security Analysis",
+      "risk_level": "CRITICAL RISK",
+      "risk_score": 95,
+      "badge_color": "red",
+      "risk_category": "CRITICAL",
+      "target_identifier": "MSEDCL_Bill_Update_Malicious.apk (SHA: e3b0c44298fc...)",
+      "timestamp_utc": "2026-10-30T16:18:40Z",
+      "analysis_status": "COMPLETED",
+      "recommended_action": "Do NOT install; delete immediately; isolate affected Android endpoints",
+      "summary_en": "Critical banking spyware. Invasive SMS interception, call log harvesting, and accessibility screen control.",
+      "summary_mr": "मेसेज वाचणे आणि फोनवर पूर्ण ताबा मिळवणारे घातक बँकिंग स्पायवेअर ॲप.",
+      "observed_evidence": [
+        "Requests android.permission.RECEIVE_SMS",
+        "Requests android.permission.READ_SMS",
+        "Requests android.permission.BIND_ACCESSIBILITY_SERVICE"
+      ],
+      "heuristic_inferences": [
+        "SMS reading capabilities in fake utility app indicate OTP interception trojan (+40 weight)",
+        "Accessibility Service grants automated keylogging (+45 weight)"
+      ],
+      "extracted_urls": [
+        "http://c2-collector-stream.xyz/api/v1/sms-sync"
+      ],
+      "review_state": "under_review",
+      "outcome_category": null,
+      "confidence_rating": null,
+      "notes": "Under analyst triage. Awaiting bytecode cross-reference against signature database.",
+      "reviewer_label": "operator_analyst_02"
+    },
+    {
+      "case_id": "CASE-20261030-URL-9E3D",
+      "analysis_type": "Safe Suspicious URL & Domain Analysis",
+      "risk_level": "SUSPICIOUS",
+      "risk_score": 45,
+      "badge_color": "orange",
+      "risk_category": "WARNING",
+      "target_identifier": "https://bit.ly/3xY8zMsedclPay",
+      "timestamp_utc": "2026-10-30T16:20:05Z",
+      "analysis_status": "COMPLETED",
+      "recommended_action": "Do not follow link; use official bookmarked portal",
+      "summary_en": "Elevated risk. Public URL shortener concealing true destination domain with utility lure slug.",
+      "summary_mr": "खरी वेबसाईट लपवणारी संशयास्पद शॉर्ट लिंक.",
+      "observed_evidence": [
+        "Masked URL shortener service: bit.ly",
+        "Utility brand keyword in vanity path: MsedclPay"
+      ],
+      "heuristic_inferences": [
+        "Concealment of destination hostname (+45 weight)"
+      ],
+      "extracted_urls": [],
+      "review_state": "pending",
+      "outcome_category": null,
+      "confidence_rating": null,
+      "notes": "",
+      "reviewer_label": null
+    },
+    {
+      "case_id": "CASE-20261030-SCH-1A7F",
+      "analysis_type": "Maharashtra Government Scheme & Announcement Verification",
+      "risk_level": "VERIFIED LEGITIMATE",
+      "risk_score": 0,
+      "badge_color": "green",
+      "risk_category": "SAFE",
+      "target_identifier": "Mukhyamantri Majhi Ladki Bahin Yojana Official Notice",
+      "timestamp_utc": "2026-10-30T16:22:11Z",
+      "analysis_status": "COMPLETED",
+      "recommended_action": "Information verified against official State Gazette GR; safe to consult",
+      "summary_en": "Supported by official Government Resolution WCD-2024/CR-102. Legitimate state announcement.",
+      "summary_mr": "अधिकृत शासन निर्णयानुसार पूर्णपणे सत्य व अधिकृत माहिती.",
+      "observed_evidence": [
+        "Benefit amount ₹1,500/month matches official Government Resolution",
+        "Official portal ladakibahin.maharashtra.gov.in confirmed"
+      ],
+      "heuristic_inferences": [
+        "Direct alignment with certified Government Resolution parameters"
+      ],
+      "extracted_urls": [
+        "https://ladakibahin.maharashtra.gov.in/"
+      ],
+      "review_state": "completed",
+      "outcome_category": "legitimate",
+      "confidence_rating": "high",
+      "notes": "Verified against certified Maharashtra State GR gazette repository.",
+      "reviewer_label": "operator_analyst_01"
+    }
+  ],
+  "audit_trail": [
+    {
+      "timestamp_utc": "2026-10-30T16:16:05Z",
+      "case_id": "CASE-20261030-MSG-8F2A",
+      "action": "SUBMIT_REVIEW",
+      "outcome_category": "phishing",
+      "confidence_rating": "high",
+      "reviewer_label": "operator_analyst_01",
+      "notes": "Confirmed classic regional Mahavitaran bill cutoff campaign"
+    },
+    {
+      "timestamp_utc": "2026-10-30T16:19:12Z",
+      "case_id": "CASE-20261030-APK-4B1C",
+      "action": "START_REVIEW",
+      "outcome_category": null,
+      "confidence_rating": null,
+      "reviewer_label": "operator_analyst_02",
+      "notes": "Assigned to mobile malware queue"
+    }
+  ]
+}

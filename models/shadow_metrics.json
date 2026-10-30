@@ -1,0 +1,23 @@
+{
+  "metrics_schema_version": "1.0.0",
+  "initialized_at_utc": "2026-10-30T16:39:00.623532+00:00",
+  "last_updated_utc": "2026-10-30T16:39:00.655709+00:00",
+  "aggregate_counts": {
+    "total_evaluations": 1,
+    "model_available_evaluations": 1,
+    "model_fallback_evaluations": 0,
+    "phishing_predictions": 0,
+    "legitimate_predictions": 0,
+    "protective_advisory_predictions": 1,
+    "agreements": 0,
+    "disagreements": 1
+  },
+  "disagreement_breakdown": {
+    "rule_phish_model_legit": 0,
+    "rule_phish_model_advisory": 0,
+    "rule_legit_model_phish": 0,
+    "rule_legit_model_advisory": 0,
+    "rule_advisory_model_phish": 0,
+    "rule_advisory_model_legit": 0
+  }
+}

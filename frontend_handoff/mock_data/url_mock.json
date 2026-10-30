@@ -1,0 +1,154 @@
+{
+  "samples": [
+    {
+      "id": "URL-001",
+      "url": "http://msedcl-bill-update-maharashtra.xyz/quick-pay",
+      "scheme": "HTTP",
+      "hostname": "msedcl-bill-update-maharashtra.xyz",
+      "score": 90,
+      "risk_level": "CRITICAL RISK (MALICIOUS LOOKALIKE DOMAIN)",
+      "badge_color": "red",
+      "summary_en": "Critical phishing danger. This web address impersonates the Maharashtra State Electricity Distribution Co. (MSEDCL) using an unencrypted HTTP connection, high-risk .xyz top-level domain, and fake billing keywords.",
+      "summary_mr": "अतिधोकादायक लिंक! महावितरणच्या नावाखाली फसवणूक करणारी ही बनावट लिंक आहे. यावर कोणत्याही प्रकारचे बिल भरू नका किंवा माहिती भरू नका.",
+      "evidence": [
+        "Unencrypted HTTP connection without TLS security",
+        "Brand impersonation targeting Maharashtra electricity utility: 'msedcl'",
+        "High-risk, inexpensive top-level domain: '.xyz'",
+        "Unofficial third-party registration not matching allowlisted .mahadiscom.in"
+      ],
+      "observable_characteristics": {
+        "port": 80,
+        "is_official_allowlisted": false,
+        "is_shortener": false,
+        "is_lookalike": true,
+        "lookalike_brand": "MSEDCL (Mahavitaran)",
+        "is_ip_address": false,
+        "ip_type": null,
+        "is_punycode_or_homoglyph": false,
+        "has_apk_download": false
+      },
+      "safe_next_steps_en": [
+        "Never enter your credit card, debit card, or netbanking credentials on this page.",
+        "Remember: Legitimate government and utility portals always use HTTPS and end with .gov.in or official corporate domains (.mahadiscom.in).",
+        "Report this fake website URL to the National Cyber Crime Reporting Portal at https://cybercrime.gov.in."
+      ],
+      "safe_next_steps_mr": [
+        "या पानावर आपल्या बँकेची, डेबिट कार्डची किंवा OTP ची माहिती भरू नका.",
+        "महावितरणचे खरे पोर्टल https://www.mahadiscom.in हेच आहे.",
+        "या बनावट लिंकची तक्रार १९३० या हेल्पलाईनवर करा."
+      ],
+      "limitations": "Passive syntactic analysis only. Target server was never contacted or resolved over DNS."
+    },
+    {
+      "id": "URL-002",
+      "url": "http://sbi-kyc-maharashtra-update.top/login?action=verify-otp",
+      "scheme": "HTTP",
+      "hostname": "sbi-kyc-maharashtra-update.top",
+      "score": 95,
+      "risk_level": "CRITICAL RISK (BANKING KYC HARVESTING SITE)",
+      "badge_color": "red",
+      "summary_en": "Critical banking credential phishing site. Impersonates State Bank of India (SBI) KYC verification using a deceptive .top domain and explicitly solicits OTP verification tokens.",
+      "summary_mr": "बँक फसवणुकीची गंभीर लिंक! एसबीआय (SBI) बँकेच्या नावाचा गैरवापर करून बँक खात्याचे पासवर्ड आणि OTP चोरण्याचा प्रयत्न.",
+      "evidence": [
+        "Brand lookalike targeting State Bank of India ('sbi')",
+        "Unencrypted cleartext credential transmission (HTTP)",
+        "Credential harvesting endpoint: '/login?action=verify-otp'",
+        "High-risk non-banking domain suffix: '.top'"
+      ],
+      "observable_characteristics": {
+        "port": 80,
+        "is_official_allowlisted": false,
+        "is_shortener": false,
+        "is_lookalike": true,
+        "lookalike_brand": "State Bank of India (SBI)",
+        "is_ip_address": false,
+        "ip_type": null,
+        "is_punycode_or_homoglyph": false,
+        "has_apk_download": false
+      },
+      "safe_next_steps_en": [
+        "Do not enter netbanking credentials or OTPs on this page under any circumstance.",
+        "Official SBI portal is strictly https://onlinesbi.sbi or onlinesbi.com.",
+        "Report the fraudulent banking link immediately to 1930."
+      ],
+      "safe_next_steps_mr": [
+        "या लिंकवर बँकेचा युझरनेम, पासवर्ड किंवा OTP कधीही टाकू नका.",
+        "एसबीआयची खरी वेबसाईट https://onlinesbi.sbi ही आहे.",
+        "सायबर हेल्पलाइन १९३० वर त्वरित संपर्क साधा."
+      ],
+      "limitations": "Passive syntactic inspection only. Target domain was not queried."
+    },
+    {
+      "id": "URL-003",
+      "url": "https://bit.ly/3xY8zMsedclPay",
+      "scheme": "HTTPS",
+      "hostname": "bit.ly",
+      "score": 45,
+      "risk_level": "SUSPICIOUS / ELEVATED RISK (MASKED URL SHORTENER)",
+      "badge_color": "orange",
+      "summary_en": "Elevated risk detected. This is a generic URL shortener hiding the true destination web server. Attackers frequently use shorteners on WhatsApp to conceal phishing infrastructure.",
+      "summary_mr": "संशयास्पद लिंक! ही खरी लिंक लपवण्यासाठी वापरलेली शॉर्ट लिंक आहे. यामागे नक्की कोणती वेबसाईट आहे हे उघड दिसत नाही.",
+      "evidence": [
+        "Known public URL shortening service: 'bit.ly'",
+        "True destination hostname is completely masked from citizen view",
+        "Contains utility lure keyword in vanity slug: 'MsedclPay'"
+      ],
+      "observable_characteristics": {
+        "port": 443,
+        "is_official_allowlisted": false,
+        "is_shortener": true,
+        "is_lookalike": false,
+        "lookalike_brand": null,
+        "is_ip_address": false,
+        "ip_type": null,
+        "is_punycode_or_homoglyph": false,
+        "has_apk_download": false
+      },
+      "safe_next_steps_en": [
+        "Do not click shortened URLs forwarded on messaging apps.",
+        "Use official mobile apps or bookmarks to access utility portals directly."
+      ],
+      "safe_next_steps_mr": [
+        "व्हॉट्सॲपवर आलेल्या अशा संक्षिप्त (Shortened) लिंक्सवर क्लिक करू नका.",
+        "थेट महावितरणच्या अधिकृत ॲपचा वापर करा."
+      ],
+      "limitations": "Air-gapped safety: Sandbox does not resolve HTTP 301/302 redirects to prevent tracking."
+    },
+    {
+      "id": "URL-004",
+      "url": "https://ladakibahin.maharashtra.gov.in/",
+      "scheme": "HTTPS",
+      "hostname": "ladakibahin.maharashtra.gov.in",
+      "score": 0,
+      "risk_level": "OFFICIAL & VERIFIED (GOVERNMENT OF MAHARASHTRA)",
+      "badge_color": "green",
+      "summary_en": "Verified official state portal. Domain belongs to the Government of Maharashtra allowlist under .maharashtra.gov.in and uses secure encrypted TLS (HTTPS).",
+      "summary_mr": "महाराष्ट्र शासनाचे अधिकृत व सुरक्षित संकेतस्थळ. ही 'माझी लाडकी बहीण योजने'ची खरी शासकीय वेबसाईट आहे.",
+      "evidence": [
+        "Explicitly allowlisted state domain: '.maharashtra.gov.in'",
+        "Secure TLS encrypted transport (HTTPS)",
+        "Verified official Government Resolution (GR) matching portal"
+      ],
+      "observable_characteristics": {
+        "port": 443,
+        "is_official_allowlisted": true,
+        "is_shortener": false,
+        "is_lookalike": false,
+        "lookalike_brand": null,
+        "is_ip_address": false,
+        "ip_type": null,
+        "is_punycode_or_homoglyph": false,
+        "has_apk_download": false
+      },
+      "safe_next_steps_en": [
+        "This is the genuine portal for Mukhyamantri Majhi Ladki Bahin Yojana applications.",
+        "Always verify that the browser address bar shows .gov.in before submitting official documents."
+      ],
+      "safe_next_steps_mr": [
+        "हे अधिकृत संकेतस्थळ असून नागरिक येथे सुरक्षितपणे अर्ज करू शकतात.",
+        "नेहमी खात्री करा की वेबसाईटच्या पत्त्यात .gov.in आहे."
+      ],
+      "limitations": "Static verification against certified government domain registry."
+    }
+  ]
+}

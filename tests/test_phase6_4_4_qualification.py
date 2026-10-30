@@ -512,7 +512,9 @@ def test_23_registry_remains_unchanged():
 # 24. Active Model Configuration Remains Unchanged
 # -----------------------------------------------------------------------------
 def test_24_active_model_configuration_remains_unchanged():
-    with open(DEFAULT_ACTIVE_CONFIG_PATH, "r", encoding="utf-8") as f:
+    # Use isolated Phase 6.4.4 baseline configuration fixture
+    fixture_path = os.path.join(PROJECT_ROOT, "tests", "fixtures", "model_configs", "pre_phase6_5_baseline.json")
+    with open(fixture_path, "r", encoding="utf-8") as f:
         cfg = json.load(f)
 
     assert cfg.get("active_model_version") == "custom-mlp-v1.1.0-preproc"

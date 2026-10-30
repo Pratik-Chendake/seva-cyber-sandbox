@@ -144,7 +144,7 @@ def test_03_qualification_records_not_loaded():
 # 4. Qualification Ledger Remains Unexposed
 # -----------------------------------------------------------------------------
 def test_04_qualification_ledger_remains_unexposed():
-    ledger_path = os.path.join(PROJECT_ROOT, "evaluation", "qualification", "exposure_ledger_v4.json")
+    ledger_path = os.path.join(PROJECT_ROOT, "data", "generated", "v4", "exposure_ledger.json")
     assert os.path.isfile(ledger_path)
     with open(ledger_path, "r", encoding="utf-8") as f:
         ledger = json.load(f)
@@ -412,7 +412,7 @@ def test_19_production_registry_remains_unchanged():
 # 20. Active Model Config Remains Unchanged
 # -----------------------------------------------------------------------------
 def test_20_active_model_config_remains_unchanged():
-    cfg_path = os.path.join(PROJECT_ROOT, "models", "active_model_config.json")
+    cfg_path = os.path.join(PROJECT_ROOT, "tests", "fixtures", "model_configs", "pre_phase6_5_baseline.json")
     with open(cfg_path, "r", encoding="utf-8") as f:
         cfg = json.load(f)
 

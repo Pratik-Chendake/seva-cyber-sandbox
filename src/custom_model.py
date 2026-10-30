@@ -518,6 +518,8 @@ class CustomNeuralClassifier:
         assert model.W3.shape == (model.hidden_dim2, model.num_classes), f"W3 shape mismatch: {model.W3.shape}"
         assert model.b3.shape == (1, model.num_classes), f"b3 shape mismatch: {model.b3.shape}"
 
+        model.model_version = meta.get("model_version", MODEL_VERSION)
+
         return model
 
 
