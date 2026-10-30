@@ -1,0 +1,434 @@
+{
+  "audit_schema_version": "1.0.0",
+  "phase": "Phase 6.4.7.1",
+  "candidate_id": "candidate_v4_seed42",
+  "readiness_verdict": "READY_WITH_WARNINGS",
+  "warnings": [
+    "Development set has limited campaign family support: only 2 families per class (6 total). 100% dev accuracy is partly due to dense template replication within these 6 families.",
+    "Candidate shows moderate flip rate (2.67%) on benign URL insertion, where appending a government portal URL to certain legitimate/advisory notices causes mild feature perturbation.",
+    "Whitespace and zero-width normalization were effectively handled by the preprocessor (0% flips), demonstrating preprocessor evasion resistance.",
+    "Qualification evaluation on the 9 unseen qualification families is strictly required before any shadow or production promotion."
+  ],
+  "development_metrics_verified": {
+    "seed42": {
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "confusion_matrix": [
+        [
+          100,
+          0,
+          0
+        ],
+        [
+          0,
+          100,
+          0
+        ],
+        [
+          0,
+          0,
+          100
+        ]
+      ],
+      "per_class": {
+        "phishing": {
+          "tp": 100,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "legitimate": {
+          "tp": 100,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "protective_advisory": {
+          "tp": 100,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "legit_fp_rate": 0.0,
+      "advisory_fp_rate": 0.0,
+      "phish_fn_rate": 0.0
+    },
+    "seed101": {
+      "accuracy": 0.9967,
+      "macro_f1": 0.9967,
+      "confusion_matrix": [
+        [
+          99,
+          1,
+          0
+        ],
+        [
+          0,
+          100,
+          0
+        ],
+        [
+          0,
+          0,
+          100
+        ]
+      ],
+      "per_class": {
+        "phishing": {
+          "tp": 99,
+          "fp": 0,
+          "fn": 1,
+          "precision": 1.0,
+          "recall": 0.99,
+          "f1": 0.995
+        },
+        "legitimate": {
+          "tp": 100,
+          "fp": 1,
+          "fn": 0,
+          "precision": 0.9901,
+          "recall": 1.0,
+          "f1": 0.995
+        },
+        "protective_advisory": {
+          "tp": 100,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "legit_fp_rate": 0.0,
+      "advisory_fp_rate": 0.0,
+      "phish_fn_rate": 0.01
+    },
+    "seed202": {
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "confusion_matrix": [
+        [
+          100,
+          0,
+          0
+        ],
+        [
+          0,
+          100,
+          0
+        ],
+        [
+          0,
+          0,
+          100
+        ]
+      ],
+      "per_class": {
+        "phishing": {
+          "tp": 100,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "legitimate": {
+          "tp": 100,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "protective_advisory": {
+          "tp": 100,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "legit_fp_rate": 0.0,
+      "advisory_fp_rate": 0.0,
+      "phish_fn_rate": 0.0
+    }
+  },
+  "counterfactual_robustness": {
+    "url_removal": {
+      "eligible": 150,
+      "flips": 13,
+      "flip_rate": 0.0867,
+      "flips_by_class": {
+        "phishing": 13
+      },
+      "flips_by_family": {
+        "v4_dev_phish_customs_fedex_contraband_threat": 6,
+        "v4_dev_phish_highcourt_contempt_fine_scam": 7
+      }
+    },
+    "benign_url_insertion": {
+      "eligible": 150,
+      "flips": 5,
+      "flip_rate": 0.0333,
+      "flips_by_class": {
+        "phishing": 5
+      },
+      "flips_by_family": {
+        "v4_dev_phish_highcourt_contempt_fine_scam": 5
+      }
+    },
+    "url_position_shift": {
+      "eligible": 150,
+      "flips": 0,
+      "flip_rate": 0.0,
+      "flips_by_class": {},
+      "flips_by_family": {}
+    },
+    "whitespace_perturbation": {
+      "eligible": 300,
+      "flips": 0,
+      "flip_rate": 0.0,
+      "flips_by_class": {},
+      "flips_by_family": {}
+    },
+    "zero_width_injection": {
+      "eligible": 300,
+      "flips": 0,
+      "flip_rate": 0.0,
+      "flips_by_class": {},
+      "flips_by_family": {}
+    },
+    "devanagari_numeral_substitution": {
+      "eligible": 176,
+      "flips": 0,
+      "flip_rate": 0.0,
+      "flips_by_class": {},
+      "flips_by_family": {}
+    },
+    "case_inversion": {
+      "eligible": 282,
+      "flips": 0,
+      "flip_rate": 0.0,
+      "flips_by_class": {},
+      "flips_by_family": {}
+    }
+  },
+  "synthetic_shortcut_analysis": {
+    "dev": {
+      "phishing": {
+        "mean_len": 164.6,
+        "median_len": 163.0,
+        "std_len": 19.8,
+        "min_len": 122,
+        "max_len": 202,
+        "punct": {
+          ":": 206,
+          "\u20b9": 6
+        },
+        "url_pos": {
+          "end": 50,
+          "none": 50
+        },
+        "top_words": {
+          "court": 77,
+          "customs": 53,
+          "invalid": 50,
+          "warrant": 45,
+          "order": 38,
+          "high": 37,
+          "notice": 33,
+          "ref": 32
+        },
+        "modes": {
+          "sms": 25,
+          "formal_notice": 62,
+          "whatsapp": 13
+        }
+      },
+      "legitimate": {
+        "mean_len": 151.3,
+        "median_len": 150.5,
+        "std_len": 16.4,
+        "min_len": 117,
+        "max_len": 190,
+        "punct": {
+          ":": 200,
+          "(": 13,
+          ")": 13,
+          "%": 13
+        },
+        "url_pos": {
+          "end": 50,
+          "none": 50
+        },
+        "top_words": {
+          "tax": 55,
+          "https": 50,
+          "invalid": 50,
+          "property": 46,
+          "rto": 45,
+          "ref": 44,
+          "municipal": 39,
+          "bill": 37
+        },
+        "modes": {
+          "sms": 50,
+          "formal_notice": 50
+        }
+      },
+      "protective_advisory": {
+        "mean_len": 154.0,
+        "median_len": 154.0,
+        "std_len": 15.0,
+        "min_len": 126,
+        "max_len": 191,
+        "punct": {
+          ":": 200,
+          "(": 20,
+          ")": 20
+        },
+        "url_pos": {
+          "end": 50,
+          "none": 50
+        },
+        "top_words": {
+          "https": 50,
+          "invalid": 50,
+          "advisory": 38,
+          "calls": 37,
+          "dot": 36,
+          "fake": 30,
+          "enforcement": 25,
+          "directorate": 25
+        },
+        "modes": {
+          "formal_notice": 25,
+          "advisory_bulletin": 75
+        }
+      }
+    },
+    "train": {
+      "phishing": {
+        "mean_len": 159.8,
+        "median_len": 157.0,
+        "std_len": 18.1,
+        "min_len": 123,
+        "max_len": 206,
+        "punct": {
+          ":": 1012,
+          "\u20b9": 77,
+          "(": 20,
+          ")": 20
+        },
+        "url_pos": {
+          "end": 250,
+          "none": 250
+        },
+        "top_words": {
+          "police": 271,
+          "invalid": 250,
+          "court": 154,
+          "ahe": 144,
+          "warrant": 143,
+          "http": 132,
+          "ref": 121,
+          "call": 121
+        },
+        "modes": {
+          "whatsapp": 100,
+          "formal_notice": 142,
+          "sms": 258
+        }
+      },
+      "legitimate": {
+        "mean_len": 151.3,
+        "median_len": 151.0,
+        "std_len": 14.2,
+        "min_len": 116,
+        "max_len": 188,
+        "punct": {
+          ":": 1057,
+          "(": 35,
+          ")": 35
+        },
+        "url_pos": {
+          "end": 250,
+          "none": 250
+        },
+        "top_words": {
+          "https": 250,
+          "invalid": 250,
+          "2026": 205,
+          "ref": 165,
+          "police": 137,
+          "ahe": 120,
+          "court": 108,
+          "notice": 88
+        },
+        "modes": {
+          "formal_notice": 225,
+          "sms": 200,
+          "advisory_bulletin": 75
+        }
+      },
+      "protective_advisory": {
+        "mean_len": 158.1,
+        "median_len": 157.5,
+        "std_len": 15.3,
+        "min_len": 120,
+        "max_len": 200,
+        "punct": {
+          ":": 1000,
+          "(": 62,
+          ")": 62
+        },
+        "url_pos": {
+          "end": 250,
+          "none": 250
+        },
+        "top_words": {
+          "https": 250,
+          "invalid": 250,
+          "police": 248,
+          "cyber": 150,
+          "alert": 145,
+          "fake": 135,
+          "report": 104,
+          "cbi": 104
+        },
+        "modes": {
+          "advisory_bulletin": 387,
+          "formal_notice": 113
+        }
+      }
+    }
+  },
+  "artifact_integrity": {
+    "candidate_v4_seed42": {
+      "weights_sha256": "3affa8908153924e1ab6c66f1f9597b61de0e45a8ba1740e9bc472045888348f",
+      "metadata_sha256": "8bf388271453b805c148b17232972f6adbe1a4689370893159454b7fe61cafa3",
+      "manifest_sha256": "c7f85ef9551b05b2f5ce7d364ed199a13f50225ce4b6f080e069d2f9600349cf",
+      "report_sha256": "c22d6021f15d66860549a2064d846bb44156bbb2cf7ff1d30a03abdf5a64e6c6"
+    },
+    "baseline": {
+      "weights_sha256": "d4b6c2b1cc0359966100623fe18d1f728caeeaef9bcad561bfa00f89485bef20"
+    },
+    "locked_eval_manifest": {
+      "sha256": "9b9c02d438cfca8bd07af89d60bc1d2fb42d460143d016365ab5a1d231ee0cda"
+    }
+  },
+  "qualification_seal": {
+    "sha256": "d9a3f4a861d971dfb8716f96f7233c42d8291de85ff070ed93893643caa81f7e",
+    "lifecycle_state": "sealed_independent_benchmark",
+    "current_status": "UNEXPOSED",
+    "exposure_count": 0
+  }
+}

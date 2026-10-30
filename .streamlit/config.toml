@@ -2,6 +2,13 @@
 # Local-Only Security Boundary Enforcement (SEC-05-01)
 # Binds strictly to loopback interface (127.0.0.1) to prevent network exposure.
 
+[theme]
+primaryColor = "#C6FF4D"
+backgroundColor = "#101110"
+secondaryBackgroundColor = "#151715"
+textColor = "#F2F0E8"
+font = "sans serif"
+
 [server]
 address = "127.0.0.1"
 port = 8501

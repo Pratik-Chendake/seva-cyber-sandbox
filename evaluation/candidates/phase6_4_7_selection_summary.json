@@ -1,0 +1,900 @@
+{
+  "pipeline_schema_version": "1.0.0",
+  "timestamp_utc": "2026-10-30T15:29:20Z",
+  "phase": "Phase 6.4.7",
+  "dataset_provenance": {
+    "training_corpus": "C:\\Users\\prati\\seva-cyber-sandbox\\data\\generated\\v4\\synthetic_training_corpus.jsonl",
+    "training_records": 1500,
+    "training_sha256": "6abd8b2b2daa25d6f8bc0263e588d0a3410fd9bae8fb82632b5fe826cb1cc93f",
+    "dev_corpus": "C:\\Users\\prati\\seva-cyber-sandbox\\data\\generated\\v4\\synthetic_dev_corpus.jsonl",
+    "dev_records": 300,
+    "dev_sha256": "4814d15a93119eb9934d0ef4127612009b60dc3f5ab607e58d45f349723f9930",
+    "qualification_partition": "SEALED_UNEXPOSED",
+    "qualification_sha256": "d9a3f4a861d971dfb8716f96f7233c42d8291de85ff070ed93893643caa81f7e"
+  },
+  "baseline_evaluation": {
+    "model_version": "custom-mlp-v1.0.0",
+    "checkpoint_dir": "C:\\Users\\prati\\seva-cyber-sandbox\\models\\experimental_custom_v1",
+    "metrics": {
+      "sample_count": 300,
+      "accuracy": 0.6533,
+      "accuracy_ci_95": [
+        0.5978,
+        0.7049
+      ],
+      "accuracy_fraction": "196/300",
+      "total_incorrect": 104,
+      "total_incorrect_fraction": "104/300",
+      "macro_f1": 0.6498,
+      "macro_precision": 0.6739,
+      "macro_recall": 0.6533,
+      "balanced_accuracy": 0.6533,
+      "weighted_f1": 0.6498,
+      "confusion_matrix": [
+        [
+          76,
+          14,
+          10
+        ],
+        [
+          50,
+          44,
+          6
+        ],
+        [
+          15,
+          9,
+          76
+        ]
+      ],
+      "per_class": {
+        "phishing": {
+          "class_index": 0,
+          "true_positives": 76,
+          "false_positives": 65,
+          "false_negatives": 24,
+          "support": 100,
+          "precision": 0.539,
+          "precision_ci_95": [
+            0.4568,
+            0.6192
+          ],
+          "precision_fraction": "76/141",
+          "recall": 0.76,
+          "recall_ci_95": [
+            0.6677,
+            0.8331
+          ],
+          "recall_fraction": "76/100",
+          "f1": 0.6307
+        },
+        "legitimate": {
+          "class_index": 1,
+          "true_positives": 44,
+          "false_positives": 23,
+          "false_negatives": 56,
+          "support": 100,
+          "precision": 0.6567,
+          "precision_ci_95": [
+            0.5373,
+            0.7591
+          ],
+          "precision_fraction": "44/67",
+          "recall": 0.44,
+          "recall_ci_95": [
+            0.3467,
+            0.5377
+          ],
+          "recall_fraction": "44/100",
+          "f1": 0.5269
+        },
+        "protective_advisory": {
+          "class_index": 2,
+          "true_positives": 76,
+          "false_positives": 16,
+          "false_negatives": 24,
+          "support": 100,
+          "precision": 0.8261,
+          "precision_ci_95": [
+            0.736,
+            0.89
+          ],
+          "precision_fraction": "76/92",
+          "recall": 0.76,
+          "recall_ci_95": [
+            0.6677,
+            0.8331
+          ],
+          "recall_fraction": "76/100",
+          "f1": 0.7917
+        }
+      },
+      "safety_metrics": {
+        "legitimate_fp_rate": 0.5,
+        "legitimate_fp_ci_95": [
+          0.4038,
+          0.5962
+        ],
+        "legitimate_fp_fraction": "50/100",
+        "protective_advisory_fp_rate": 0.15,
+        "protective_advisory_fp_ci_95": [
+          0.0931,
+          0.2328
+        ],
+        "protective_advisory_fp_fraction": "15/100",
+        "phishing_fn_rate": 0.24,
+        "phishing_fn_ci_95": [
+          0.1669,
+          0.3323
+        ],
+        "phishing_fn_fraction": "24/100",
+        "prediction_distribution": {
+          "phishing": 141,
+          "legitimate": 67,
+          "protective_advisory": 92
+        }
+      }
+    },
+    "subgroups": {
+      "by_language": {
+        "mr": {
+          "count": 78,
+          "accuracy": 0.6923,
+          "accuracy_fraction": "54/78"
+        },
+        "mr-Latn": {
+          "count": 78,
+          "accuracy": 0.6282,
+          "accuracy_fraction": "49/78"
+        },
+        "en": {
+          "count": 72,
+          "accuracy": 0.6111,
+          "accuracy_fraction": "44/72"
+        },
+        "mr-en": {
+          "count": 72,
+          "accuracy": 0.6806,
+          "accuracy_fraction": "49/72"
+        }
+      },
+      "by_url_presence": {
+        "True": {
+          "count": 150,
+          "accuracy": 0.5467,
+          "accuracy_fraction": "82/150"
+        },
+        "False": {
+          "count": 150,
+          "accuracy": 0.76,
+          "accuracy_fraction": "114/150"
+        }
+      },
+      "by_campaign_family": {
+        "v4_dev_advisory_dot_sim_termination_alert": {
+          "count": 50,
+          "ground_truth_label": "protective_advisory",
+          "accuracy": 0.58,
+          "accuracy_fraction": "29/50"
+        },
+        "v4_dev_advisory_ed_money_laundering_scam": {
+          "count": 50,
+          "ground_truth_label": "protective_advisory",
+          "accuracy": 0.94,
+          "accuracy_fraction": "47/50"
+        },
+        "v4_dev_legit_property_tax_annual_assessment": {
+          "count": 50,
+          "ground_truth_label": "legitimate",
+          "accuracy": 0.72,
+          "accuracy_fraction": "36/50"
+        },
+        "v4_dev_legit_rto_smartcard_dispatch": {
+          "count": 50,
+          "ground_truth_label": "legitimate",
+          "accuracy": 0.16,
+          "accuracy_fraction": "8/50"
+        },
+        "v4_dev_phish_customs_fedex_contraband_threat": {
+          "count": 50,
+          "ground_truth_label": "phishing",
+          "accuracy": 0.82,
+          "accuracy_fraction": "41/50"
+        },
+        "v4_dev_phish_highcourt_contempt_fine_scam": {
+          "count": 50,
+          "ground_truth_label": "phishing",
+          "accuracy": 0.7,
+          "accuracy_fraction": "35/50"
+        }
+      }
+    }
+  },
+  "candidate_evaluations": [
+    {
+      "seed": 42,
+      "candidate_id": "candidate_v4_seed42",
+      "candidate_dir": "C:\\Users\\prati\\seva-cyber-sandbox\\models\\candidates\\candidate_v4_seed42",
+      "best_epoch": 7,
+      "total_epochs": 17,
+      "best_dev_macro_f1": 1.0,
+      "dev_metrics": {
+        "sample_count": 300,
+        "accuracy": 1.0,
+        "accuracy_ci_95": [
+          0.9874,
+          1.0
+        ],
+        "accuracy_fraction": "300/300",
+        "total_incorrect": 0,
+        "total_incorrect_fraction": "0/300",
+        "macro_f1": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "balanced_accuracy": 1.0,
+        "weighted_f1": 1.0,
+        "confusion_matrix": [
+          [
+            100,
+            0,
+            0
+          ],
+          [
+            0,
+            100,
+            0
+          ],
+          [
+            0,
+            0,
+            100
+          ]
+        ],
+        "per_class": {
+          "phishing": {
+            "class_index": 0,
+            "true_positives": 100,
+            "false_positives": 0,
+            "false_negatives": 0,
+            "support": 100,
+            "precision": 1.0,
+            "precision_ci_95": [
+              0.963,
+              1.0
+            ],
+            "precision_fraction": "100/100",
+            "recall": 1.0,
+            "recall_ci_95": [
+              0.963,
+              1.0
+            ],
+            "recall_fraction": "100/100",
+            "f1": 1.0
+          },
+          "legitimate": {
+            "class_index": 1,
+            "true_positives": 100,
+            "false_positives": 0,
+            "false_negatives": 0,
+            "support": 100,
+            "precision": 1.0,
+            "precision_ci_95": [
+              0.963,
+              1.0
+            ],
+            "precision_fraction": "100/100",
+            "recall": 1.0,
+            "recall_ci_95": [
+              0.963,
+              1.0
+            ],
+            "recall_fraction": "100/100",
+            "f1": 1.0
+          },
+          "protective_advisory": {
+            "class_index": 2,
+            "true_positives": 100,
+            "false_positives": 0,
+            "false_negatives": 0,
+            "support": 100,
+            "precision": 1.0,
+            "precision_ci_95": [
+              0.963,
+              1.0
+            ],
+            "precision_fraction": "100/100",
+            "recall": 1.0,
+            "recall_ci_95": [
+              0.963,
+              1.0
+            ],
+            "recall_fraction": "100/100",
+            "f1": 1.0
+          }
+        },
+        "safety_metrics": {
+          "legitimate_fp_rate": 0.0,
+          "legitimate_fp_ci_95": [
+            0.0,
+            0.037
+          ],
+          "legitimate_fp_fraction": "0/100",
+          "protective_advisory_fp_rate": 0.0,
+          "protective_advisory_fp_ci_95": [
+            0.0,
+            0.037
+          ],
+          "protective_advisory_fp_fraction": "0/100",
+          "phishing_fn_rate": 0.0,
+          "phishing_fn_ci_95": [
+            0.0,
+            0.037
+          ],
+          "phishing_fn_fraction": "0/100",
+          "prediction_distribution": {
+            "phishing": 100,
+            "legitimate": 100,
+            "protective_advisory": 100
+          }
+        }
+      },
+      "dev_subgroups": {
+        "by_language": {
+          "mr": {
+            "count": 78,
+            "accuracy": 1.0,
+            "accuracy_fraction": "78/78"
+          },
+          "mr-Latn": {
+            "count": 78,
+            "accuracy": 1.0,
+            "accuracy_fraction": "78/78"
+          },
+          "en": {
+            "count": 72,
+            "accuracy": 1.0,
+            "accuracy_fraction": "72/72"
+          },
+          "mr-en": {
+            "count": 72,
+            "accuracy": 1.0,
+            "accuracy_fraction": "72/72"
+          }
+        },
+        "by_url_presence": {
+          "True": {
+            "count": 150,
+            "accuracy": 1.0,
+            "accuracy_fraction": "150/150"
+          },
+          "False": {
+            "count": 150,
+            "accuracy": 1.0,
+            "accuracy_fraction": "150/150"
+          }
+        },
+        "by_campaign_family": {
+          "v4_dev_advisory_dot_sim_termination_alert": {
+            "count": 50,
+            "ground_truth_label": "protective_advisory",
+            "accuracy": 1.0,
+            "accuracy_fraction": "50/50"
+          },
+          "v4_dev_advisory_ed_money_laundering_scam": {
+            "count": 50,
+            "ground_truth_label": "protective_advisory",
+            "accuracy": 1.0,
+            "accuracy_fraction": "50/50"
+          },
+          "v4_dev_legit_property_tax_annual_assessment": {
+            "count": 50,
+            "ground_truth_label": "legitimate",
+            "accuracy": 1.0,
+            "accuracy_fraction": "50/50"
+          },
+          "v4_dev_legit_rto_smartcard_dispatch": {
+            "count": 50,
+            "ground_truth_label": "legitimate",
+            "accuracy": 1.0,
+            "accuracy_fraction": "50/50"
+          },
+          "v4_dev_phish_customs_fedex_contraband_threat": {
+            "count": 50,
+            "ground_truth_label": "phishing",
+            "accuracy": 1.0,
+            "accuracy_fraction": "50/50"
+          },
+          "v4_dev_phish_highcourt_contempt_fine_scam": {
+            "count": 50,
+            "ground_truth_label": "phishing",
+            "accuracy": 1.0,
+            "accuracy_fraction": "50/50"
+          }
+        }
+      },
+      "weights_sha256": "3affa8908153924e1ab6c66f1f9597b61de0e45a8ba1740e9bc472045888348f",
+      "metadata_sha256": "8bf388271453b805c148b17232972f6adbe1a4689370893159454b7fe61cafa3",
+      "manifest_sha256": "c7f85ef9551b05b2f5ce7d364ed199a13f50225ce4b6f080e069d2f9600349cf",
+      "report_sha256": "c22d6021f15d66860549a2064d846bb44156bbb2cf7ff1d30a03abdf5a64e6c6"
+    },
+    {
+      "seed": 101,
+      "candidate_id": "candidate_v4_seed101",
+      "candidate_dir": "C:\\Users\\prati\\seva-cyber-sandbox\\models\\candidates\\candidate_v4_seed101",
+      "best_epoch": 3,
+      "total_epochs": 13,
+      "best_dev_macro_f1": 0.9967,
+      "dev_metrics": {
+        "sample_count": 300,
+        "accuracy": 0.9967,
+        "accuracy_ci_95": [
+          0.9814,
+          0.9994
+        ],
+        "accuracy_fraction": "299/300",
+        "total_incorrect": 1,
+        "total_incorrect_fraction": "1/300",
+        "macro_f1": 0.9967,
+        "macro_precision": 0.9967,
+        "macro_recall": 0.9967,
+        "balanced_accuracy": 0.9967,
+        "weighted_f1": 0.9967,
+        "confusion_matrix": [
+          [
+            99,
+            1,
+            0
+          ],
+          [
+            0,
+            100,
+            0
+          ],
+          [
+            0,
+            0,
+            100
+          ]
+        ],
+        "per_class": {
+          "phishing": {
+            "class_index": 0,
+            "true_positives": 99,
+            "false_positives": 0,
+            "false_negatives": 1,
+            "support": 100,
+            "precision": 1.0,
+            "precision_ci_95": [
+              0.9626,
+              1.0
+            ],
+            "precision_fraction": "99/99",
+            "recall": 0.99,
+            "recall_ci_95": [
+              0.9455,
+              0.9982
+            ],
+            "recall_fraction": "99/100",
+            "f1": 0.995
+          },
+          "legitimate": {
+            "class_index": 1,
+            "true_positives": 100,
+            "false_positives": 1,
+            "false_negatives": 0,
+            "support": 100,
+            "precision": 0.9901,
+            "precision_ci_95": [
+              0.946,
+              0.9983
+            ],
+            "precision_fraction": "100/101",
+            "recall": 1.0,
+            "recall_ci_95": [
+              0.963,
+              1.0
+            ],
+            "recall_fraction": "100/100",
+            "f1": 0.995
+          },
+          "protective_advisory": {
+            "class_index": 2,
+            "true_positives": 100,
+            "false_positives": 0,
+            "false_negatives": 0,
+            "support": 100,
+            "precision": 1.0,
+            "precision_ci_95": [
+              0.963,
+              1.0
+            ],
+            "precision_fraction": "100/100",
+            "recall": 1.0,
+            "recall_ci_95": [
+              0.963,
+              1.0
+            ],
+            "recall_fraction": "100/100",
+            "f1": 1.0
+          }
+        },
+        "safety_metrics": {
+          "legitimate_fp_rate": 0.0,
+          "legitimate_fp_ci_95": [
+            0.0,
+            0.037
+          ],
+          "legitimate_fp_fraction": "0/100",
+          "protective_advisory_fp_rate": 0.0,
+          "protective_advisory_fp_ci_95": [
+            0.0,
+            0.037
+          ],
+          "protective_advisory_fp_fraction": "0/100",
+          "phishing_fn_rate": 0.01,
+          "phishing_fn_ci_95": [
+            0.0018,
+            0.0545
+          ],
+          "phishing_fn_fraction": "1/100",
+          "prediction_distribution": {
+            "phishing": 99,
+            "legitimate": 101,
+            "protective_advisory": 100
+          }
+        }
+      },
+      "dev_subgroups": {
+        "by_language": {
+          "mr": {
+            "count": 78,
+            "accuracy": 0.9872,
+            "accuracy_fraction": "77/78"
+          },
+          "mr-Latn": {
+            "count": 78,
+            "accuracy": 1.0,
+            "accuracy_fraction": "78/78"
+          },
+          "en": {
+            "count": 72,
+            "accuracy": 1.0,
+            "accuracy_fraction": "72/72"
+          },
+          "mr-en": {
+            "count": 72,
+            "accuracy": 1.0,
+            "accuracy_fraction": "72/72"
+          }
+        },
+        "by_url_presence": {
+          "True": {
+            "count": 150,
+            "accuracy": 1.0,
+            "accuracy_fraction": "150/150"
+          },
+          "False": {
+            "count": 150,
+            "accuracy": 0.9933,
+            "accuracy_fraction": "149/150"
+          }
+        },
+        "by_campaign_family": {
+          "v4_dev_advisory_dot_sim_termination_alert": {
+            "count": 50,
+            "ground_truth_label": "protective_advisory",
+            "accuracy": 1.0,
+            "accuracy_fraction": "50/50"
+          },
+          "v4_dev_advisory_ed_money_laundering_scam": {
+            "count": 50,
+            "ground_truth_label": "protective_advisory",
+            "accuracy": 1.0,
+            "accuracy_fraction": "50/50"
+          },
+          "v4_dev_legit_property_tax_annual_assessment": {
+            "count": 50,
+            "ground_truth_label": "legitimate",
+            "accuracy": 1.0,
+            "accuracy_fraction": "50/50"
+          },
+          "v4_dev_legit_rto_smartcard_dispatch": {
+            "count": 50,
+            "ground_truth_label": "legitimate",
+            "accuracy": 1.0,
+            "accuracy_fraction": "50/50"
+          },
+          "v4_dev_phish_customs_fedex_contraband_threat": {
+            "count": 50,
+            "ground_truth_label": "phishing",
+            "accuracy": 1.0,
+            "accuracy_fraction": "50/50"
+          },
+          "v4_dev_phish_highcourt_contempt_fine_scam": {
+            "count": 50,
+            "ground_truth_label": "phishing",
+            "accuracy": 0.98,
+            "accuracy_fraction": "49/50"
+          }
+        }
+      },
+      "weights_sha256": "987836c39771ea8bfa687ffd25de53f247fa19e62d4b4a97de8d68957638640e",
+      "metadata_sha256": "99867524b52f60d178e71890d2f671ac4193dcf631971aa8923606f5cfcef6e9",
+      "manifest_sha256": "e753de044d25b597b57dbf31fba5d7aba706b0d43d1a6808b72d2ba8e9decd32",
+      "report_sha256": "46e01fff1bfa869fcdab9d32df07e9ebe03faa2c62729ab89353c328f17ccee5"
+    },
+    {
+      "seed": 202,
+      "candidate_id": "candidate_v4_seed202",
+      "candidate_dir": "C:\\Users\\prati\\seva-cyber-sandbox\\models\\candidates\\candidate_v4_seed202",
+      "best_epoch": 3,
+      "total_epochs": 13,
+      "best_dev_macro_f1": 1.0,
+      "dev_metrics": {
+        "sample_count": 300,
+        "accuracy": 1.0,
+        "accuracy_ci_95": [
+          0.9874,
+          1.0
+        ],
+        "accuracy_fraction": "300/300",
+        "total_incorrect": 0,
+        "total_incorrect_fraction": "0/300",
+        "macro_f1": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "balanced_accuracy": 1.0,
+        "weighted_f1": 1.0,
+        "confusion_matrix": [
+          [
+            100,
+            0,
+            0
+          ],
+          [
+            0,
+            100,
+            0
+          ],
+          [
+            0,
+            0,
+            100
+          ]
+        ],
+        "per_class": {
+          "phishing": {
+            "class_index": 0,
+            "true_positives": 100,
+            "false_positives": 0,
+            "false_negatives": 0,
+            "support": 100,
+            "precision": 1.0,
+            "precision_ci_95": [
+              0.963,
+              1.0
+            ],
+            "precision_fraction": "100/100",
+            "recall": 1.0,
+            "recall_ci_95": [
+              0.963,
+              1.0
+            ],
+            "recall_fraction": "100/100",
+            "f1": 1.0
+          },
+          "legitimate": {
+            "class_index": 1,
+            "true_positives": 100,
+            "false_positives": 0,
+            "false_negatives": 0,
+            "support": 100,
+            "precision": 1.0,
+            "precision_ci_95": [
+              0.963,
+              1.0
+            ],
+            "precision_fraction": "100/100",
+            "recall": 1.0,
+            "recall_ci_95": [
+              0.963,
+              1.0
+            ],
+            "recall_fraction": "100/100",
+            "f1": 1.0
+          },
+          "protective_advisory": {
+            "class_index": 2,
+            "true_positives": 100,
+            "false_positives": 0,
+            "false_negatives": 0,
+            "support": 100,
+            "precision": 1.0,
+            "precision_ci_95": [
+              0.963,
+              1.0
+            ],
+            "precision_fraction": "100/100",
+            "recall": 1.0,
+            "recall_ci_95": [
+              0.963,
+              1.0
+            ],
+            "recall_fraction": "100/100",
+            "f1": 1.0
+          }
+        },
+        "safety_metrics": {
+          "legitimate_fp_rate": 0.0,
+          "legitimate_fp_ci_95": [
+            0.0,
+            0.037
+          ],
+          "legitimate_fp_fraction": "0/100",
+          "protective_advisory_fp_rate": 0.0,
+          "protective_advisory_fp_ci_95": [
+            0.0,
+            0.037
+          ],
+          "protective_advisory_fp_fraction": "0/100",
+          "phishing_fn_rate": 0.0,
+          "phishing_fn_ci_95": [
+            0.0,
+            0.037
+          ],
+          "phishing_fn_fraction": "0/100",
+          "prediction_distribution": {
+            "phishing": 100,
+            "legitimate": 100,
+            "protective_advisory": 100
+          }
+        }
+      },
+      "dev_subgroups": {
+        "by_language": {
+          "mr": {
+            "count": 78,
+            "accuracy": 1.0,
+            "accuracy_fraction": "78/78"
+          },
+          "mr-Latn": {
+            "count": 78,
+            "accuracy": 1.0,
+            "accuracy_fraction": "78/78"
+          },
+          "en": {
+            "count": 72,
+            "accuracy": 1.0,
+            "accuracy_fraction": "72/72"
+          },
+          "mr-en": {
+            "count": 72,
+            "accuracy": 1.0,
+            "accuracy_fraction": "72/72"
+          }
+        },
+        "by_url_presence": {
+          "True": {
+            "count": 150,
+            "accuracy": 1.0,
+            "accuracy_fraction": "150/150"
+          },
+          "False": {
+            "count": 150,
+            "accuracy": 1.0,
+            "accuracy_fraction": "150/150"
+          }
+        },
+        "by_campaign_family": {
+          "v4_dev_advisory_dot_sim_termination_alert": {
+            "count": 50,
+            "ground_truth_label": "protective_advisory",
+            "accuracy": 1.0,
+            "accuracy_fraction": "50/50"
+          },
+          "v4_dev_advisory_ed_money_laundering_scam": {
+            "count": 50,
+            "ground_truth_label": "protective_advisory",
+            "accuracy": 1.0,
+            "accuracy_fraction": "50/50"
+          },
+          "v4_dev_legit_property_tax_annual_assessment": {
+            "count": 50,
+            "ground_truth_label": "legitimate",
+            "accuracy": 1.0,
+            "accuracy_fraction": "50/50"
+          },
+          "v4_dev_legit_rto_smartcard_dispatch": {
+            "count": 50,
+            "ground_truth_label": "legitimate",
+            "accuracy": 1.0,
+            "accuracy_fraction": "50/50"
+          },
+          "v4_dev_phish_customs_fedex_contraband_threat": {
+            "count": 50,
+            "ground_truth_label": "phishing",
+            "accuracy": 1.0,
+            "accuracy_fraction": "50/50"
+          },
+          "v4_dev_phish_highcourt_contempt_fine_scam": {
+            "count": 50,
+            "ground_truth_label": "phishing",
+            "accuracy": 1.0,
+            "accuracy_fraction": "50/50"
+          }
+        }
+      },
+      "weights_sha256": "9c66012e2fdc548ab1df55b76daefba238d459fb36072e8593bbd0dd5085ed71",
+      "metadata_sha256": "04cdef00165d4244c0616c63d3f51d4ab95a6ba86256b30de12bceaf8e6ab24a",
+      "manifest_sha256": "7ed1a3d31ec0c2a1ab5d253f244fed328931384b0bf78278fd82236796c6e0ee",
+      "report_sha256": "4c8ee14cf7803d88007d54978945a8598c4e435b295e43e6b9d5b93c68c8c607"
+    }
+  ],
+  "selection_policy_result": {
+    "status": "CANDIDATE_SELECTED",
+    "selected_candidate_id": "candidate_v4_seed42",
+    "selected_seed": 42,
+    "selection_rationale": "Candidate 'candidate_v4_seed42' achieved highest development Macro-F1 (1.0000) with legitimate false alarm rate 0.0000 <= 0.15, advisory false alarm rate 0.0000 <= 0.05, and phishing false negative rate 0.0000 <= 0.05.",
+    "ranking_order": [
+      "candidate_v4_seed42",
+      "candidate_v4_seed202",
+      "candidate_v4_seed101"
+    ],
+    "candidate_evaluations": [
+      {
+        "seed": 42,
+        "candidate_id": "candidate_v4_seed42",
+        "dev_macro_f1": 1.0,
+        "macro_f1_delta_vs_baseline": 0.3502,
+        "legitimate_fp_rate": 0.0,
+        "protective_advisory_fp_rate": 0.0,
+        "phishing_fn_rate": 0.0,
+        "passes_macro_f1_gate": true,
+        "passes_macro_f1_drop_gate": true,
+        "passes_legit_fp_gate": true,
+        "passes_advisory_fp_gate": true,
+        "passes_phish_fn_gate": true,
+        "overall_eligible": true,
+        "failing_gates": []
+      },
+      {
+        "seed": 101,
+        "candidate_id": "candidate_v4_seed101",
+        "dev_macro_f1": 0.9967,
+        "macro_f1_delta_vs_baseline": 0.3469,
+        "legitimate_fp_rate": 0.0,
+        "protective_advisory_fp_rate": 0.0,
+        "phishing_fn_rate": 0.01,
+        "passes_macro_f1_gate": true,
+        "passes_macro_f1_drop_gate": true,
+        "passes_legit_fp_gate": true,
+        "passes_advisory_fp_gate": true,
+        "passes_phish_fn_gate": true,
+        "overall_eligible": true,
+        "failing_gates": []
+      },
+      {
+        "seed": 202,
+        "candidate_id": "candidate_v4_seed202",
+        "dev_macro_f1": 1.0,
+        "macro_f1_delta_vs_baseline": 0.3502,
+        "legitimate_fp_rate": 0.0,
+        "protective_advisory_fp_rate": 0.0,
+        "phishing_fn_rate": 0.0,
+        "passes_macro_f1_gate": true,
+        "passes_macro_f1_drop_gate": true,
+        "passes_legit_fp_gate": true,
+        "passes_advisory_fp_gate": true,
+        "passes_phish_fn_gate": true,
+        "overall_eligible": true,
+        "failing_gates": []
+      }
+    ]
+  },
+  "governance_status": {
+    "model_registry_modified": false,
+    "active_model_config_modified": false,
+    "production_score_delta": 0,
+    "qualification_exposed": false
+  }
+}

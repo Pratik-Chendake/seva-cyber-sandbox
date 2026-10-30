@@ -41,6 +41,12 @@ from src.case_manager import (
     create_url_case,
     generate_evidence_report,
 )
+from src.ui_theme import (
+    inject_custom_theme,
+    render_bento_overview,
+    render_editorial_header,
+    render_threat_banner,
+)
 try:
     from evaluation.evaluate_phishing import get_cached_evaluation_report
 except Exception:
@@ -80,28 +86,45 @@ def render_risk_assessment_panel(
 ) -> None:
     """Renders the unified risk level, score, bilingual summaries, evidence, next steps, and audio alert."""
     color = scored.get("badge_color", "gray")
-    icon = {"red": "🚨", "orange": "⚠️", "green": "ℹ️"}.get(color, "🔎")
+    analysis_type = scored.get("analysis_type", "Security Assessment")
+    score_val = scored.get("score", 0)
+    risk_level_str = scored.get("risk_level", "Unknown")
 
     st.markdown("---")
-    st.subheader(f"{icon} {scored.get('analysis_type', 'Security Assessment')} Result")
+    render_threat_banner(risk_level_str, color, analysis_type, score_val)
 
-    col_status, col_metric = st.columns([2, 1])
-    with col_status:
-        if color == "red":
-            st.error(f"**Assessment Label:** {scored['risk_level']}")
-        elif color == "orange":
-            st.warning(f"**Assessment Label:** {scored['risk_level']}")
-        else:
-            st.info(f"**Assessment Label:** {scored['risk_level']}")
-    with col_metric:
-        st.metric(
-            "Heuristic Risk Index (0–100)",
-            f"{scored['score']} / 100",
-            help="Weighted checklist index of detected risk indicators (not a probability of maliciousness).",
+    # Bilingual Summaries in a Bento 2-column layout
+    col_en, col_mr = st.columns(2)
+    with col_en:
+        st.markdown(
+            f"""
+            <div class="bento-card">
+                <div class="bento-card-header">
+                    <span class="bento-card-label">01 // ENGLISH EXPLANATION</span>
+                    <span class="bento-card-meta">ANALYSIS SUMMARY</span>
+                </div>
+                <div style="font-size:0.92rem; line-height:1.55; color:var(--text-primary);">
+                    {scored['summary_en']}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
-
-    st.markdown(f"**English Explanation:** {scored['summary_en']}")
-    st.markdown(f"**मराठी स्पष्टीकरण (Marathi Explanation):** {scored['summary_mr']}")
+    with col_mr:
+        st.markdown(
+            f"""
+            <div class="bento-card">
+                <div class="bento-card-header">
+                    <span class="bento-card-label">02 // मराठी स्पष्टीकरण (MARATHI)</span>
+                    <span class="bento-card-meta">प्रादेशिक विश्लेषण</span>
+                </div>
+                <div style="font-size:0.92rem; line-height:1.55; color:var(--text-primary);">
+                    {scored['summary_mr']}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     st.markdown("#### 🔍 Matched Evidence & Warning Indicators")
     for ev in scored.get("evidence", []):
@@ -117,12 +140,12 @@ def render_risk_assessment_panel(
                 for inf in scored.get("heuristic_inferences", []):
                     st.markdown(f"- *{inf}*")
 
-    col_en, col_mr = st.columns(2)
-    with col_en:
+    col_steps_en, col_steps_mr = st.columns(2)
+    with col_steps_en:
         st.markdown("#### 🛡️ Suggested Safe Next Steps (English)")
         for idx, step in enumerate(scored.get("safe_next_steps_en", []), start=1):
             st.markdown(f"{idx}. {step}")
-    with col_mr:
+    with col_steps_mr:
         st.markdown("#### 🛡️ सुरक्षित पुढील पावले (Marathi)")
         for idx, step in enumerate(scored.get("safe_next_steps_mr", []), start=1):
             st.markdown(f"{idx}. {step}")
@@ -149,40 +172,66 @@ def render_risk_assessment_panel(
 
 def main() -> None:
     st.set_page_config(
-        page_title="Seva Cyber Sandbox — APK & Vernacular Phishing Detector",
+        page_title="SEVA // CYBER INTEL PLATFORM",
         page_icon="🛡️",
         layout="wide",
+        initial_sidebar_state="expanded",
     )
+
+    inject_custom_theme()
 
     if "case_store" not in st.session_state:
         st.session_state.case_store = SessionCaseStore()
 
-    st.title("🛡️ Seva Cyber Sandbox: Malicious APK & Vernacular Phishing Detector for WhatsApp")
-    st.markdown(
-        "**Seva First Innovation Challenge 2026** | "
-        "**Sub-Theme:** *Responsible AI, Deepfake Detection, Cyber Resilience and Digital Trust*"
-    )
+    case_count = st.session_state.case_store.count()
+    render_editorial_header(session_case_count=case_count)
+    render_bento_overview(case_count=case_count)
 
-    st.info(
-        "**Defensive Sandbox & Simulation Disclosure:** "
-        "This application performs **real static inspection** of Android `.apk` archives and "
-        "**real rule-based + educational ML analysis** of Marathi (Devanagari), Romanized Marathi, Mixed, and English messages. "
-        "**Simulated Workflow:** Pasting messages or uploading files in this web dashboard simulates forwarding content to a WhatsApp helpline bot. "
-        "This sandbox **never** installs APKs, **never** executes code, **never** visits extracted URLs, and **never** claims a file or message is 100% safe."
+    st.markdown(
+        """
+        <div class="bento-card bento-card-elevated" style="border-left: 3px solid var(--accent-lime); margin-top: 1rem; margin-bottom: 1.5rem;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <span class="editorial-brand-badge">OPERATIONAL NOTICE</span>
+                <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-lime); text-transform:uppercase; letter-spacing:0.06em;">
+                    DEFENSIVE SANDBOX & SIMULATION ENVIRONMENT
+                </span>
+            </div>
+            <div style="font-size:0.9rem; line-height:1.5; color:var(--text-primary);">
+                This platform conducts <strong>real static inspection</strong> of Android <code>.apk</code> packages and 
+                <strong>real rule-based + diagnostic ML analysis</strong> of regional vernacular messages in Marathi (Devanagari), Romanized Marathi, Mixed, and English.
+                <br>
+                <span style="color:var(--text-secondary); font-size:0.82rem; font-family:var(--font-mono);">
+                    [SAFETY BOUNDARIES] 100% Local Execution • Zero Dynamic Execution • Zero External Network Requests • Never Claims 100% Invulnerability
+                </span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
     with st.sidebar:
-        st.header("⚙️ Sandbox Settings")
+        st.markdown(
+            """
+            <div style="padding-bottom:12px; border-bottom:1px solid var(--border-color); margin-bottom:14px;">
+                <span class="editorial-brand-badge">SEVA // CONTROL</span>
+                <div style="font-family:var(--font-heading); font-size:1.1rem; font-weight:700; color:var(--text-primary); margin-top:4px;">
+                    SANDBOX TELEMETRY
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown("<div class='bento-card-label'>00 // CONTROLS</div>", unsafe_allow_html=True)
         enable_audio = st.checkbox("Enable Audio Alert & TTS Controls", value=True)
         show_ml_panel = st.checkbox(
             "Show Experimental Local ML Baseline Comparison", value=True
         )
 
-        if st.button("🔍 Check Installed Windows TTS Voices"):
+        if st.button("🔍 Check Windows TTS Voices", key="sidebar_tts_btn"):
             v_info = inspect_installed_tts_voices()
             if v_info["tts_available"]:
                 st.success(f"Detected {len(v_info['voices'])} offline system voice(s).")
-                st.write("Voices:", v_info["voices"])
+                st.code("\n".join(v_info["voices"]))
                 if not v_info["has_marathi_or_hindi_voice"]:
                     st.caption(
                         "Note: No native offline Marathi voice pack detected on this PC; "
@@ -194,23 +243,23 @@ def main() -> None:
                 )
 
         st.markdown("---")
-        st.markdown("### 🔒 Privacy & Hosting Disclosure")
+        st.markdown("<div class='bento-card-label'>00 // PRIVACY & BOUNDARIES</div>", unsafe_allow_html=True)
         st.markdown(
-            "- **When Running Locally (`localhost:8501`):** All files and messages are processed strictly in your laptop's RAM and never leave your machine.\n"
-            "- **When Using a Public Cloud Demo URL:** Uploaded files travel over HTTPS to the cloud application server's memory for analysis. **Never upload private personal chats, real banking documents, or confidential files to a public demo server.**\n"
-            "- **No Permanent Storage:** Neither local nor cloud mode writes uploaded APKs or pasted messages to a database.\n"
-            "- **Emergency Helpline:** Report real financial cyber fraud immediately to **1930** or `https://cybercrime.gov.in`."
+            "- **`[LOCAL HOST]`**: All files and messages are processed strictly in your laptop's RAM and never leave your machine.\n"
+            "- **`[PUBLIC CLOUD DEMO]`**: Never upload private personal chats, real banking documents, or confidential files to a public demo server.\n"
+            "- **`[AIR-GAPPED]`**: Neither local nor cloud mode writes uploaded APKs or pasted messages to a remote database.\n"
+            "- **`[HELPLINE]`**: Report real financial cyber fraud immediately to **1930** or `https://cybercrime.gov.in`."
         )
 
     tab_phishing, tab_apk, tab_url, tab_scheme, tab_cases, tab_eval, tab_review = st.tabs(
         [
-            "💬 1. Marathi & Mixed-Language Phishing Detector",
-            "📦 2. Android .APK Static Security Analyzer",
-            "🌐 3. Safe Suspicious URL Analyzer",
-            "🏛️ 4. Maharashtra Scheme & Announcement Verifier",
-            "📋 5. Threat Case Dashboard & Evidence Export",
-            "📊 6. Optional ML Baseline & Responsible AI Disclosures",
-            "🛡️ 7. Human Review Desk & Model Registry",
+            "01 // MESSAGE INTEL",
+            "02 // APK INSPECTION",
+            "03 // URL RADAR",
+            "04 // SCHEME VERIFIER",
+            "05 // THREAT CASES",
+            "06 // EVALUATION & AI",
+            "07 // OPERATOR DESK",
         ]
     )
 
@@ -218,7 +267,8 @@ def main() -> None:
     # TAB 1: VERNACULAR PHISHING DETECTOR
     # =========================================================================
     with tab_phishing:
-        st.subheader("💬 WhatsApp Vernacular Phishing Detector (Marathi, Romanized Marathi, Mixed & English)")
+        st.markdown("<div class='bento-card-label'>01 // MESSAGE INTELLIGENCE ENGINE</div>", unsafe_allow_html=True)
+        st.subheader("WhatsApp Vernacular Phishing Detector (Marathi, Romanized, Mixed & English)")
         st.caption(
             "Simulates a citizen forwarding a suspicious WhatsApp message for instant indicator inspection."
         )
@@ -264,7 +314,7 @@ def main() -> None:
                 st.warning("Please enter or select a non-empty message to analyze.")
             else:
                 scored_msg = score_message_analysis(msg_res)
-                st.markdown(f"**Detected Script Format:** `{msg_res['script_detected']}`")
+                st.markdown(f"<span class='tech-pill tech-pill-lime'>SCRIPT: {msg_res['script_detected']}</span>", unsafe_allow_html=True)
                 if ground_truth:
                     st.caption(f"Sample Dataset Ground-Truth Category: **{ground_truth.upper()}**")
 
@@ -436,7 +486,8 @@ def main() -> None:
     # TAB 2: APK STATIC SECURITY ANALYZER
     # =========================================================================
     with tab_apk:
-        st.subheader("📦 Safe Android .APK Static Security Analyzer")
+        st.markdown("<div class='bento-card-label'>02 // APK STATIC SECURITY ANALYZER</div>", unsafe_allow_html=True)
+        st.subheader("Safe Android .APK Static Security Analyzer")
         st.caption(
             f"Inspects `.apk` archives up to {MAX_APK_UPLOAD_BYTES // (1024 * 1024)} MB in memory without installing or executing code."
         )
@@ -557,7 +608,8 @@ def main() -> None:
     # TAB 3: SAFE SUSPICIOUS URL & DOMAIN ANALYZER
     # =========================================================================
     with tab_url:
-        st.subheader("🌐 Safe Suspicious URL & Domain Analyzer")
+        st.markdown("<div class='bento-card-label'>03 // SAFE SUSPICIOUS URL & DOMAIN ANALYZER</div>", unsafe_allow_html=True)
+        st.subheader("Safe Suspicious URL & Domain Analyzer")
         st.caption(
             "Defensively inspects suspicious web links, brand lookalikes, URL shorteners, punycode homoglyphs, "
             "and IP addresses 100% offline without ever opening or contacting the target server."
@@ -615,22 +667,7 @@ def main() -> None:
                 icon = {"red": "🚨", "orange": "⚠️", "green": "ℹ️"}.get(color, "🔎")
 
                 st.markdown("---")
-                st.subheader(f"{icon} Link Security Assessment Result")
-
-                col_u_stat, col_u_metric = st.columns([2, 1])
-                with col_u_stat:
-                    if color == "red":
-                        st.error(f"**Assessment Label:** {url_eval['risk_level']}")
-                    elif color == "orange":
-                        st.warning(f"**Assessment Label:** {url_eval['risk_level']}")
-                    else:
-                        st.info(f"**Assessment Label:** {url_eval['risk_level']}")
-                with col_u_metric:
-                    st.metric(
-                        "Heuristic URL Risk Index (0–100)",
-                        f"{url_eval['score']} / 100",
-                        help="Transparent score based on domain lookalikes, TLD risk, encoding, and protocol security.",
-                    )
+                render_threat_banner(url_eval["risk_level"], color, "Link Security Assessment", url_eval["score"])
 
                 # Urgent Citizen Safeguard Banner
                 if color in ("red", "orange"):
@@ -640,30 +677,59 @@ def main() -> None:
                         "Legitimate banks, government portals, and MSEDCL never ask you to enter a UPI PIN to receive money."
                     )
 
-                st.markdown(f"**English Explanation:** {url_eval['summary_en']}")
-                st.markdown(f"**मराठी स्पष्टीकरण (Marathi Explanation):** {url_eval['summary_mr']}")
+                col_en, col_mr = st.columns(2)
+                with col_en:
+                    st.markdown(
+                        f"""
+                        <div class="bento-card">
+                            <div class="bento-card-header">
+                                <span class="bento-card-label">01 // ENGLISH EXPLANATION</span>
+                                <span class="bento-card-meta">LINK SUMMARY</span>
+                            </div>
+                            <div style="font-size:0.92rem; line-height:1.55; color:var(--text-primary);">
+                                {url_eval['summary_en']}
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                with col_mr:
+                    st.markdown(
+                        f"""
+                        <div class="bento-card">
+                            <div class="bento-card-header">
+                                <span class="bento-card-label">02 // मराठी स्पष्टीकरण (MARATHI)</span>
+                                <span class="bento-card-meta">प्रादेशिक विश्लेषण</span>
+                            </div>
+                            <div style="font-size:0.92rem; line-height:1.55; color:var(--text-primary);">
+                                {url_eval['summary_mr']}
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
 
                 st.markdown("#### 🔍 Matched Evidence & Threat Indicators")
                 for ev in url_eval["evidence"]:
                     st.markdown(f"- {ev}")
 
-                # Observable Characteristics Table
+                # Observable Characteristics Bento Grid
                 st.markdown("#### 🗂️ Observable URL Characteristics (Passive Extraction)")
                 obs = url_eval["observable_characteristics"]
                 c_o1, c_o2, c_o3 = st.columns(3)
-                c_o1.write(f"**Protocol / Scheme:** `{url_eval['scheme'].upper() or 'None'}`")
-                c_o2.write(f"**Target Hostname:** `{url_eval['hostname'] or 'N/A'}`")
-                c_o3.write(f"**Port:** `{obs.get('port') or 'Default (80/443)'}`")
+                c_o1.metric("01 // PROTOCOL", url_eval['scheme'].upper() or 'NONE')
+                c_o2.metric("02 // HOSTNAME", url_eval['hostname'] or 'N/A')
+                c_o3.metric("03 // PORT", str(obs.get('port') or 'DEFAULT (80/443)'))
 
                 c_o4, c_o5, c_o6 = st.columns(3)
-                c_o4.write(f"**Official Allowlisted?:** `{'Yes (.gov.in / allowlisted)' if obs.get('is_official_allowlisted') else 'NO'}`")
-                c_o5.write(f"**URL Shortener?:** `{'Yes (' + str(obs.get('is_shortener')) + ')' if obs.get('is_shortener') else 'No'}`")
-                c_o6.write(f"**Brand Lookalike?:** `{'Yes (' + str(obs.get('lookalike_brand')) + ')' if obs.get('is_lookalike') else 'No'}`")
+                c_o4.metric("04 // ALLOWLISTED (.GOV.IN)", "YES (ALLOWLISTED)" if obs.get('is_official_allowlisted') else "NO (UNOFFICIAL)")
+                c_o5.metric("05 // URL SHORTENER", f"YES ({obs.get('is_shortener')})" if obs.get('is_shortener') else "NO")
+                c_o6.metric("06 // BRAND LOOKALIKE", f"YES ({obs.get('lookalike_brand')})" if obs.get('is_lookalike') else "NO")
 
                 c_o7, c_o8, c_o9 = st.columns(3)
-                c_o7.write(f"**IP Address Target?:** `{obs.get('ip_type') if obs.get('is_ip_address') else 'No'}`")
-                c_o8.write(f"**Punycode / Homoglyph?:** `{'Yes' if obs.get('is_punycode_or_homoglyph') else 'No'}`")
-                c_o9.write(f"**Direct APK Target?:** `{'Yes (.apk)' if obs.get('has_apk_download') else 'No'}`")
+                c_o7.metric("07 // IP HOST TARGET", str(obs.get('ip_type')) if obs.get('is_ip_address') else "NO")
+                c_o8.metric("08 // PUNYCODE / HOMOGLYPH", "YES" if obs.get('is_punycode_or_homoglyph') else "NO")
+                c_o9.metric("09 // DIRECT APK TARGET", "YES (.APK)" if obs.get('has_apk_download') else "NO")
 
                 if enable_audio:
                     st.markdown("#### 🔊 Audio Alert Chime")
@@ -687,7 +753,8 @@ def main() -> None:
     # TAB 4: MAHARASHTRA GOVERNMENT SCHEME & ANNOUNCEMENT VERIFIER
     # =========================================================================
     with tab_scheme:
-        st.subheader("🏛️ Maharashtra Government Scheme & Announcement Verifier")
+        st.markdown("<div class='bento-card-label'>04 // STATE SCHEME ANNOUNCEMENT VERIFIER</div>", unsafe_allow_html=True)
+        st.subheader("Maharashtra Government Scheme & Announcement Verifier")
         st.caption(
             "Verifies claims and forwarded WhatsApp promises against official Government Resolutions (GRs) "
             "and allowlisted state portals (.gov.in, .maharashtra.gov.in, .mahadiscom.in)."
@@ -779,9 +846,35 @@ def main() -> None:
 
                 col_exp_en, col_exp_mr = st.columns(2)
                 with col_exp_en:
-                    st.markdown(f"**English Summary:**\n{verification_res['summary_en']}")
+                    st.markdown(
+                        f"""
+                        <div class="bento-card">
+                            <div class="bento-card-header">
+                                <span class="bento-card-label">01 // ENGLISH VERIFICATION SUMMARY</span>
+                                <span class="bento-card-meta">OFFICIAL AUDIT</span>
+                            </div>
+                            <div style="font-size:0.92rem; line-height:1.55; color:var(--text-primary);">
+                                {verification_res['summary_en']}
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
                 with col_exp_mr:
-                    st.markdown(f"**मराठी स्पष्टीकरण (Marathi Summary):**\n{verification_res['summary_mr']}")
+                    st.markdown(
+                        f"""
+                        <div class="bento-card">
+                            <div class="bento-card-header">
+                                <span class="bento-card-label">02 // मराठी स्पष्टीकरण (MARATHI)</span>
+                                <span class="bento-card-meta">शासकीय पडताळणी</span>
+                            </div>
+                            <div style="font-size:0.92rem; line-height:1.55; color:var(--text-primary);">
+                                {verification_res['summary_mr']}
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
 
                 st.markdown("#### 🔍 Evidence & Discrepancy Breakdown")
                 c_supp, c_conf = st.columns(2)
@@ -854,7 +947,8 @@ def main() -> None:
     # TAB 5: THREAT CASE DASHBOARD & INCIDENT EVIDENCE EXPORT
     # =========================================================================
     with tab_cases:
-        st.subheader("📋 Threat Case Dashboard & Incident Evidence Export")
+        st.markdown("<div class='bento-card-label'>05 // THREAT CASE DASHBOARD & EVIDENCE EXPORT</div>", unsafe_allow_html=True)
+        st.subheader("Threat Case Dashboard & Incident Evidence Export")
         st.caption(
             "Session-scoped incident management desk for citizen facilitation counters and cyber-awareness volunteers. "
             "Cases are securely persisted in SQLite with privacy-preserving redaction and automatic retention."
@@ -863,17 +957,17 @@ def main() -> None:
         store: SessionCaseStore = st.session_state.case_store
         cases_list = store.list_cases()
 
-        # Summary Metric Cards
+        # Summary Metric Cards (Bento Grid)
         col_m1, col_m2, col_m3, col_m4 = st.columns(4)
         total_cnt = store.count()
         red_cnt = sum(1 for c in cases_list if c.get("badge_color") == "red" or c.get("risk_score", 0) >= 50)
         orange_cnt = sum(1 for c in cases_list if c.get("badge_color") == "orange" or (20 <= c.get("risk_score", 0) < 50))
         green_cnt = sum(1 for c in cases_list if c.get("badge_color") == "green" or c.get("risk_score", 0) < 20)
 
-        col_m1.metric("Total Cases (This Session)", f"{total_cnt}")
-        col_m2.metric("High-Risk Cases (Red)", f"{red_cnt}")
-        col_m3.metric("Notice / Review Cases (Orange)", f"{orange_cnt}")
-        col_m4.metric("Cleared / Supported (Green)", f"{green_cnt}")
+        col_m1.metric("01 // TOTAL CASES", f"{total_cnt}")
+        col_m2.metric("02 // HIGH-RISK (RED)", f"{red_cnt}")
+        col_m3.metric("03 // WARNING (ORANGE)", f"{orange_cnt}")
+        col_m4.metric("04 // CLEARED (GREEN)", f"{green_cnt}")
 
         st.markdown("---")
         st.markdown("#### 🗂️ Active Session Threat Cases")
@@ -967,7 +1061,8 @@ def main() -> None:
     # TAB 6: PHISHING EVALUATION, DATASET QUALITY & RESPONSIBLE AI
     # =========================================================================
     with tab_eval:
-        st.subheader("📊 Phishing Detection Evaluation, Dataset Quality & Responsible AI")
+        st.markdown("<div class='bento-card-label'>06 // EVALUATION BENCHMARK & RESPONSIBLE AI</div>", unsafe_allow_html=True)
+        st.subheader("Phishing Detection Evaluation, Dataset Quality & Responsible AI")
         st.caption(
             "Rigorous, reproducible evaluation metrics comparing the semantic rule engine with the experimental ML baseline "
             "on a group-aware, leak-free partition across 39 documented records."
@@ -990,11 +1085,11 @@ def main() -> None:
                 st.warning(f"⚠️ **Small-Sample Quality Notice:** {eval_report['sample_size_warning']}")
 
             col_d1, col_d2, col_d3, col_d4 = st.columns(4)
-            col_d1.metric("Evaluation Dataset", f"{meta.get('total_records', 0)} Records")
-            col_d2.metric("Unique Campaigns", f"{meta.get('unique_campaigns_count', 0)} Groups")
+            col_d1.metric("01 // BENCHMARK CORPUS", f"{meta.get('total_records', 0)} RECORDS")
+            col_d2.metric("02 // UNIQUE CAMPAIGNS", f"{meta.get('unique_campaigns_count', 0)} GROUPS")
             labels_d = meta.get("label_distribution", {})
-            col_d3.metric("Phishing / Legitimate", f"{labels_d.get('phishing', 0)} / {labels_d.get('legitimate', 0)}")
-            col_d4.metric("Advisories / Ambiguous", f"{labels_d.get('protective_advisory', 0)} / {labels_d.get('ambiguous_needs_review', 0)}")
+            col_d3.metric("03 // PHISH / LEGIT", f"{labels_d.get('phishing', 0)} / {labels_d.get('legitimate', 0)}")
+            col_d4.metric("04 // ADVISORY / AMBIG", f"{labels_d.get('protective_advisory', 0)} / {labels_d.get('ambiguous_needs_review', 0)}")
 
             with st.expander("📁 Dataset Provenance & Taxonomy Breakdown", expanded=False):
                 col_p1, col_p2 = st.columns(2)
@@ -1024,6 +1119,7 @@ def main() -> None:
 
             c1, c2, c3 = st.columns(3)
             with c1:
+                st.markdown("<div class='bento-card-label'>01 // DETERMINISTIC RULES</div>", unsafe_allow_html=True)
                 st.markdown("##### 🛡️ Rule-Based Detector")
                 st.markdown(f"- **Accuracy:** `{rb_m.get('accuracy_pct', 0)}%` ({rb_m.get('true_positives', 0) + rb_m.get('true_negatives', 0)}/{rb_m.get('total_samples', 0)})")
                 st.markdown(f"- **Precision:** `{rb_m.get('precision_pct', 0)}%`")
@@ -1034,6 +1130,7 @@ def main() -> None:
                 st.markdown(f"- **Protective Negation Rate:** `{adv_rb.get('safeguard_success_pct', 0)}%` ({adv_rb.get('correctly_cleared_count', 0)}/{adv_rb.get('total_advisories', 0)})")
 
             with c2:
+                st.markdown("<div class='bento-card-label'>02 // EXPERIMENTAL ML</div>", unsafe_allow_html=True)
                 st.markdown("##### 🧪 Experimental ML Baseline")
                 if ml_eval.get("is_available"):
                     st.markdown(f"- **Holdout Accuracy:** `{ml_m.get('accuracy_pct', 0)}%` ({ml_m.get('true_positives', 0) + ml_m.get('true_negatives', 0)}/{ml_m.get('total_samples', 0)})")
@@ -1047,6 +1144,7 @@ def main() -> None:
                     st.warning(f"ML baseline unavailable: {ml_eval.get('error')}")
 
             with c3:
+                st.markdown("<div class='bento-card-label'>03 // MODEL CONCORDANCE</div>", unsafe_allow_html=True)
                 st.markdown("##### 🤝 Agreement & Concordance")
                 if comp.get("comparison_available"):
                     st.markdown(f"- **Samples Compared:** `{comp.get('test_samples_compared', 0)}`")
@@ -1097,7 +1195,8 @@ def main() -> None:
     # TAB 7: HUMAN REVIEW DESK & MODEL VERSION REGISTRY
     # =========================================================================
     with tab_review:
-        st.subheader("🛡️ Human Review Desk & Model Version Registry")
+        st.markdown("<div class='bento-card-label'>07 // OPERATOR ADJUDICATION & MODEL REGISTRY</div>", unsafe_allow_html=True)
+        st.subheader("Human Review Desk & Model Version Registry")
         st.caption(
             "Local operator adjudication desk for ambiguous detections, accompanied by the "
             "cryptographically verified neural model version registry and atomic rollback controls."
@@ -1115,9 +1214,9 @@ def main() -> None:
 
         subtab_desk, subtab_registry, subtab_discovery = st.tabs(
             [
-                "📝 Section A: Human Review Desk",
-                "⚙️ Section B: Model Version Registry & Rollback",
-                "🔬 Section C: Fraud Pattern Discovery",
+                "07A // HUMAN REVIEW DESK",
+                "07B // MODEL REGISTRY & ROLLBACK",
+                "07C // FRAUD PATTERN DISCOVERY",
             ]
         )
 
@@ -1129,10 +1228,10 @@ def main() -> None:
             stats = store.get_review_stats()
 
             col_r1, col_r2, col_r3, col_r4 = st.columns(4)
-            col_r1.metric("Pending Reviews", stats.get("pending", 0))
-            col_r2.metric("Under Review", stats.get("under_review", 0))
-            col_r3.metric("Completed Reviews", stats.get("completed", 0))
-            col_r4.metric("Inconclusive", stats.get("inconclusive", 0))
+            col_r1.metric("01 // PENDING", stats.get("pending", 0))
+            col_r2.metric("02 // UNDER REVIEW", stats.get("under_review", 0))
+            col_r3.metric("03 // COMPLETED", stats.get("completed", 0))
+            col_r4.metric("04 // INCONCLUSIVE", stats.get("inconclusive", 0))
 
             st.markdown("---")
             st.markdown("#### 📥 Review Queue & Case Adjudication")

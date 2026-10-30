@@ -1,0 +1,373 @@
+{
+  "report_schema_version": "1.0.0",
+  "candidate_id": "candidate_v4_seed101",
+  "random_seed": 101,
+  "lifecycle_state": "experimental",
+  "created_at_utc": "2026-10-30T15:29:18Z",
+  "architecture": {
+    "model_type": "Multi-Layer Perceptron (MLP)",
+    "input_dim": 1024,
+    "hidden_dim1": 64,
+    "hidden_dim2": 32,
+    "num_classes": 3,
+    "activation": "LeakyReLU (alpha=0.01)",
+    "initialization": "He normal (hidden layers), Xavier uniform (output layer)"
+  },
+  "hyperparameters": {
+    "max_epochs": 50,
+    "early_stopping_patience": 10,
+    "batch_size": 32,
+    "initial_learning_rate": 0.005,
+    "weight_decay": 0.0005,
+    "dropout_rate": 0.2,
+    "lr_schedule_milestones": {
+      "15": 0.0025,
+      "30": 0.001
+    }
+  },
+  "training_run_summary": {
+    "best_epoch": 3,
+    "total_epochs_trained": 13,
+    "stopped_early": true,
+    "best_dev_macro_f1": 0.9967,
+    "best_dev_accuracy": 0.9967
+  },
+  "dataset_provenance": {
+    "training_corpus": "data/generated/v4/synthetic_training_corpus.jsonl",
+    "training_examples": 1500,
+    "dev_corpus": "data/generated/v4/synthetic_dev_corpus.jsonl",
+    "dev_examples": 300,
+    "qualification_partition": "SEALED",
+    "feature_schema_version": "1.1.0",
+    "preprocessing_version": "neural-preproc-v1.1.0"
+  },
+  "dev_evaluation_metrics": {
+    "sample_count": 300,
+    "accuracy": 0.9967,
+    "accuracy_ci_95": [
+      0.9814,
+      0.9994
+    ],
+    "accuracy_fraction": "299/300",
+    "total_incorrect": 1,
+    "total_incorrect_fraction": "1/300",
+    "macro_f1": 0.9967,
+    "macro_precision": 0.9967,
+    "macro_recall": 0.9967,
+    "balanced_accuracy": 0.9967,
+    "weighted_f1": 0.9967,
+    "confusion_matrix": [
+      [
+        99,
+        1,
+        0
+      ],
+      [
+        0,
+        100,
+        0
+      ],
+      [
+        0,
+        0,
+        100
+      ]
+    ],
+    "per_class": {
+      "phishing": {
+        "class_index": 0,
+        "true_positives": 99,
+        "false_positives": 0,
+        "false_negatives": 1,
+        "support": 100,
+        "precision": 1.0,
+        "precision_ci_95": [
+          0.9626,
+          1.0
+        ],
+        "precision_fraction": "99/99",
+        "recall": 0.99,
+        "recall_ci_95": [
+          0.9455,
+          0.9982
+        ],
+        "recall_fraction": "99/100",
+        "f1": 0.995
+      },
+      "legitimate": {
+        "class_index": 1,
+        "true_positives": 100,
+        "false_positives": 1,
+        "false_negatives": 0,
+        "support": 100,
+        "precision": 0.9901,
+        "precision_ci_95": [
+          0.946,
+          0.9983
+        ],
+        "precision_fraction": "100/101",
+        "recall": 1.0,
+        "recall_ci_95": [
+          0.963,
+          1.0
+        ],
+        "recall_fraction": "100/100",
+        "f1": 0.995
+      },
+      "protective_advisory": {
+        "class_index": 2,
+        "true_positives": 100,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "support": 100,
+        "precision": 1.0,
+        "precision_ci_95": [
+          0.963,
+          1.0
+        ],
+        "precision_fraction": "100/100",
+        "recall": 1.0,
+        "recall_ci_95": [
+          0.963,
+          1.0
+        ],
+        "recall_fraction": "100/100",
+        "f1": 1.0
+      }
+    },
+    "safety_metrics": {
+      "legitimate_fp_rate": 0.0,
+      "legitimate_fp_ci_95": [
+        0.0,
+        0.037
+      ],
+      "legitimate_fp_fraction": "0/100",
+      "protective_advisory_fp_rate": 0.0,
+      "protective_advisory_fp_ci_95": [
+        0.0,
+        0.037
+      ],
+      "protective_advisory_fp_fraction": "0/100",
+      "phishing_fn_rate": 0.01,
+      "phishing_fn_ci_95": [
+        0.0018,
+        0.0545
+      ],
+      "phishing_fn_fraction": "1/100",
+      "prediction_distribution": {
+        "phishing": 99,
+        "legitimate": 101,
+        "protective_advisory": 100
+      }
+    }
+  },
+  "dev_subgroup_metrics": {
+    "by_language": {
+      "mr": {
+        "count": 78,
+        "accuracy": 0.9872,
+        "accuracy_fraction": "77/78"
+      },
+      "mr-Latn": {
+        "count": 78,
+        "accuracy": 1.0,
+        "accuracy_fraction": "78/78"
+      },
+      "en": {
+        "count": 72,
+        "accuracy": 1.0,
+        "accuracy_fraction": "72/72"
+      },
+      "mr-en": {
+        "count": 72,
+        "accuracy": 1.0,
+        "accuracy_fraction": "72/72"
+      }
+    },
+    "by_url_presence": {
+      "True": {
+        "count": 150,
+        "accuracy": 1.0,
+        "accuracy_fraction": "150/150"
+      },
+      "False": {
+        "count": 150,
+        "accuracy": 0.9933,
+        "accuracy_fraction": "149/150"
+      }
+    },
+    "by_campaign_family": {
+      "v4_dev_advisory_dot_sim_termination_alert": {
+        "count": 50,
+        "ground_truth_label": "protective_advisory",
+        "accuracy": 1.0,
+        "accuracy_fraction": "50/50"
+      },
+      "v4_dev_advisory_ed_money_laundering_scam": {
+        "count": 50,
+        "ground_truth_label": "protective_advisory",
+        "accuracy": 1.0,
+        "accuracy_fraction": "50/50"
+      },
+      "v4_dev_legit_property_tax_annual_assessment": {
+        "count": 50,
+        "ground_truth_label": "legitimate",
+        "accuracy": 1.0,
+        "accuracy_fraction": "50/50"
+      },
+      "v4_dev_legit_rto_smartcard_dispatch": {
+        "count": 50,
+        "ground_truth_label": "legitimate",
+        "accuracy": 1.0,
+        "accuracy_fraction": "50/50"
+      },
+      "v4_dev_phish_customs_fedex_contraband_threat": {
+        "count": 50,
+        "ground_truth_label": "phishing",
+        "accuracy": 1.0,
+        "accuracy_fraction": "50/50"
+      },
+      "v4_dev_phish_highcourt_contempt_fine_scam": {
+        "count": 50,
+        "ground_truth_label": "phishing",
+        "accuracy": 0.98,
+        "accuracy_fraction": "49/50"
+      }
+    }
+  },
+  "epoch_history": [
+    {
+      "epoch": 1,
+      "lr": 0.005,
+      "train_loss": 0.4412,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1165,
+      "dev_accuracy": 0.99,
+      "dev_macro_f1": 0.99
+    },
+    {
+      "epoch": 2,
+      "lr": 0.005,
+      "train_loss": 0.0878,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1005,
+      "dev_accuracy": 0.9933,
+      "dev_macro_f1": 0.9933
+    },
+    {
+      "epoch": 3,
+      "lr": 0.005,
+      "train_loss": 0.0672,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.0967,
+      "dev_accuracy": 0.9967,
+      "dev_macro_f1": 0.9967
+    },
+    {
+      "epoch": 4,
+      "lr": 0.005,
+      "train_loss": 0.0556,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1131,
+      "dev_accuracy": 0.9833,
+      "dev_macro_f1": 0.9833
+    },
+    {
+      "epoch": 5,
+      "lr": 0.005,
+      "train_loss": 0.0485,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1095,
+      "dev_accuracy": 0.9833,
+      "dev_macro_f1": 0.9833
+    },
+    {
+      "epoch": 6,
+      "lr": 0.005,
+      "train_loss": 0.0402,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.0715,
+      "dev_accuracy": 0.9967,
+      "dev_macro_f1": 0.9967
+    },
+    {
+      "epoch": 7,
+      "lr": 0.005,
+      "train_loss": 0.036,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.069,
+      "dev_accuracy": 0.9967,
+      "dev_macro_f1": 0.9967
+    },
+    {
+      "epoch": 8,
+      "lr": 0.005,
+      "train_loss": 0.0354,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.091,
+      "dev_accuracy": 0.9733,
+      "dev_macro_f1": 0.9733
+    },
+    {
+      "epoch": 9,
+      "lr": 0.005,
+      "train_loss": 0.0365,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.0594,
+      "dev_accuracy": 0.9967,
+      "dev_macro_f1": 0.9967
+    },
+    {
+      "epoch": 10,
+      "lr": 0.005,
+      "train_loss": 0.061,
+      "train_accuracy": 0.9993,
+      "dev_loss": 0.2064,
+      "dev_accuracy": 0.9267,
+      "dev_macro_f1": 0.9274
+    },
+    {
+      "epoch": 11,
+      "lr": 0.005,
+      "train_loss": 0.0688,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1595,
+      "dev_accuracy": 0.95,
+      "dev_macro_f1": 0.95
+    },
+    {
+      "epoch": 12,
+      "lr": 0.005,
+      "train_loss": 0.062,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.1685,
+      "dev_accuracy": 0.95,
+      "dev_macro_f1": 0.9507
+    },
+    {
+      "epoch": 13,
+      "lr": 0.005,
+      "train_loss": 0.0686,
+      "train_accuracy": 1.0,
+      "dev_loss": 0.0917,
+      "dev_accuracy": 0.9867,
+      "dev_macro_f1": 0.9867
+    }
+  ],
+  "artifacts": {
+    "model_weights": {
+      "filename": "model_weights.npz",
+      "sha256": "987836c39771ea8bfa687ffd25de53f247fa19e62d4b4a97de8d68957638640e"
+    },
+    "model_metadata": {
+      "filename": "model_metadata.json",
+      "sha256": "99867524b52f60d178e71890d2f671ac4193dcf631971aa8923606f5cfcef6e9"
+    }
+  },
+  "warnings_and_limitations": [
+    "Evaluated strictly on synthetic development partition (300 records).",
+    "Synthetic performance does not establish certified real-world detection accuracy.",
+    "Experimental candidate model. Not authorized for production promotion."
+  ],
+  "status": "SUCCESS"
+}

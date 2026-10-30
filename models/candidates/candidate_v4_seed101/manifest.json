@@ -1,0 +1,31 @@
+{
+  "manifest_schema_version": "1.0.0",
+  "candidate_id": "candidate_v4_seed101",
+  "candidate_version": "4.0.0-seed101",
+  "random_seed": 101,
+  "lifecycle_state": "experimental",
+  "created_at_utc": "2026-10-30T15:29:18Z",
+  "architecture_version": "3-layer-mlp-ngram-v1",
+  "artifacts": {
+    "model_weights": {
+      "filename": "model_weights.npz",
+      "sha256": "987836c39771ea8bfa687ffd25de53f247fa19e62d4b4a97de8d68957638640e"
+    },
+    "model_metadata": {
+      "filename": "model_metadata.json",
+      "sha256": "99867524b52f60d178e71890d2f671ac4193dcf631971aa8923606f5cfcef6e9"
+    },
+    "training_report": {
+      "filename": "candidate_training_report.json",
+      "sha256": "46e01fff1bfa869fcdab9d32df07e9ebe03faa2c62729ab89353c328f17ccee5"
+    }
+  },
+  "provenance_summary": {
+    "training_corpus": "data/generated/v4/synthetic_training_corpus.jsonl",
+    "training_samples": 1500,
+    "dev_corpus": "data/generated/v4/synthetic_dev_corpus.jsonl",
+    "dev_samples": 300,
+    "qualification_partition": "SEALED"
+  },
+  "disclaimer": "EXPERIMENTAL CANDIDATE MODEL ARTIFACT. Not approved for production or shadow deployment. Active registry and runtime configuration are untouched."
+}
