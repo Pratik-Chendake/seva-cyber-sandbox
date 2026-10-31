@@ -132,10 +132,10 @@ def run_migration(pg_url: str, dry_run: bool = False, replicate_data: bool = Tru
                                     risk_score, risk_category, badge_color, indicator_count,
                                     sha256_hash, hash_algorithm, target_identifier, recommended_action,
                                     source_type, dedup_key, observed_evidence_json, heuristic_inferences_json,
-                                    extracted_urls_json, official_sources_json, metadata_json, expires_at, is_deleted
+                                    extracted_urls_json, official_sources_json, metadata_json, expires_at, is_deleted, evidence_id
                                 ) VALUES (
                                     %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                                    %s::jsonb, %s::jsonb, %s::jsonb, %s::jsonb, %s::jsonb, %s, %s
+                                    %s, %s, %s, %s, %s, %s, %s, %s
                                 ) ON CONFLICT (case_id) DO NOTHING;
                                 """,
                                 (
@@ -146,7 +146,7 @@ def run_migration(pg_url: str, dry_run: bool = False, replicate_data: bool = Tru
                                     case["source_type"], case["dedup_key"], case["observed_evidence_json"],
                                     case["heuristic_inferences_json"], case["extracted_urls_json"],
                                     case["official_sources_json"], case["metadata_json"], case["expires_at"],
-                                    case["is_deleted"]
+                                    case["is_deleted"], case["evidence_id"] if "evidence_id" in case.keys() else None
                                 ),
                             )
                     pg_conn.commit()

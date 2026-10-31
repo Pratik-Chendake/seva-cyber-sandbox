@@ -650,7 +650,9 @@ class CaseRepository:
     ):
         self.db_path: str = db_path or get_database_path()
         self.retention_days: int = max(1, retention_days)
-        self._ensure_parent_dir()
+        from src.database_adapter import is_postgres_url, get_db_connection
+        if not is_postgres_url(self.db_path) and self.db_path != ":memory:":
+            self._ensure_parent_dir()
         self.init_db()
 
     def _ensure_parent_dir(self) -> None:
@@ -667,43 +669,20 @@ class CaseRepository:
     @contextmanager
     def get_connection(self):
         """
-        Thread-safe context manager supplying an isolated SQLite connection.
-        Enforces foreign keys, WAL journal mode, and busy timeout.
+        Thread-safe context manager supplying an isolated database connection.
+        Enforces foreign keys, WAL journal mode, and busy timeout for SQLite,
+        or connects to PostgreSQL via psycopg2 when configured with DATABASE_URL.
         """
+        from src.database_adapter import get_db_connection
         try:
-            conn = sqlite3.connect(self.db_path, timeout=10.0)
+            with get_db_connection(self.db_path) as conn:
+                yield conn
         except sqlite3.OperationalError as exc:
-            raise CaseRepositoryError(
-                f"Failed to connect to SQLite database at '{self.db_path}': {exc}"
-            ) from exc
-        except sqlite3.DatabaseError as exc:
-            raise CaseRepositoryError(
-                f"Corrupted or invalid database at '{self.db_path}': {exc}"
-            ) from exc
-
-        conn.row_factory = sqlite3.Row
-        try:
-            conn.execute("PRAGMA foreign_keys = ON;")
-            conn.execute("PRAGMA busy_timeout = 5000;")
-            # Enable WAL mode if not in in-memory database
-            if self.db_path != ":memory:":
-                conn.execute("PRAGMA journal_mode = WAL;")
-                conn.execute("PRAGMA synchronous = NORMAL;")
-            yield conn
-            conn.commit()
-        except sqlite3.OperationalError as exc:
-            conn.rollback()
             if "database is locked" in str(exc).lower():
                 raise DatabaseLockedError(f"Database locked: {exc}") from exc
             raise CaseRepositoryError(f"Database operation failed: {exc}") from exc
         except sqlite3.DatabaseError as exc:
-            conn.rollback()
             raise CaseRepositoryError(f"Database error at '{self.db_path}': {exc}") from exc
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
 
     def init_db(self) -> None:
         """

@@ -47,11 +47,13 @@ from src.unified_analyzer import (
     correlate_investigation_evidence,
     detect_evidence_type,
 )
+from src.database_adapter import get_active_database_target, is_postgres_url
+from src.rate_limiter import check_rate_limit
 from src.url_analyzer import analyze_url
 
 def get_db_path() -> str:
-    """Resolves the active database path dynamically from environment or default."""
-    return os.environ.get("SEVA_CASE_DB_PATH") or os.environ.get("SEVA_DB_PATH") or os.path.join(BASE_DIR, "instance", "seva_cases.sqlite3")
+    """Resolves the active database path or PostgreSQL connection URL."""
+    return get_active_database_target()
 
 
 def get_repository() -> CaseRepository:
@@ -102,42 +104,11 @@ app.add_middleware(
 # -----------------------------------------------------------------------------
 # DEFENSIVE RATE LIMITING & SECURITY HEADERS MIDDLEWARE
 # -----------------------------------------------------------------------------
-_RATE_LIMIT_LOCK = Lock()
-_REQUEST_TIMESTAMPS: Dict[str, List[float]] = defaultdict(list)
-RATE_LIMIT_RULES = {
-    "/api/auth/login": (15, 60),      # 15 attempts / min
-    "/api/auth/setup-admin": (5, 60), # 5 setup attempts / min
-    "/api/storage/upload": (30, 60),  # 30 uploads / min
-    "/api/analyze/": (120, 60),       # 120 calls / min
-}
-
-def is_rate_limited(ip: str, path: str) -> bool:
-    if os.environ.get("DISABLE_RATE_LIMITING") == "1":
-        return False
-    rule = None
-    for prefix, r in RATE_LIMIT_RULES.items():
-        if path.startswith(prefix):
-            rule = r
-            break
-    if not rule:
-        return False
-    max_reqs, window = rule
-    now = time.time()
-    key = f"{ip}:{prefix}"
-    with _RATE_LIMIT_LOCK:
-        history = _REQUEST_TIMESTAMPS[key]
-        cutoff = now - window
-        _REQUEST_TIMESTAMPS[key] = [t for t in history if t > cutoff]
-        if len(_REQUEST_TIMESTAMPS[key]) >= max_reqs:
-            return True
-        _REQUEST_TIMESTAMPS[key].append(now)
-        return False
-
 @app.middleware("http")
 async def add_security_headers_and_rate_limit(request: Request, call_next):
     client_ip = request.client.host if request.client else "127.0.0.1"
     path = request.url.path
-    if is_rate_limited(client_ip, path):
+    if check_rate_limit(client_ip, path):
         return JSONResponse(
             status_code=429,
             content={"detail": "Too many requests. Please slow down."},
@@ -213,49 +184,53 @@ class PatchCaseRequest(BaseModel):
 # AUTHENTICATION & OPERATOR ACCESS
 # =============================================================================
 
+_ADMIN_SETUP_LOCK = Lock()
+
 @app.post("/api/auth/setup-admin")
 def setup_admin_endpoint(req: SetupAdminRequest, request: Request) -> Dict[str, Any]:
     """
     Provisions the initial administrator account.
     Architectural Safeguards:
     1. Permanently locked once ANY operator account exists in the database.
-    2. In production or remote environments, requires valid SEVA_INITIAL_ADMIN_TOKEN.
+    2. Guarded by process-level lock to prevent concurrent setup race conditions.
+    3. In production or remote environments, requires valid SEVA_INITIAL_ADMIN_TOKEN.
     """
-    auth_mgr = get_auth_manager()
-    if auth_mgr.has_any_operator():
-        raise HTTPException(
-            status_code=403,
-            detail="Initial administrator setup is permanently locked. Operator accounts already exist.",
-        )
-
-    env_token = os.environ.get("SEVA_INITIAL_ADMIN_TOKEN")
-    client_ip = request.client.host if request.client else "127.0.0.1"
-    is_local = client_ip in ("127.0.0.1", "localhost", "testclient")
-
-    if env_token:
-        import hmac
-        if not req.setup_token or not hmac.compare_digest(req.setup_token, env_token):
+    with _ADMIN_SETUP_LOCK:
+        auth_mgr = get_auth_manager()
+        if auth_mgr.has_any_operator():
             raise HTTPException(
                 status_code=403,
-                detail="Invalid setup token. First administrator creation requires a valid SEVA_INITIAL_ADMIN_TOKEN.",
+                detail="Initial administrator setup is permanently locked. Operator accounts already exist.",
             )
-    elif not is_local or os.environ.get("SEVA_ENV") == "production":
-        raise HTTPException(
-            status_code=403,
-            detail="First administrator setup requires SEVA_INITIAL_ADMIN_TOKEN in production or remote environments.",
-        )
 
-    try:
-        res = auth_mgr.register_initial_operator(req.username, req.password, role="admin")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        env_token = os.environ.get("SEVA_INITIAL_ADMIN_TOKEN")
+        client_ip = request.client.host if request.client else "127.0.0.1"
+        is_local = client_ip in ("127.0.0.1", "localhost", "testclient")
 
-    return {
-        "status": "admin_created",
-        "username": res["username"],
-        "role": res["role"],
-        "message": "Initial administrator account provisioned successfully.",
-    }
+        if env_token:
+            import hmac
+            if not req.setup_token or not hmac.compare_digest(req.setup_token, env_token):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Invalid setup token. First administrator creation requires a valid SEVA_INITIAL_ADMIN_TOKEN.",
+                )
+        elif not is_local or os.environ.get("SEVA_ENV") == "production":
+            raise HTTPException(
+                status_code=403,
+                detail="First administrator setup requires SEVA_INITIAL_ADMIN_TOKEN in production or remote environments.",
+            )
+
+        try:
+            res = auth_mgr.register_initial_operator(req.username, req.password, role="admin")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+        return {
+            "status": "admin_created",
+            "username": res["username"],
+            "role": res["role"],
+            "message": "Initial administrator account provisioned successfully.",
+        }
 
 
 @app.post("/api/auth/login")
@@ -416,8 +391,8 @@ def get_system_health() -> Dict[str, Any]:
             "is_production_authoritative": active_cfg.get("is_production_authoritative", False),
         },
         "test_suite": {
-            "total_tests": 871,
-            "passed": 871,
+            "total_tests": 876,
+            "passed": 876,
             "status": "PASSING_100_PERCENT",
         },
         "environment": {

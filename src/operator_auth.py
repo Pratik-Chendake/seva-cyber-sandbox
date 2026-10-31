@@ -18,13 +18,17 @@ DESIGN & SECURITY GUARANTEES (SEC-HARDEN-PHASE-6.8.3):
 8. Zero Plaintext Password Retention: Passwords, salts, and session tokens are never logged or stored in plaintext.
 """
 
+from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 import hashlib
 import hmac
 import re
 import secrets
 import sqlite3
+import threading
 from typing import Any, Dict, List, Optional, Tuple
+
+_ADMIN_PROVISIONING_LOCK = threading.Lock()
 
 
 # Cryptographic Configuration (OWASP Password Storage Cheat Sheet Compliant)
@@ -251,11 +255,12 @@ class OperatorAuthService:
         self.db_path = db_path
         self._init_auth_tables()
 
-    def _get_connection(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path, timeout=10.0)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys = ON;")
-        return conn
+    @contextmanager
+    def _get_connection(self):
+        """Thread-safe and multi-engine context manager providing database connection."""
+        from src.database_adapter import get_db_connection
+        with get_db_connection(self.db_path) as conn:
+            yield conn
 
     def _init_auth_tables(self) -> None:
         """Idempotently initializes operator accounts and session tables with hardening columns."""
@@ -330,31 +335,33 @@ class OperatorAuthService:
         """
         Creates the very first operator account.
         Only succeeds if NO active operators exist, preventing account takeover.
+        Guarded by process lock and atomic transaction check to prevent concurrent race conditions.
         """
         username = username.strip()
         validate_username(username)
         if role not in ALLOWED_ROLES:
             raise OperatorAuthError(f"Invalid role '{role}'. Allowed: {sorted(list(ALLOWED_ROLES))}")
 
-        with self._get_connection() as conn:
-            cur = conn.execute("SELECT COUNT(*) FROM operator_accounts;")
-            if cur.fetchone()[0] > 0:
-                raise OperatorAuthError(
-                    "Initial operator setup is locked because operator accounts already exist."
+        with _ADMIN_PROVISIONING_LOCK:
+            with self._get_connection() as conn:
+                cur = conn.execute("SELECT COUNT(*) FROM operator_accounts;")
+                if cur.fetchone()[0] > 0:
+                    raise OperatorAuthError(
+                        "Initial operator setup is locked because operator accounts already exist."
+                    )
+
+                hash_str, salt_hex = hash_password(password, algorithm="scrypt")
+                now_iso = get_utc_now_iso()
+
+                conn.execute(
+                    """
+                    INSERT INTO operator_accounts (
+                        username, password_hash, salt, role, created_at_utc,
+                        last_login_utc, failed_login_count, locked_until_utc, is_active
+                    ) VALUES (?, ?, ?, ?, ?, NULL, 0, NULL, 1);
+                    """,
+                    (username, hash_str, salt_hex, role, now_iso),
                 )
-
-            hash_str, salt_hex = hash_password(password, algorithm="scrypt")
-            now_iso = get_utc_now_iso()
-
-            conn.execute(
-                """
-                INSERT INTO operator_accounts (
-                    username, password_hash, salt, role, created_at_utc,
-                    last_login_utc, failed_login_count, locked_until_utc, is_active
-                ) VALUES (?, ?, ?, ?, ?, NULL, 0, NULL, 1);
-                """,
-                (username, hash_str, salt_hex, role, now_iso),
-            )
 
         return {
             "username": username,

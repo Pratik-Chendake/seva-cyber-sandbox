@@ -2,7 +2,7 @@
 -- SEVA CYBER SANDBOX — SUPABASE POSTGRESQL PRODUCTION SCHEMA
 -- Migration: 001_initial_schema.sql
 -- Compatible with PostgreSQL 15+ / Supabase
--- Preserves all entities: Cases, Indicators, Provenance, Reviews, Campaigns, Auth
+-- Preserves ALL 16 operational tables, relationships, indexes, and constraints
 -- =============================================================================
 
 -- Enable UUID extension if needed
@@ -32,13 +32,14 @@ CREATE TABLE IF NOT EXISTS threat_cases (
     recommended_action TEXT,
     source_type TEXT NOT NULL DEFAULT 'web_simulator',
     dedup_key TEXT,
-    observed_evidence_json JSONB NOT NULL DEFAULT '[]'::jsonb,
-    heuristic_inferences_json JSONB NOT NULL DEFAULT '[]'::jsonb,
-    extracted_urls_json JSONB NOT NULL DEFAULT '[]'::jsonb,
-    official_sources_json JSONB NOT NULL DEFAULT '[]'::jsonb,
-    metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    observed_evidence_json TEXT NOT NULL DEFAULT '[]',
+    heuristic_inferences_json TEXT NOT NULL DEFAULT '[]',
+    extracted_urls_json TEXT NOT NULL DEFAULT '[]',
+    official_sources_json TEXT NOT NULL DEFAULT '[]',
+    metadata_json TEXT NOT NULL DEFAULT '{}',
     expires_at TIMESTAMPTZ NOT NULL,
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    evidence_id TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_pg_cases_session ON threat_cases(session_id);
@@ -46,6 +47,7 @@ CREATE INDEX IF NOT EXISTS idx_pg_cases_created ON threat_cases(created_at DESC)
 CREATE INDEX IF NOT EXISTS idx_pg_cases_type ON threat_cases(analysis_type);
 CREATE INDEX IF NOT EXISTS idx_pg_cases_risk ON threat_cases(risk_score);
 CREATE INDEX IF NOT EXISTS idx_pg_cases_dedup ON threat_cases(dedup_key);
+CREATE INDEX IF NOT EXISTS idx_pg_cases_evidence ON threat_cases(evidence_id);
 
 -- 3. Campaign Clusters (Cross-Case Threat Aggregation)
 CREATE TABLE IF NOT EXISTS campaign_clusters (
@@ -60,7 +62,7 @@ CREATE TABLE IF NOT EXISTS campaign_clusters (
     infrastructure_notes TEXT NOT NULL DEFAULT '',
     has_conflicting_classifications BOOLEAN NOT NULL DEFAULT FALSE,
     quarantined_from_training BOOLEAN NOT NULL DEFAULT FALSE,
-    metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb
+    metadata_json TEXT NOT NULL DEFAULT '{}'
 );
 
 CREATE INDEX IF NOT EXISTS idx_pg_campaign_key ON campaign_clusters(cluster_type, cluster_key);
@@ -90,13 +92,13 @@ CREATE TABLE IF NOT EXISTS evidence_provenance (
     corroborated_by TEXT,
     verification_level TEXT NOT NULL DEFAULT 'unverified',
     verification_method TEXT,
-    supporting_references_json JSONB NOT NULL DEFAULT '[]'::jsonb,
-    conflicting_evidence_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+    supporting_references_json TEXT NOT NULL DEFAULT '[]',
+    conflicting_evidence_json TEXT NOT NULL DEFAULT '[]',
     relationship_strength TEXT NOT NULL DEFAULT 'unrelated_evidence',
-    poisoning_risk_flags_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+    poisoning_risk_flags_json TEXT NOT NULL DEFAULT '[]',
     eligibility_tier TEXT NOT NULL DEFAULT 'not_eligible',
     artifact_sha256 TEXT,
-    metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb
+    metadata_json TEXT NOT NULL DEFAULT '{}'
 );
 
 CREATE INDEX IF NOT EXISTS idx_pg_evid_case ON evidence_provenance(case_id);
@@ -113,7 +115,7 @@ CREATE TABLE IF NOT EXISTS evidence_lifecycle_audit (
     operator_username TEXT NOT NULL,
     transition_reason TEXT NOT NULL,
     timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    details_json JSONB NOT NULL DEFAULT '{}'::jsonb
+    details_json TEXT NOT NULL DEFAULT '{}'
 );
 
 CREATE INDEX IF NOT EXISTS idx_pg_evid_audit_evid ON evidence_lifecycle_audit(evidence_id);
@@ -135,7 +137,7 @@ CREATE TABLE IF NOT EXISTS threat_indicators (
     expires_at TIMESTAMPTZ,
     notes TEXT NOT NULL DEFAULT '',
     occurrence_count INTEGER NOT NULL DEFAULT 1,
-    metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb
+    metadata_json TEXT NOT NULL DEFAULT '{}'
 );
 
 CREATE INDEX IF NOT EXISTS idx_pg_ind_type ON threat_indicators(indicator_type);
@@ -151,7 +153,7 @@ CREATE TABLE IF NOT EXISTS indicator_audit_log (
     actor TEXT NOT NULL DEFAULT 'system',
     timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     reason TEXT NOT NULL DEFAULT '',
-    details_json JSONB NOT NULL DEFAULT '{}'::jsonb
+    details_json TEXT NOT NULL DEFAULT '{}'
 );
 
 CREATE INDEX IF NOT EXISTS idx_pg_ind_audit_time ON indicator_audit_log(timestamp_utc DESC);
@@ -194,13 +196,116 @@ CREATE TABLE IF NOT EXISTS human_reviews (
     notes TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb
+    metadata_json TEXT NOT NULL DEFAULT '{}'
 );
 
 CREATE INDEX IF NOT EXISTS idx_pg_reviews_case ON human_reviews(case_id);
 CREATE INDEX IF NOT EXISTS idx_pg_reviews_state ON human_reviews(review_state);
+CREATE INDEX IF NOT EXISTS idx_pg_reviews_outcome ON human_reviews(outcome_category);
+CREATE INDEX IF NOT EXISTS idx_pg_reviews_updated ON human_reviews(updated_at DESC);
 
--- 11. Schema Migrations Log
+-- 11. Review Audit Log
+CREATE TABLE IF NOT EXISTS review_audit_log (
+    log_id TEXT PRIMARY KEY,
+    review_id TEXT NOT NULL,
+    case_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    actor TEXT NOT NULL DEFAULT 'local_operator',
+    timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reason TEXT NOT NULL DEFAULT '',
+    details_json TEXT NOT NULL DEFAULT '{}'
+);
+
+CREATE INDEX IF NOT EXISTS idx_pg_review_audit_rev ON review_audit_log(review_id);
+CREATE INDEX IF NOT EXISTS idx_pg_review_audit_time ON review_audit_log(timestamp_utc DESC);
+CREATE INDEX IF NOT EXISTS idx_pg_review_audit_action ON review_audit_log(action);
+
+-- 12. Training Feature Records (ML Preprocessing Telemetry)
+CREATE TABLE IF NOT EXISTS training_feature_records (
+    feature_record_id TEXT PRIMARY KEY,
+    case_id TEXT NOT NULL,
+    feature_schema_version TEXT NOT NULL,
+    preprocessing_version TEXT NOT NULL,
+    feature_extractor_version TEXT NOT NULL,
+    feature_vector_json TEXT NOT NULL DEFAULT '[]',
+    feature_dim INTEGER NOT NULL,
+    consent_given BOOLEAN NOT NULL DEFAULT FALSE,
+    consent_timestamp_utc TIMESTAMPTZ NOT NULL,
+    created_at_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    eligibility_state TEXT NOT NULL DEFAULT 'pending_review',
+    dedup_fingerprint TEXT NOT NULL,
+    provenance_category TEXT NOT NULL DEFAULT 'local_curated_feedback',
+    metadata_json TEXT NOT NULL DEFAULT '{}'
+);
+
+CREATE INDEX IF NOT EXISTS idx_pg_features_case ON training_feature_records(case_id);
+CREATE INDEX IF NOT EXISTS idx_pg_features_fingerprint ON training_feature_records(dedup_fingerprint);
+CREATE INDEX IF NOT EXISTS idx_pg_features_eligibility ON training_feature_records(eligibility_state);
+CREATE INDEX IF NOT EXISTS idx_pg_features_created ON training_feature_records(created_at_utc DESC);
+
+-- 13. Model Disagreement Events (Shadow AI Monitoring)
+CREATE TABLE IF NOT EXISTS model_disagreement_events (
+    event_id TEXT PRIMARY KEY,
+    event_type TEXT NOT NULL,
+    rule_decision TEXT NOT NULL,
+    model_prediction TEXT,
+    model_version TEXT,
+    rule_engine_version TEXT,
+    model_confidence REAL,
+    model_confidence_bucket TEXT,
+    rule_score INTEGER,
+    rule_score_bucket TEXT,
+    language_category TEXT DEFAULT 'unknown',
+    script_category TEXT DEFAULT 'unknown',
+    message_length_bucket TEXT DEFAULT 'short (<100)',
+    review_state TEXT NOT NULL DEFAULT 'pending',
+    created_at_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    consent_given BOOLEAN NOT NULL DEFAULT FALSE,
+    feature_record_id TEXT,
+    case_id TEXT,
+    metadata_json TEXT NOT NULL DEFAULT '{}'
+);
+
+CREATE INDEX IF NOT EXISTS idx_pg_disagree_review_state ON model_disagreement_events(review_state);
+CREATE INDEX IF NOT EXISTS idx_pg_disagree_created ON model_disagreement_events(created_at_utc DESC);
+CREATE INDEX IF NOT EXISTS idx_pg_disagree_event_type ON model_disagreement_events(event_type);
+
+-- 14. Disagreement Reviews (Human Assessment of AI Discrepancies)
+CREATE TABLE IF NOT EXISTS disagreement_reviews (
+    review_id TEXT PRIMARY KEY,
+    event_id TEXT NOT NULL REFERENCES model_disagreement_events(event_id) ON DELETE CASCADE,
+    review_state TEXT NOT NULL DEFAULT 'completed',
+    outcome_label TEXT NOT NULL,
+    reviewer_assessment TEXT NOT NULL,
+    confidence_rating TEXT NOT NULL DEFAULT 'medium',
+    reviewer_label TEXT NOT NULL DEFAULT 'local_operator_unauthenticated',
+    notes TEXT NOT NULL DEFAULT '',
+    created_at_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    is_superseded BOOLEAN NOT NULL DEFAULT FALSE,
+    superseded_by TEXT,
+    metadata_json TEXT NOT NULL DEFAULT '{}'
+);
+
+CREATE INDEX IF NOT EXISTS idx_pg_disagree_rev_event ON disagreement_reviews(event_id);
+CREATE INDEX IF NOT EXISTS idx_pg_disagree_rev_state ON disagreement_reviews(review_state);
+
+-- 15. Disagreement Review Audit Log
+CREATE TABLE IF NOT EXISTS disagreement_review_audit (
+    audit_id TEXT PRIMARY KEY,
+    review_id TEXT NOT NULL,
+    event_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    actor TEXT NOT NULL DEFAULT 'local_operator_unauthenticated',
+    timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reason TEXT NOT NULL DEFAULT '',
+    details_json TEXT NOT NULL DEFAULT '{}'
+);
+
+CREATE INDEX IF NOT EXISTS idx_pg_disagree_audit_event ON disagreement_review_audit(event_id);
+CREATE INDEX IF NOT EXISTS idx_pg_disagree_audit_time ON disagreement_review_audit(timestamp_utc DESC);
+
+-- 16. Schema Migrations Log
 CREATE TABLE IF NOT EXISTS schema_migrations (
     migration_id TEXT PRIMARY KEY,
     applied_at_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -209,5 +314,5 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 
 -- Initial Version Stamp
 INSERT INTO schema_version (version, applied_at, description)
-VALUES (1, NOW(), 'Supabase PostgreSQL initial production schema migration')
+VALUES (1, NOW(), 'Supabase PostgreSQL comprehensive production schema migration (16 tables parity)')
 ON CONFLICT (version) DO NOTHING;
