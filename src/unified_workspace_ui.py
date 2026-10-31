@@ -420,8 +420,12 @@ def render_unified_evidence_workspace(
                 f"`{', '.join(saved_status['child_case_ids'])}`\n\n"
                 f"Inspect complete forensic records in **05 // THREAT CASES** or review queues in **07 // OPERATOR DESK**."
             )
+            if st.button("🔄 Start New Investigation / Clear Workspace", type="primary"):
+                st.session_state["unified_last_analysis"] = None
+                st.session_state["unified_saved_investigation"] = None
+                st.rerun()
         else:
-            save_col1, save_col2 = st.columns([3, 1])
+            save_col1, save_col2, save_col3 = st.columns([3, 1.5, 1.5])
             with save_col1:
                 st.write("Save this investigation and link all submitted artifacts into persistent SQLite cases.")
             with save_col2:
@@ -434,4 +438,9 @@ def render_unified_evidence_workspace(
                         consent_given=training_consent,
                     )
                     st.session_state["unified_saved_investigation"] = saved
+                    st.rerun()
+            with save_col3:
+                if st.button("🔄 Discard & Reset", type="secondary", use_container_width=True):
+                    st.session_state["unified_last_analysis"] = None
+                    st.session_state["unified_saved_investigation"] = None
                     st.rerun()

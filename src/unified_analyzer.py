@@ -1084,6 +1084,22 @@ class UnifiedEvidenceAnalyzer:
         investigation_id = analysis_result["investigation_id"]
         artifacts = analysis_result.get("artifacts", [])
 
+        # Idempotency check: prevent duplicate investigations on repeated save calls or replays
+        try:
+            for c in case_store.list_cases():
+                meta = c.get("metadata", {})
+                if meta.get("is_parent_investigation") and meta.get("investigation_id") == investigation_id:
+                    return {
+                        "investigation_id": investigation_id,
+                        "parent_case_id": c["case_id"],
+                        "child_case_ids": meta.get("child_case_ids", []),
+                        "child_evidence_ids": meta.get("child_evidence_ids", []),
+                        "artifact_case_mapping": meta.get("artifact_case_mapping", {}),
+                        "is_idempotent_replay": True,
+                    }
+        except Exception:
+            pass
+
         child_case_ids: List[str] = []
         child_evidence_ids: List[str] = []
         artifact_case_mapping: Dict[str, str] = {}
@@ -1201,4 +1217,47 @@ class UnifiedEvidenceAnalyzer:
             "child_case_ids": child_case_ids,
             "child_evidence_ids": child_evidence_ids,
             "artifact_case_mapping": artifact_case_mapping,
+            "is_idempotent_replay": False,
+        }
+
+    def get_investigation_details(
+        self,
+        case_store: SessionCaseStore,
+        parent_case_id_or_inv_id: str,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Retrieves the parent investigation and all associated child artifact cases
+        with their current lifecycle and withdrawal status.
+        """
+        cases = case_store.list_cases()
+        parent_case = None
+        for c in cases:
+            meta = c.get("metadata", {})
+            if meta.get("is_parent_investigation"):
+                if c["case_id"] == parent_case_id_or_inv_id or meta.get("investigation_id") == parent_case_id_or_inv_id:
+                    parent_case = c
+                    break
+
+        if not parent_case:
+            return None
+
+        child_ids = parent_case.get("metadata", {}).get("child_case_ids", [])
+        child_cases = []
+        for cid in child_ids:
+            child = case_store.get_case(cid)
+            if child:
+                if self.repository and child.get("evidence_id"):
+                    try:
+                        ev_prov = self.repository.get_evidence_provenance(child["evidence_id"])
+                        child["current_evidence_provenance"] = ev_prov
+                    except Exception:
+                        pass
+                child_cases.append(child)
+
+        return {
+            "parent_case": parent_case,
+            "child_cases": child_cases,
+            "total_children": len(child_cases),
+            "expected_children_count": len(child_ids),
+            "all_children_exist": len(child_cases) == len(child_ids),
         }

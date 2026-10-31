@@ -151,6 +151,9 @@ def main() -> None:
     if "case_store" not in st.session_state:
         st.session_state.case_store = SessionCaseStore()
 
+    if "session_id" not in st.session_state:
+        st.session_state.session_id = st.session_state.case_store.session_id
+
     if "auth_service" not in st.session_state:
         from src.operator_auth import OperatorAuthService
         st.session_state.auth_service = OperatorAuthService(
