@@ -25,3 +25,6 @@ instance/
 *.db
 *.db-wal
 *.db-shm
+
+# Test and execution logs
+*.log

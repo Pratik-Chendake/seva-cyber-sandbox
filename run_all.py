@@ -36,12 +36,31 @@ def run_production():
 
 def run_development():
     """Run Vite development server with hot-reloading alongside FastAPI backend."""
-    print("Launching development environment...")
+    print("=" * 70)
+    print("  SEVA CYBER SANDBOX — DEVELOPMENT MODE")
+    print("  FastAPI Backend (:8000) + Vite React Dev Server (:5173)")
+    print("=" * 70)
     npm_cmd = "npm.cmd" if sys.platform == "win32" else "npm"
     frontend_dir = os.path.join(BASE_DIR, "frontend")
-    
+    py_exe = sys.executable
+
+    print("[*] Starting FastAPI backend on http://127.0.0.1:8000 ...")
+    backend_proc = subprocess.Popen(
+        [py_exe, "-m", "uvicorn", "api_server:app", "--host", "127.0.0.1", "--port", "8000", "--reload"],
+        cwd=BASE_DIR,
+    )
+
     print("[*] Starting Vite dev server on http://localhost:5173 ...")
-    subprocess.run([npm_cmd, "run", "dev"], cwd=frontend_dir)
+    try:
+        subprocess.run([npm_cmd, "run", "dev"], cwd=frontend_dir)
+    except KeyboardInterrupt:
+        print("\n[*] Shutting down development servers...")
+    finally:
+        backend_proc.terminate()
+        try:
+            backend_proc.wait(timeout=5)
+        except Exception:
+            backend_proc.kill()
 
 
 def main():

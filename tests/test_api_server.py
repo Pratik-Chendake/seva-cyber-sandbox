@@ -7,7 +7,7 @@ import io
 import json
 import os
 import pytest
-from starlette.testclient import TestClient
+from fastapi.testclient import TestClient
 
 from api_server import app
 
@@ -221,9 +221,32 @@ def test_operator_auth_lifecycle(client):
     logout_resp = client.post("/api/auth/logout", headers={"Authorization": f"Bearer {token}"})
     assert logout_resp.status_code == 200
 
+    # Bad credentials login must fail with 401
+    bad_login = client.post("/api/auth/login", json={"username": "operator_lead", "password": "WrongPassword!999"})
+    assert bad_login.status_code == 401
+    assert "detail" in bad_login.json()
+
     # Post-logout /me
     post_me_resp = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert post_me_resp.json()["authenticated"] is False
+
+
+def test_api_validation_errors(client):
+    # Missing required body on POST /api/analyze/message -> 422
+    res1 = client.post("/api/analyze/message", json={})
+    assert res1.status_code == 422
+
+    # Empty string on /api/analyze/scheme -> 422 (pydantic min_length=1)
+    res2 = client.post("/api/analyze/scheme", json={"claim_text": ""})
+    assert res2.status_code == 422
+
+    # Invalid URL field -> 422
+    res3 = client.post("/api/analyze/url", json={})
+    assert res3.status_code == 422
+
+    # Nonexistent case lookup -> 404
+    res4 = client.get("/api/cases/CASE-NONEXISTENT-999")
+    assert res4.status_code == 404
 
 
 def test_static_spa_serving(client):
