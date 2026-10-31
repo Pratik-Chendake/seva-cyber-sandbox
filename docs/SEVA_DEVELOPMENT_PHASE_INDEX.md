@@ -1,8 +1,8 @@
 # SEVA CYBER SANDBOX — MASTER DEVELOPMENT PHASE INDEX
-**System Baseline:** Seva Cyber Sandbox v7.0.0  
+**System Baseline:** Seva Cyber Sandbox v8.0.0 (Standalone React & FastAPI Decoupled Architecture)  
 **Effective Date:** 2026-10-31  
-**Total Development Phases Documented:** 57 Phases & Milestones  
-**Total Tests Passing:** 870 / 870  
+**Total Development Phases Documented:** 60 Phases & Milestones  
+**Total Tests Passing:** 868 / 868 (100% Passing)  
 
 This index provides a complete, sequential roadmap of all engineering phases, security audits, dataset iterations, and architectural milestones undertaken in the development of Seva Cyber Sandbox.
 
@@ -103,6 +103,25 @@ This index provides a complete, sequential roadmap of all engineering phases, se
 | [Phase 7.0.1 Integrity Audit](file:///c:/Users/prati/seva-cyber-sandbox/docs/PHASE_7_0_1_FINAL_INTEGRITY_AUDIT_REPORT.md) | Read-only integrity verification | 74 methods, migration backup verified; 824/824 passing | `PASS_WITH_WARNINGS` |
 | [Phase 7.1.0 Unified Analysis Workspace](file:///c:/Users/prati/seva-cyber-sandbox/docs/PHASE_7_1_0_UNIFIED_EVIDENCE_ANALYSIS_REPORT.md) | Central multi-artifact evidence intake | Messages, URLs, APKs, PDFs, images; cross-correlation; 847/847 passing | `PASS` |
 | [Phase 7.1.1 Interactive Acceptance Audit](file:///c:/Users/prati/seva-cyber-sandbox/docs/PHASE_7_1_1_UNIFIED_WORKSPACE_ACCEPTANCE_REPORT.md) | Streamlit interactive & integrity audit | AppTest DOM workflows A-K, session idempotency, withdrawal; 870/870 passing | `PASS` |
+
+---
+
+### Epoch 6: Liquid Glass Design System & Immersive 3D Experience (Phase 7.2.0)
+*Focus: Full-stack decoupled modern architecture, Three.js WebGL procedural models, continuous vertical narrative scrolling, and FastAPI air-gapped backend.*
+
+| Phase / Document | Core Objective | Key Deliverables & Milestones | Verdict / Status |
+|:---|:---|:---|:---:|
+| [Phase 7.2.0 Liquid Glass 3D Redesign](file:///c:/Users/prati/seva-cyber-sandbox/docs/SEVA_LIQUID_GLASS_3D_REDESIGN_REPORT.md) | Premium Liquid Glass & 3D Web UI | React 19 + Three.js + Tailwind v4 + FastAPI; 10 continuous narrative sections | `PASS_RELEASE_READY` |
+
+---
+
+### Epoch 7: Complete Streamlit Removal, Full-Stack React Architecture, Supabase Migration & Cloudflare R2 Integration (Phase 8.0.0)
+*Focus: Total excision of Streamlit runtime, standalone React 19 + Vite 8 frontend, 17-endpoint FastAPI REST backend, Supabase PostgreSQL production schema, Cloudflare R2 private object storage adapter, and Vercel/Render deployment configurations.*
+
+| Phase / Document | Core Objective | Key Deliverables & Milestones | Verdict / Status |
+|:---|:---|:---|:---:|
+| [Streamlit Migration Audit](file:///c:/Users/prati/seva-cyber-sandbox/docs/PHASE_1_STREAMLIT_MIGRATION_AUDIT.md) | Pre-migration asset audit & backup | Full inventory of Streamlit components, SHA-256 backup verification (`2a95edf9b...`), git branch checkpoint | `COMPLETE` |
+| [Streamlit to React Full-Stack Migration](file:///c:/Users/prati/seva-cyber-sandbox/docs/SEVA_STREAMLIT_TO_REACT_MIGRATION_REPORT.md) | Standalone web platform conversion | Streamlit excised (0 imports/deps), FastAPI backend (`api_server.py`), React 19 frontend, Supabase migration (`migrations/001_initial_schema.sql`), Cloudflare R2 adapter (`src/storage_manager.py`), Render/Vercel configs; 864/864 passing tests | `PASS_RELEASE_READY` |
 
 ---
 

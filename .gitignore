@@ -9,8 +9,9 @@ __pycache__/
 *$py.class
 .pytest_cache/
 
-# Streamlit secrets and environment variables
-.streamlit/secrets.toml
+# Local environment variables
+.env.local
+.env.*.local
 .env
 
 # OS artifacts

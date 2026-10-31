@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+:root {
+  --color-porcelain: #F5F3EC;
+  --color-ivory: #FAF8F2;
+  --color-graphite: #202C32;
+  --color-teal: #477C78;
+  --color-copper: #B8794B;
+  --color-stone: #DDDCD3;
+  --color-sage: #DFE9E1;
+  --color-slate: #738087;
+  --color-electric: #0284C7;
+
+  --bg-primary: #FAF8F2;
+  --bg-surface: #F5F3EC;
+  --text-primary: #202C32;
+  --text-muted: #738087;
+
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+}
+
+/* Liquid Glass Utilities */
+.liquid-glass {
+  background: rgba(250, 248, 242, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 
+    0 12px 32px -8px rgba(32, 44, 50, 0.07),
+    0 1px 2px 0 rgba(32, 44, 50, 0.04),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 1px 0 rgba(221, 220, 211, 0.4);
+}
+
+.liquid-glass-elevated {
+  background: rgba(245, 243, 236, 0.85);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 
+    0 24px 48px -12px rgba(32, 44, 50, 0.11),
+    0 4px 12px -2px rgba(32, 44, 50, 0.05),
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 1),
+    inset 0 -1.5px 2px 0 rgba(221, 220, 211, 0.5);
+}
+
+.liquid-glass-card {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(221, 220, 211, 0.8);
+  border-radius: 16px;
+  box-shadow: 
+    0 8px 24px -6px rgba(32, 44, 50, 0.05),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.liquid-glass-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(71, 124, 120, 0.4);
+  box-shadow: 
+    0 16px 36px -10px rgba(32, 44, 50, 0.09),
+    0 0 0 1px rgba(71, 124, 120, 0.2),
+    inset 0 1px 2px 0 rgba(255, 255, 255, 1);
+}
+
+.liquid-glass-nav {
+  background: rgba(250, 248, 242, 0.82);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid rgba(221, 220, 211, 0.7);
+  box-shadow: 0 4px 20px -2px rgba(32, 44, 50, 0.04);
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(221, 220, 211, 0.9);
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px -2px rgba(32, 44, 50, 0.04), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.glass-pill-active {
+  background: rgba(71, 124, 120, 0.12);
+  border-color: rgba(71, 124, 120, 0.5);
+  color: #477C78;
+  font-weight: 600;
+  box-shadow: 0 2px 8px -2px rgba(71, 124, 120, 0.2);
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(245, 243, 236, 0.6);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(115, 128, 135, 0.35);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(115, 128, 135, 0.55);
+}
+
+/* Refined typography */
+.heading-editorial {
+  letter-spacing: -0.025em;
+  font-weight: 700;
+  color: #202C32;
+}
+
+.caption-label {
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #738087;
+}

@@ -254,7 +254,7 @@ def test_03_case_creation_and_auto_generated_ids(tmp_path):
 
     saved_ids = set()
     for case_dict in cases:
-        case_id = repo.save_case(case_dict, session_id="sess_1", source_type="streamlit_manual")
+        case_id = repo.save_case(case_dict, session_id="sess_1", source_type="api_manual")
         assert case_id.startswith("CASE-")
         assert len(case_id) >= 12
         assert case_id not in saved_ids
@@ -263,7 +263,7 @@ def test_03_case_creation_and_auto_generated_ids(tmp_path):
         record = repo.get_case(case_id, session_id="sess_1")
         assert record is not None
         assert record["session_id"] == "sess_1"
-        assert record["source_type"] == "streamlit_manual"
+        assert record["source_type"] == "api_manual"
         assert record["timestamp_utc"] is not None
         assert record["risk_score"] >= 0
         assert record["risk_category"] != ""
@@ -315,10 +315,10 @@ def test_05_list_and_filter_operations(tmp_path):
     c5 = _sample_message_case()
     c6 = _sample_url_case()
 
-    repo.save_case(c1, session_id="sess_A", source_type="streamlit_manual")
-    repo.save_case(c2, session_id="sess_A", source_type="streamlit_manual")
+    repo.save_case(c1, session_id="sess_A", source_type="api_manual")
+    repo.save_case(c2, session_id="sess_A", source_type="api_manual")
     repo.save_case(c3, session_id="sess_A", source_type="whatsapp_webhook")
-    repo.save_case(c4, session_id="sess_B", source_type="streamlit_manual")
+    repo.save_case(c4, session_id="sess_B", source_type="api_manual")
     repo.save_case(c5, session_id="sess_B", source_type="whatsapp_webhook")
     repo.save_case(c6, session_id="sess_B", source_type="whatsapp_webhook")
 

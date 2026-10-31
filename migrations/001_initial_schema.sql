@@ -1,0 +1,213 @@
+-- =============================================================================
+-- SEVA CYBER SANDBOX — SUPABASE POSTGRESQL PRODUCTION SCHEMA
+-- Migration: 001_initial_schema.sql
+-- Compatible with PostgreSQL 15+ / Supabase
+-- Preserves all entities: Cases, Indicators, Provenance, Reviews, Campaigns, Auth
+-- =============================================================================
+
+-- Enable UUID extension if needed
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- 1. Schema Version Tracking
+CREATE TABLE IF NOT EXISTS schema_version (
+    version INTEGER PRIMARY KEY,
+    applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    description TEXT NOT NULL
+);
+
+-- 2. Threat Cases (Primary Evidence Submissions)
+CREATE TABLE IF NOT EXISTS threat_cases (
+    case_id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    analysis_type TEXT NOT NULL,
+    analysis_status TEXT NOT NULL,
+    risk_score INTEGER NOT NULL,
+    risk_category TEXT NOT NULL,
+    badge_color TEXT NOT NULL,
+    indicator_count INTEGER NOT NULL DEFAULT 0,
+    sha256_hash TEXT,
+    hash_algorithm TEXT,
+    target_identifier TEXT NOT NULL,
+    recommended_action TEXT,
+    source_type TEXT NOT NULL DEFAULT 'web_simulator',
+    dedup_key TEXT,
+    observed_evidence_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+    heuristic_inferences_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+    extracted_urls_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+    official_sources_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+    metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    expires_at TIMESTAMPTZ NOT NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS idx_pg_cases_session ON threat_cases(session_id);
+CREATE INDEX IF NOT EXISTS idx_pg_cases_created ON threat_cases(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pg_cases_type ON threat_cases(analysis_type);
+CREATE INDEX IF NOT EXISTS idx_pg_cases_risk ON threat_cases(risk_score);
+CREATE INDEX IF NOT EXISTS idx_pg_cases_dedup ON threat_cases(dedup_key);
+
+-- 3. Campaign Clusters (Cross-Case Threat Aggregation)
+CREATE TABLE IF NOT EXISTS campaign_clusters (
+    campaign_id TEXT PRIMARY KEY,
+    campaign_name TEXT NOT NULL,
+    cluster_type TEXT NOT NULL,
+    cluster_key TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    created_at_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by TEXT NOT NULL DEFAULT 'system',
+    is_shared_infrastructure BOOLEAN NOT NULL DEFAULT FALSE,
+    infrastructure_notes TEXT NOT NULL DEFAULT '',
+    has_conflicting_classifications BOOLEAN NOT NULL DEFAULT FALSE,
+    quarantined_from_training BOOLEAN NOT NULL DEFAULT FALSE,
+    metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX IF NOT EXISTS idx_pg_campaign_key ON campaign_clusters(cluster_type, cluster_key);
+CREATE INDEX IF NOT EXISTS idx_pg_campaign_created ON campaign_clusters(created_at_utc DESC);
+
+-- 4. Evidence Provenance & Lifecycle State Machine
+CREATE TABLE IF NOT EXISTS evidence_provenance (
+    evidence_id TEXT PRIMARY KEY,
+    case_id TEXT NOT NULL REFERENCES threat_cases(case_id) ON DELETE CASCADE,
+    evidence_origin TEXT NOT NULL,
+    evidence_type TEXT NOT NULL,
+    lifecycle_status TEXT NOT NULL DEFAULT 'submitted',
+    user_classification TEXT,
+    model_prediction TEXT,
+    rule_assessment TEXT,
+    reviewer_classification TEXT,
+    corroborated_conclusion TEXT,
+    corroboration_rationale TEXT NOT NULL DEFAULT '',
+    campaign_id TEXT REFERENCES campaign_clusters(campaign_id) ON DELETE SET NULL,
+    consent_given BOOLEAN NOT NULL DEFAULT FALSE,
+    consent_timestamp_utc TIMESTAMPTZ,
+    sanitization_status TEXT NOT NULL DEFAULT 'unverified',
+    created_at_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    submitted_by TEXT,
+    reviewed_by TEXT,
+    corroborated_by TEXT,
+    verification_level TEXT NOT NULL DEFAULT 'unverified',
+    verification_method TEXT,
+    supporting_references_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+    conflicting_evidence_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+    relationship_strength TEXT NOT NULL DEFAULT 'unrelated_evidence',
+    poisoning_risk_flags_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+    eligibility_tier TEXT NOT NULL DEFAULT 'not_eligible',
+    artifact_sha256 TEXT,
+    metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX IF NOT EXISTS idx_pg_evid_case ON evidence_provenance(case_id);
+CREATE INDEX IF NOT EXISTS idx_pg_evid_status ON evidence_provenance(lifecycle_status);
+CREATE INDEX IF NOT EXISTS idx_pg_evid_origin ON evidence_provenance(evidence_origin);
+CREATE INDEX IF NOT EXISTS idx_pg_evid_campaign ON evidence_provenance(campaign_id);
+
+-- 5. Evidence Lifecycle Audit Log
+CREATE TABLE IF NOT EXISTS evidence_lifecycle_audit (
+    audit_id TEXT PRIMARY KEY,
+    evidence_id TEXT NOT NULL REFERENCES evidence_provenance(evidence_id) ON DELETE CASCADE,
+    from_status TEXT NOT NULL,
+    to_status TEXT NOT NULL,
+    operator_username TEXT NOT NULL,
+    transition_reason TEXT NOT NULL,
+    timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    details_json JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX IF NOT EXISTS idx_pg_evid_audit_evid ON evidence_lifecycle_audit(evidence_id);
+CREATE INDEX IF NOT EXISTS idx_pg_evid_audit_time ON evidence_lifecycle_audit(timestamp_utc DESC);
+
+-- 6. Threat Indicators Knowledge Base
+CREATE TABLE IF NOT EXISTS threat_indicators (
+    indicator_id TEXT PRIMARY KEY,
+    indicator_type TEXT NOT NULL,
+    indicator_value TEXT NOT NULL,
+    indicator_hash TEXT NOT NULL,
+    source TEXT NOT NULL DEFAULT 'analyst_curated',
+    confidence_score INTEGER NOT NULL DEFAULT 50,
+    severity TEXT NOT NULL DEFAULT 'medium',
+    review_state TEXT NOT NULL DEFAULT 'unreviewed',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    first_seen_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_seen_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ,
+    notes TEXT NOT NULL DEFAULT '',
+    occurrence_count INTEGER NOT NULL DEFAULT 1,
+    metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX IF NOT EXISTS idx_pg_ind_type ON threat_indicators(indicator_type);
+CREATE INDEX IF NOT EXISTS idx_pg_ind_value ON threat_indicators(indicator_value);
+CREATE INDEX IF NOT EXISTS idx_pg_ind_hash ON threat_indicators(indicator_hash);
+CREATE INDEX IF NOT EXISTS idx_pg_ind_review ON threat_indicators(review_state);
+
+-- 7. Indicator Audit Trail
+CREATE TABLE IF NOT EXISTS indicator_audit_log (
+    log_id TEXT PRIMARY KEY,
+    indicator_id TEXT,
+    action TEXT NOT NULL,
+    actor TEXT NOT NULL DEFAULT 'system',
+    timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reason TEXT NOT NULL DEFAULT '',
+    details_json JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX IF NOT EXISTS idx_pg_ind_audit_time ON indicator_audit_log(timestamp_utc DESC);
+
+-- 8. Operator Accounts & Authentication
+CREATE TABLE IF NOT EXISTS operator_accounts (
+    username TEXT PRIMARY KEY,
+    password_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'operator',
+    created_at_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_login_utc TIMESTAMPTZ,
+    failed_login_count INTEGER NOT NULL DEFAULT 0,
+    locked_until_utc TIMESTAMPTZ,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+-- 9. Operator Active Sessions
+CREATE TABLE IF NOT EXISTS operator_sessions (
+    session_token TEXT PRIMARY KEY,
+    username TEXT NOT NULL REFERENCES operator_accounts(username) ON DELETE CASCADE,
+    created_at_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at_utc TIMESTAMPTZ NOT NULL,
+    client_ip TEXT NOT NULL DEFAULT '127.0.0.1',
+    user_agent TEXT NOT NULL DEFAULT 'local_client',
+    is_revoked BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS idx_pg_sessions_user ON operator_sessions(username);
+CREATE INDEX IF NOT EXISTS idx_pg_sessions_expires ON operator_sessions(expires_at_utc);
+
+-- 10. Human Review Desk
+CREATE TABLE IF NOT EXISTS human_reviews (
+    review_id TEXT PRIMARY KEY,
+    case_id TEXT NOT NULL REFERENCES threat_cases(case_id) ON DELETE CASCADE,
+    review_state TEXT NOT NULL DEFAULT 'pending',
+    outcome_category TEXT,
+    confidence_rating TEXT DEFAULT 'medium',
+    reviewer_label TEXT NOT NULL DEFAULT 'local_operator',
+    notes TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX IF NOT EXISTS idx_pg_reviews_case ON human_reviews(case_id);
+CREATE INDEX IF NOT EXISTS idx_pg_reviews_state ON human_reviews(review_state);
+
+-- 11. Schema Migrations Log
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    migration_id TEXT PRIMARY KEY,
+    applied_at_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    description TEXT NOT NULL
+);
+
+-- Initial Version Stamp
+INSERT INTO schema_version (version, applied_at, description)
+VALUES (1, NOW(), 'Supabase PostgreSQL initial production schema migration')
+ON CONFLICT (version) DO NOTHING;

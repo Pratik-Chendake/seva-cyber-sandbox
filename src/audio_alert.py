@@ -4,11 +4,11 @@ Offline Audio Alert & Safe Windows Speech Synthesis Module.
 HOW THIS WORKS:
 1. Browser WAV Alert (100% Offline, Cross-Platform):
    Uses Python's built-in wave, math, and struct modules to generate a valid 16-bit PCM
-   .wav audio stream in RAM. Streamlit renders this in an HTML5 <audio> player that works
+   .wav audio stream in RAM. The frontend renders this in an HTML5 <audio> player that works
    on Windows, macOS, and Linux cloud servers without internet access.
 2. Optional Windows Offline TTS (pyttsx3 / SAPI5):
    Runs in an isolated child process (subprocess.run) with an 8-second timeout so Windows COM
-   threading issues inside Streamlit never crash the application.
+   threading issues never crash the main application process.
    Also inspects installed Windows SAPI5 voices to report honestly whether a Marathi/Hindi
    voice pack is installed on the laptop.
 """
@@ -143,7 +143,7 @@ def inspect_installed_tts_voices() -> Dict[str, object]:
 def speak_offline_windows_tts(text_to_speak: str) -> Tuple[bool, str]:
     """
     Speaks text_to_speak aloud using Windows offline SAPI5 (pyttsx3) in a separate subprocess.
-    Never crashes the calling Streamlit thread even if audio hardware or drivers are unavailable.
+    Never crashes the calling application thread even if audio hardware or drivers are unavailable.
     """
     safe_text = re.sub(r"[^a-zA-Z0-9\s.,!?-]", " ", str(text_to_speak or "Alert."))[:300].strip() or "Alert."
     tts_script = (

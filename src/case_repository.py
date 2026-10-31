@@ -6,7 +6,7 @@ DESIGN & SECURITY GUARANTEES:
 2. Configurable Location: Defaults to `instance/seva_cases.sqlite3` or $SEVA_CASE_DB_PATH.
    Parent directories are created automatically and safely.
 3. High-Concurrency Reliability: Uses Write-Ahead Logging (WAL mode), busy timeout (5000 ms),
-   and per-operation connection management ensuring thread safety across Streamlit and webhook workers.
+   and per-operation connection management ensuring thread safety across API and background workers.
 4. Zero Raw Data Retention: Original uploaded APK binaries and raw message texts are
    NEVER persisted. Variable-length evidence indicators are validated JSON.
 5. Privacy-First Redaction: URLs have credentials and authentication query tokens stripped;
