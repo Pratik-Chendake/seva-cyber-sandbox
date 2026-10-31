@@ -12,7 +12,6 @@ from typing import Any, Dict, List
 
 import streamlit as st
 
-import create_sample_apks
 from src.apk_analyzer import MAX_APK_UPLOAD_BYTES, analyze_apk_bytes
 from src.audio_alert import (
     generate_alert_wav_bytes,
@@ -20,17 +19,11 @@ from src.audio_alert import (
     inspect_installed_tts_voices,
     speak_offline_windows_tts,
 )
-from src.ml_classifier import predict_with_local_ml, train_and_evaluate_local_model
+from src.ml_classifier import predict_with_local_ml
 from src.phishing_detector import analyze_message_text
 from src.risk_scorer import score_apk_analysis, score_message_analysis
 from src.scheme_verifier import load_official_sources, verify_scheme_claim
 from src.url_analyzer import analyze_url
-from src.whatsapp_handler import (
-    clear_simulated_outbox,
-    get_simulated_outbox_entries,
-    load_whatsapp_config,
-    process_incoming_webhook_event,
-)
 from src.hybrid_decision_engine import evaluate_message_hybrid
 from src.model_registry import get_default_model_registry
 from src.case_manager import (
@@ -53,32 +46,6 @@ except Exception:
     get_cached_evaluation_report = None
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SAMPLE_MESSAGES_PATH = os.path.join(BASE_DIR, "data", "sample_messages.json")
-SAMPLE_APKS_DIR = os.path.join(BASE_DIR, "sample_apks")
-
-
-def ensure_sample_apks_exist() -> List[str]:
-    """Ensures the 5 safe test files exist in sample_apks/ before rendering the selector."""
-    if not os.path.exists(SAMPLE_APKS_DIR) or not os.listdir(SAMPLE_APKS_DIR):
-        try:
-            create_sample_apks.main()
-        except Exception:
-            pass
-    if not os.path.exists(SAMPLE_APKS_DIR):
-        return []
-    return sorted(f for f in os.listdir(SAMPLE_APKS_DIR) if f.endswith(".apk"))
-
-
-def load_sample_messages() -> List[Dict[str, Any]]:
-    """Safely loads the sample messages dataset from data/sample_messages.json."""
-    if not os.path.exists(SAMPLE_MESSAGES_PATH):
-        return []
-    try:
-        with open(SAMPLE_MESSAGES_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            return data if isinstance(data, list) else []
-    except Exception:
-        return []
 
 
 def render_risk_assessment_panel(
@@ -193,15 +160,14 @@ def main() -> None:
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
                 <span class="editorial-brand-badge">OPERATIONAL NOTICE</span>
                 <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-lime); text-transform:uppercase; letter-spacing:0.06em;">
-                    DEFENSIVE SANDBOX & SIMULATION ENVIRONMENT
+                    LOCAL CYBERSECURITY ANALYSIS PLATFORM
                 </span>
             </div>
             <div style="font-size:0.9rem; line-height:1.5; color:var(--text-primary);">
-                This platform conducts <strong>real static inspection</strong> of Android <code>.apk</code> packages and 
-                <strong>real rule-based + diagnostic ML analysis</strong> of regional vernacular messages in Marathi (Devanagari), Romanized Marathi, Mixed, and English.
+                This platform performs <strong>local static inspection</strong> of Android <code>.apk</code> packages, <strong>local rule-based phishing analysis</strong> of messages in Marathi, Romanized Marathi, Mixed, and English, and <strong>local URL structure analysis</strong>. Analysis is performed entirely on this device. No files or messages are uploaded to external services.
                 <br>
                 <span style="color:var(--text-secondary); font-size:0.82rem; font-family:var(--font-mono);">
-                    [SAFETY BOUNDARIES] 100% Local Execution • Zero Dynamic Execution • Zero External Network Requests • Never Claims 100% Invulnerability
+                    [BOUNDARIES] 100% Local Execution • No External Network Requests • No Dynamic Code Execution • Offline Analysis Only
                 </span>
             </div>
         </div>
@@ -213,9 +179,9 @@ def main() -> None:
         st.markdown(
             """
             <div style="padding-bottom:12px; border-bottom:1px solid var(--border-color); margin-bottom:14px;">
-                <span class="editorial-brand-badge">SEVA // CONTROL</span>
+                <span class="editorial-brand-badge">SEVA // CONTROLS</span>
                 <div style="font-family:var(--font-heading); font-size:1.1rem; font-weight:700; color:var(--text-primary); margin-top:4px;">
-                    SANDBOX TELEMETRY
+                    ANALYSIS CONTROLS
                 </div>
             </div>
             """,
@@ -268,33 +234,35 @@ def main() -> None:
     # =========================================================================
     with tab_phishing:
         st.markdown("<div class='bento-card-label'>01 // MESSAGE INTELLIGENCE ENGINE</div>", unsafe_allow_html=True)
-        st.subheader("WhatsApp Vernacular Phishing Detector (Marathi, Romanized, Mixed & English)")
+        st.subheader("Message Security Analyzer (Marathi, Romanized Marathi, Mixed & English)")
         st.caption(
-            "Simulates a citizen forwarding a suspicious WhatsApp message for instant indicator inspection."
+            "Paste or type a suspicious message for local analysis. English, Marathi (Devanagari), Romanized Marathi, or mixed."
         )
 
-        samples = load_sample_messages()
-        options = ["-- Custom Input (Type or Paste Below) --"] + [
-            f"{item['id'].upper()} [{item['label'].upper()}]: {item['title']} ({item['language']})"
-            for item in samples
-        ]
-        chosen_sample = st.selectbox(
-            "Choose a Safe Fictional Test Message or Select Custom Input:", options
-        )
-
-        initial_text = ""
-        ground_truth = None
-        if chosen_sample != "-- Custom Input (Type or Paste Below) --":
-            sample_idx = options.index(chosen_sample) - 1
-            initial_text = samples[sample_idx]["text"]
-            ground_truth = samples[sample_idx]["label"]
-
-        message_input = st.text_area(
-            "WhatsApp Message Text to Analyze:",
-            value=initial_text,
-            height=130,
-            placeholder="Paste a Marathi (Devanagari), Romanized Marathi, or English message here...",
-        )
+        msg_sub_col1, msg_sub_col2 = st.columns([2, 1])
+        with msg_sub_col1:
+            message_input = st.text_area(
+                "Message Text to Analyze (WhatsApp, SMS, Email, Social Media):",
+                value="",
+                height=130,
+                placeholder="Paste a Marathi (Devanagari), Romanized Marathi, Mixed, or English message here...",
+                key="msg_text_input",
+            )
+        with msg_sub_col2:
+            uploaded_txt = st.file_uploader(
+                "Or import exported text file (.txt):",
+                type=["txt"],
+                key="msg_file_upload",
+                help="Upload an exported WhatsApp chat or message text file for local static inspection.",
+            )
+            if uploaded_txt is not None:
+                try:
+                    file_content = uploaded_txt.getvalue().decode("utf-8", errors="replace")
+                    if file_content.strip() and not message_input.strip():
+                        message_input = file_content.strip()
+                        st.info(f"Loaded message ({len(message_input)} chars) from `{uploaded_txt.name}`.")
+                except Exception as txt_err:
+                    st.error(f"Failed to read text file: {txt_err}")
 
         training_consent_opt_in = st.checkbox(
             "🔒 Opt-in: Allow anonymous Machine Learning feature extraction for future model improvement",
@@ -315,8 +283,6 @@ def main() -> None:
             else:
                 scored_msg = score_message_analysis(msg_res)
                 st.markdown(f"<span class='tech-pill tech-pill-lime'>SCRIPT: {msg_res['script_detected']}</span>", unsafe_allow_html=True)
-                if ground_truth:
-                    st.caption(f"Sample Dataset Ground-Truth Category: **{ground_truth.upper()}**")
 
                 if msg_res.get("context_only_suppressed"):
                     st.success(
@@ -434,58 +400,14 @@ def main() -> None:
                         st.warning(f"Optional ML baseline unavailable: {ml_out.get('error')}")
 
         st.markdown("---")
-        with st.expander("📱 WhatsApp Business Platform (Cloud API) Integration & Webhook Simulator", expanded=False):
-            wa_cfg = load_whatsapp_config()
-            st.markdown(f"##### ⚙️ Webhook Status: `{'LIVE META CLOUD API' if wa_cfg['mode'] == 'live' else 'STANDBY / SIMULATION MODE'}`")
-            st.caption(
-                "Allows citizens to forward suspicious WhatsApp messages directly to a verified WhatsApp Business helpline bot. "
-                "Runs in offline simulation mode until real Meta credentials are provided in `.env`."
+        with st.expander("📱 WhatsApp Integration — Current Status", expanded=False):
+            st.info(
+                "**WhatsApp Integration is not currently active.**\n\n"
+                "This application performs local analysis only. Messages can be submitted manually by pasting them into the text area above.\n\n"
+                "A future WhatsApp integration would require registering a verified WhatsApp Business Account and configuring Meta Cloud API credentials. "
+                "No unofficial scraping is implemented or planned.\n\n"
+                "**To report real cyber fraud:** Call **1930** or file a complaint at https://cybercrime.gov.in"
             )
-            c_w1, c_w2 = st.columns(2)
-            c_w1.write(f"**Verify Token Configured:** `{wa_cfg['verify_token']}`")
-            c_w1.write(f"**Live Meta Credentials Found?:** `{'Yes' if wa_cfg['has_live_credentials'] else 'No (Using Simulation Outbox)'}`")
-            c_w2.write("**Local Webhook URL:** `http://localhost:8000/webhook`")
-            c_w2.write("**CLI Server Runner:** `python src/whatsapp_webhook.py --port 8000`")
-
-            st.markdown("###### 🧪 Test Incoming WhatsApp Webhook Callback (Simulated Ingress):")
-            sim_text = st.text_input(
-                "Simulated Inbound WhatsApp Message:",
-                value="प्रिय ग्राहक, तुमचे महावितरण वीज बिल अपडेट झालेले नाही. तात्काळ MSEDCL_Bill.apk डाउनलोड करा किंवा OTP सांगा.",
-                key="sim_wa_msg_input",
-            )
-            if st.button("📲 Simulate WhatsApp Webhook Ingress Event", key="btn_sim_wa"):
-                import json as _json
-                import time as _time
-                mock_payload = _json.dumps({
-                    "object": "whatsapp_business_account",
-                    "entry": [
-                        {
-                            "changes": [
-                                {
-                                    "value": {
-                                        "messages": [
-                                            {
-                                                "from": "919822000000",
-                                                "id": "wamid.sim_" + str(int(_time.time() * 1000)),
-                                                "type": "text",
-                                                "text": {"body": sim_text},
-                                            }
-                                        ]
-                                    }
-                                }
-                            ]
-                        }
-                    ],
-                }).encode("utf-8")
-
-                wa_res = process_incoming_webhook_event(mock_payload, case_store=st.session_state.case_store)
-                st.success("✅ Inbound Webhook Callback Processed (HTTP 200 OK — Idempotent)")
-
-                outbox = get_simulated_outbox_entries()
-                if outbox:
-                    latest_reply = outbox[-1]
-                    st.markdown("**Outbound WhatsApp Reply (Dispatched to Citizen's Phone Screen):**")
-                    st.code(latest_reply["message_text"])
 
     # =========================================================================
     # TAB 2: APK STATIC SECURITY ANALYZER
@@ -497,38 +419,19 @@ def main() -> None:
             f"Inspects `.apk` archives up to {MAX_APK_UPLOAD_BYTES // (1024 * 1024)} MB in memory without installing or executing code."
         )
 
-        apk_source_mode = st.radio(
-            "Select APK Source:",
-            [
-                "Use Pre-Generated Safe Test Files (Synthetic Fixtures & Binary AXML Sample)",
-                "Upload an .APK File from Computer",
-            ],
-            horizontal=True,
-        )
-
         apk_bytes = None
         apk_filename = ""
 
-        if apk_source_mode.startswith("Use Pre-Generated"):
-            sample_files = ensure_sample_apks_exist()
-            if not sample_files:
-                st.error("No files found in `sample_apks/`. Run `python create_sample_apks.py`.")
-            else:
-                selected_apk_name = st.selectbox(
-                    "Select a Safe Test File from `sample_apks/`:", sample_files
-                )
-                sample_path = os.path.join(SAMPLE_APKS_DIR, selected_apk_name)
-                with open(sample_path, "rb") as f:
-                    apk_bytes = f.read()
-                apk_filename = selected_apk_name
-        else:
-            uploaded_file = st.file_uploader(
-                "Upload an .apk file for static inspection (Max 15 MB)",
-                type=["apk", "zip", "txt"],
-            )
-            if uploaded_file is not None:
-                apk_bytes = uploaded_file.getvalue()
-                apk_filename = uploaded_file.name
+        uploaded_file = st.file_uploader(
+            "Upload an .apk file for local static inspection (Max 15 MB)",
+            type=["apk"],  # only accept .apk, not zip/txt
+        )
+        if uploaded_file is not None:
+            apk_bytes = uploaded_file.getvalue()
+            apk_filename = uploaded_file.name
+
+        if apk_bytes is None:
+            st.info("Upload an .apk file above to begin static analysis. No file has been submitted yet.")
 
         if apk_bytes is not None and st.button(
             "🔬 Inspect APK Package Statically", type="primary", key="run_apk_btn"
@@ -620,45 +523,13 @@ def main() -> None:
             "and IP addresses 100% offline without ever opening or contacting the target server."
         )
 
-        st.markdown("##### 📌 Test with a Real-World Scam Scenario or Enter Custom URL:")
-        sample_urls = [
-            "-- Enter Custom URL Below --",
-            "MSEDCL Lookalike Phishing Link: http://msedcl-bill-update-maharashtra.xyz/quick-pay",
-            "Bank KYC Expiry Lure: http://sbi-kyc-maharashtra-update.top/login?action=verify-otp",
-            "Masked URL Shortener: https://bit.ly/3xY8zMsedclPay",
-            "Internal Network Target / SSRF Probe: http://192.168.1.1/admin/router-setup",
-            "Punycode Homoglyph Domain: http://xn--sbi-8ka.com/netbanking",
-            "Direct APK File Download Link: http://utility-update-host.com/files/MSEDCL_Bill_Helper.apk",
-            "Official Maharashtra Government Portal: https://ladakibahin.maharashtra.gov.in/",
-        ]
-        chosen_sample_url = st.selectbox(
-            "Choose a Safe Pre-Set URL Fixture or Select Custom Input:",
-            sample_urls,
-            key="url_sample_selector",
-        )
-
-        initial_url_val = ""
-        if "MSEDCL Lookalike" in chosen_sample_url:
-            initial_url_val = "http://msedcl-bill-update-maharashtra.xyz/quick-pay"
-        elif "Bank KYC Expiry" in chosen_sample_url:
-            initial_url_val = "http://sbi-kyc-maharashtra-update.top/login?action=verify-otp"
-        elif "Masked URL Shortener" in chosen_sample_url:
-            initial_url_val = "https://bit.ly/3xY8zMsedclPay"
-        elif "Internal Network" in chosen_sample_url:
-            initial_url_val = "http://192.168.1.1/admin/router-setup"
-        elif "Punycode Homoglyph" in chosen_sample_url:
-            initial_url_val = "http://xn--sbi-8ka.com/netbanking"
-        elif "Direct APK File" in chosen_sample_url:
-            initial_url_val = "http://utility-update-host.com/files/MSEDCL_Bill_Helper.apk"
-        elif "Official Maharashtra" in chosen_sample_url:
-            initial_url_val = "https://ladakibahin.maharashtra.gov.in/"
-
+        st.markdown("##### 📌 Enter a suspicious URL for local static analysis:")
         url_input_text = st.text_input(
-            "Enter or Paste Suspicious URL to Inspect:",
-            value=initial_url_val,
-            placeholder="e.g., http://msedcl-bill-online.xyz/pay or https://bit.ly/3example",
+            "Enter or paste a suspicious URL to inspect:",
+            value="",
+            placeholder="e.g., http://suspicious-link.xyz/pay or https://bit.ly/example",
             key="url_analyzer_input",
-            help="STRICT SECURITY: The sandbox analyzes domain and protocol structure passively and NEVER connects to user URLs.",
+            help="STRICT SECURITY: The sandbox analyzes domain and protocol structure passively and NEVER connects to submitted URLs.",
         )
 
         if st.button("🔬 Analyze URL Statically", type="primary", key="run_url_btn"):
@@ -769,49 +640,21 @@ def main() -> None:
         if not scheme_registry.get("is_valid"):
             st.error(f"Official registry notice: {scheme_registry.get('error')}")
 
-        st.markdown("##### 📌 Quick-Fill Test Scenarios:")
-        sample_claims = [
-            "-- Enter Custom Scheme Claim Below --",
-            "Scam Lure: 'Register through this WhatsApp link to receive ₹3,000 under Mukhyamantri Majhi Ladki Bahin Yojana' (Amount mismatch & fake link)",
-            "Official Notice: 'मुख्यमंत्री माझी लाडकी बहीण योजनेअंतर्गत दरमहा ₹१,५०० चा थेट लाभ अधिकृत पोर्टल ladakibahin.maharashtra.gov.in वर मिळतो' (Genuine)",
-            "Scam Lure: 'Namo Shetkari Yojana ₹10,000 release fee - pay ₹500 advance to receive money' (Fraudulent fee demand)",
-            "Unverified Claim: 'Maharashtra Free Laptop Yojana 2026: All college students get a free laptop via registration' (Unindexed / Insufficient evidence)",
-        ]
-        selected_scheme_sample = st.selectbox(
-            "Choose a Safe Fictional Test Scenario or Enter Custom Text:",
-            sample_claims,
-            key="scheme_sample_selector",
-        )
-
-        preset_claim = ""
-        preset_url = ""
-        if "Ladki Bahin Yojana' (Amount mismatch" in selected_scheme_sample:
-            preset_claim = "Register through this WhatsApp link to receive ₹3,000 under Mukhyamantri Majhi Ladki Bahin Yojana."
-            preset_url = "http://ladki-bahin-apply-fast.xyz/register"
-        elif "लाडकी बहीण योजनेअंतर्गत दरमहा ₹१,५००" in selected_scheme_sample:
-            preset_claim = "मुख्यमंत्री माझी लाडकी बहीण योजनेअंतर्गत पात्र महिलांना दरमहा ₹१,५०० चा थेट लाभ अधिकृत पोर्टलद्वारे दिला जातो."
-            preset_url = "https://ladakibahin.maharashtra.gov.in/"
-        elif "Namo Shetkari Yojana ₹10,000" in selected_scheme_sample:
-            preset_claim = "नमो शेतकरी महासन्मान निधी योजनेचे ₹१०,००० तात्काळ मिळवण्यासाठी ₹५०० रजिस्ट्रेशन फी भरा."
-            preset_url = "http://namo-shetkari-advance.top"
-        elif "Free Laptop Yojana" in selected_scheme_sample:
-            preset_claim = "Maharashtra Golden Citizen Free Laptop Yojana 2026: All college students get a free laptop."
-            preset_url = ""
-
+        st.markdown("##### 📌 Enter a Government Scheme Claim or Forwarded Announcement to Verify:")
         c_claim, c_url = st.columns([2, 1])
         with c_claim:
             scheme_claim_input = st.text_area(
-                "Paste Suspicious Scheme Claim or WhatsApp Announcement:",
-                value=preset_claim,
+                "Paste Government Scheme Claim or WhatsApp Forward to Verify:",
+                value="",
                 height=110,
-                placeholder="e.g., Register through this WhatsApp link to receive ₹3,000 under a Maharashtra government scheme...",
+                placeholder="e.g., Paste a forwarded WhatsApp message or claim regarding a Maharashtra state welfare scheme...",
                 key="scheme_claim_area",
             )
         with c_url:
             scheme_url_input = st.text_input(
-                "Optional Suspicious Link (Analyzed PASSIVELY without opening):",
-                value=preset_url,
-                placeholder="e.g., http://ladki-bahin-update.xyz/apply",
+                "Optional Scheme Link (Analyzed PASSIVELY without opening):",
+                value="",
+                placeholder="e.g., https://example-portal.maharashtra.gov.in",
                 key="scheme_url_field",
                 help="STRICT SECURITY: The sandbox analyzes domain and protocol structure passively and NEVER connects to user URLs.",
             )
@@ -1163,30 +1006,6 @@ def main() -> None:
                 st.rerun()
 
             st.markdown("---")
-
-        # ---------------------------------------------------------------------
-        # SECTION 3: LEGACY 20-SAMPLE DEMONSTRATION BASELINE
-        # ---------------------------------------------------------------------
-        st.markdown("#### 🧪 Legacy 20-Sample Educational Baseline (data/sample_messages.json)")
-        eval_bundle = train_and_evaluate_local_model()
-
-        if not eval_bundle.get("is_available"):
-            st.warning(f"Legacy demonstration baseline status: {eval_bundle.get('error')}")
-        else:
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Demo Corpus", f"{eval_bundle['total_samples']} samples")
-            m2.metric("5-Fold CV Accuracy", f"{eval_bundle.get('cross_validation_accuracy_pct', 'N/A')}%")
-            m3.metric("5-Fold CV F1", f"{eval_bundle.get('cross_validation_f1_pct', 'N/A')}%")
-            m4.metric("Holdout Test Accuracy", f"{eval_bundle['test_accuracy_pct']}%")
-
-            st.table(
-                [
-                    {"Metric": "True Positives (Phishing Correctly Flagged)", "Count": eval_bundle["true_positives"]},
-                    {"Metric": "True Negatives (Legitimate Correctly Cleared)", "Count": eval_bundle["true_negatives"]},
-                    {"Metric": "False Positives (Legitimate Wrongly Flagged)", "Count": eval_bundle["false_positives"]},
-                    {"Metric": "False Negatives (Phishing Missed)", "Count": eval_bundle["false_negatives"]},
-                ]
-            )
 
         st.markdown("---")
         st.markdown("#### 🛡️ Summary of Responsible AI & Security Boundaries")

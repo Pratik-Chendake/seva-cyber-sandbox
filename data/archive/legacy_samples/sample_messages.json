@@ -1,0 +1,142 @@
+[
+  {
+    "id": "msg_01",
+    "title": "Marathi: Fake MSEDCL Electricity Disconnection + APK Lure",
+    "language": "Marathi (Devanagari)",
+    "label": "phishing",
+    "text": "प्रिय ग्राहक, तुमचे चालू महिन्याचे महावितरण (MSEDCL) वीज बिल अपडेट झालेले नाही. आज रात्री ९:३० वाजता तुमचे वीज कनेक्शन बंद केले जाईल. तात्काळ खालील MSEDCL_Bill_Support.apk फाईल डाउनलोड करा किंवा 9800000000 वर संपर्क साधा."
+  },
+  {
+    "id": "msg_02",
+    "title": "Romanized Marathi: Bank KYC Expiry & OTP Request",
+    "language": "Romanized Marathi",
+    "label": "phishing",
+    "text": "Mahatwachi suchana: Tumche SBI bank khate aaj block honar aahe karan PAN KYC pending aahe. Lagech http://sbi-kyc-maharashtra-update.xyz ya link var click karun tumcha OTP aani ATM PIN takun khate chalu theva."
+  },
+  {
+    "id": "msg_03",
+    "title": "Mixed Marathi-English: Welfare Scheme (Ladki Bahin / PM-Kisan) APK Lure",
+    "language": "Mixed Marathi-English",
+    "label": "phishing",
+    "text": "अभिनंदन! मुख्यमंत्री लाडकी बहीण योजना आणि PM-Kisan हप्ता ₹3000 तुमच्या खात्यात जमा करण्यासाठी e-KYC करणे आवश्यक आहे. आताच Yojna_KYC_Form.apk install करा आणि UPI PIN टाका."
+  },
+  {
+    "id": "msg_04",
+    "title": "English: Pune RTO e-Challan APK Lure",
+    "language": "English",
+    "label": "phishing",
+    "text": "URGENT ALERT: Vehicle MH-12 traffic violation e-Challan of Rs 2000 is pending. Pay immediately within 2 hours to avoid court warrant. Download RTO_Challan_Receipt.apk or visit http://echallan-parivahan-pay.top"
+  },
+  {
+    "id": "msg_05",
+    "title": "Marathi: Fake Cashback / Lottery UPI PIN Trap",
+    "language": "Marathi (Devanagari)",
+    "label": "phishing",
+    "text": "तुम्हाला ₹१५,००० कॅशबॅक बक्षीस मिळाले आहे! पैसे बँक खात्यात जमा करण्यासाठी Google Pay उघडा आणि तुमचा 4-अंकी UPI PIN टाका. लिंक: http://reward-claim-fast.click"
+  },
+  {
+    "id": "msg_06",
+    "title": "Romanized Marathi: Part-Time Job / Paid Task Scam",
+    "language": "Romanized Marathi",
+    "label": "phishing",
+    "text": "Ghara baslya darroj 5000 te 8000 rupaye kamva! Fakt YouTube video like kara. Registration sathi 500 rupaye fee pathva aani http://daily-income-task.xyz var login kara."
+  },
+  {
+    "id": "msg_07",
+    "title": "Marathi: Fake Courier / Customs Parcel Arrest Threat",
+    "language": "Marathi (Devanagari)",
+    "label": "phishing",
+    "text": "तातडीची सूचना: तुमच्या नावाचे पार्सल मुंबई कस्टम विभागाने पकडले आहे. अटक टाळण्यासाठी ताबडतोब व्हिडिओ कॉलवर आधार कार्ड आणि बँक OTP व्हेरिफाय करा."
+  },
+  {
+    "id": "msg_08",
+    "title": "English: Fake Electricity Bill Refund Link",
+    "language": "English",
+    "label": "phishing",
+    "text": "Dear consumer, you have an overpaid electricity bill refund of Rs 1,450. Click http://mahavitaran-refund-claim.xyz and enter your netbanking password and OTP to receive instant credit."
+  },
+  {
+    "id": "msg_09",
+    "title": "Mixed Marathi-English: Fake 5G SIM Deactivation APK Lure",
+    "language": "Mixed Marathi-English",
+    "label": "phishing",
+    "text": "तुमचे SIM card आज 24 तासात बंद होईल कारण Aadhaar eKYC अपूर्ण आहे. चालू ठेवण्यासाठी 5G_SIM_KYC.apk डाउनलोड करा आणि आलेला OTP कस्टमर केअरला सांगा."
+  },
+  {
+    "id": "msg_10",
+    "title": "Romanized Marathi: Fake MSEDCL Meter Disconnect Threat",
+    "language": "Romanized Marathi",
+    "label": "phishing",
+    "text": "Tumche light bill update zale nahi. Aaj ratri 9 vajta meter line cut hoil. Tatkal Mahavitaran_QuickPay.apk download kara aani OTP sanga."
+  },
+  {
+    "id": "msg_11",
+    "title": "Legitimate Marathi: Official Style MSEDCL Bill Reminder (No Link/OTP)",
+    "language": "Marathi (Devanagari)",
+    "label": "legitimate",
+    "text": "महावितरण सूचना: ग्राहक क्र. 170012345678 चे ऑक्टोबर २०२६ चे वीज बिल ₹८४० आहे. देय तारीख २५/१०/२०२६ आहे. कृपया महावितरणच्या अधिकृत वेबसाइट किंवा अधिकृत महावितरण ॲपवरूनच भरणा करावा."
+  },
+  {
+    "id": "msg_12",
+    "title": "Legitimate Romanized Marathi: College Lab Assignment Reminder",
+    "language": "Romanized Marathi",
+    "label": "legitimate",
+    "text": "Mitra, udya sakali 10 vajta engineering graphics lab madhe assignment submit karaychi aahe. Kripaya notebook aani ID card sobat aana."
+  },
+  {
+    "id": "msg_13",
+    "title": "Legitimate English: Bank Security Advisory (Warning Not to Share OTP)",
+    "language": "English",
+    "label": "legitimate",
+    "text": "Dear Customer, your bank never asks for your OTP, UPI PIN, CVV, or password over phone calls, SMS, or WhatsApp. Do not download unknown .apk files shared in chat groups."
+  },
+  {
+    "id": "msg_14",
+    "title": "Legitimate Marathi: Family Discussion About Paying Electricity Bill",
+    "language": "Marathi (Devanagari)",
+    "label": "legitimate",
+    "text": "आई, मी कॉलेजमधून संध्याकाळी ७ वाजता घरी येईन. येताना भाजी आणि दूध आणतो, तसेच आज आपले वीज बिल अधिकृत केंद्रावर भरून येतो."
+  },
+  {
+    "id": "msg_15",
+    "title": "Legitimate Mixed: Hostel Mess Fee Receipt Notice",
+    "language": "Mixed Marathi-English",
+    "label": "legitimate",
+    "text": "सर्व विद्यार्थ्यांना कळवण्यात येते की ऑक्टोबर महिन्याची hostel mess receipt ऑफिसमध्ये उपलब्ध आहे. दुपारी २ ते ४ दरम्यान कलेक्ट करावी."
+  },
+  {
+    "id": "msg_16",
+    "title": "Legitimate English: College Library Book Return Notice",
+    "language": "English",
+    "label": "legitimate",
+    "text": "Library Notice: The textbook 'Robotics and Automation Engineering' checked out on your student ID is due for return on Friday. Please renew it at the library counter."
+  },
+  {
+    "id": "msg_17",
+    "title": "Legitimate Marathi: Gram Panchayat Gram Sabha Meeting Notice",
+    "language": "Marathi (Devanagari)",
+    "label": "legitimate",
+    "text": "ग्रामपंचायत सूचना: येत्या रविवारी सकाळी ११ वाजता ग्रामपंचायत कार्यालयात ग्रामसभेचे आयोजन करण्यात आले आहे. सर्व ग्रामस्थांनी उपस्थित राहावे."
+  },
+  {
+    "id": "msg_18",
+    "title": "Legitimate Romanized Marathi: Project Team Meeting Update",
+    "language": "Romanized Marathi",
+    "label": "legitimate",
+    "text": "Aapli robotics club meeting aaj sandhyakali 5 vajta seminar hall madhe aahe. Sarvanni veles upasthit rahave."
+  },
+  {
+    "id": "msg_19",
+    "title": "Legitimate Marathi: Cyber Awareness Advisory (Do Not Share OTP)",
+    "language": "Marathi (Devanagari)",
+    "label": "legitimate",
+    "text": "सायबर सुरक्षा सूचना: आपला बँक ओटीपी कोणालाही सांगू नका आणि व्हॉट्सॲपवर आलेली अनोळखी apk डाउनलोड करू नका."
+  },
+  {
+    "id": "msg_20",
+    "title": "Legitimate English: Scholarship Portal Document Verification Schedule",
+    "language": "English",
+    "label": "legitimate",
+    "text": "Student Notice: Physical verification of scholarship application forms will take place at the college administrative office between 10 AM and 1 PM tomorrow."
+  }
+]
