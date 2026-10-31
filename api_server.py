@@ -15,6 +15,26 @@ import json
 import os
 import sys
 import time
+
+# Auto-detect and switch to virtual environment if current interpreter lacks FastAPI/Uvicorn
+try:
+    import fastapi
+    import uvicorn
+except ImportError:
+    _base_dir = os.path.dirname(os.path.abspath(__file__))
+    _candidates = [
+        os.path.join(_base_dir, "venv", "Scripts", "python.exe"),
+        os.path.join(_base_dir, ".venv", "Scripts", "python.exe"),
+        os.path.join(_base_dir, "venv", "bin", "python"),
+        os.path.join(_base_dir, ".venv", "bin", "python"),
+    ]
+    for _cand in _candidates:
+        if os.path.isfile(_cand) and os.path.normcase(_cand) != os.path.normcase(sys.executable):
+            import subprocess
+            _args = sys.argv if sys.argv and sys.argv[0] != "-c" else [os.path.abspath(__file__)]
+            _res = subprocess.run([_cand, *_args])
+            sys.exit(_res.returncode)
+    raise
 from collections import defaultdict
 from threading import Lock
 from typing import Any, Dict, List, Optional
@@ -1045,4 +1065,5 @@ if os.path.isdir(frontend_dist):
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("api_server:app", host="0.0.0.0", port=port, reload=False)
+    host = os.environ.get("HOST", "127.0.0.1")
+    uvicorn.run("api_server:app", host=host, port=port, reload=False)
