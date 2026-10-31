@@ -1,7 +1,11 @@
-import React from 'react';
-import { SecurityCore3D } from '../3d/SecurityCore3D';
+import React, { Suspense } from 'react';
+import { ThreeLoadingFallback } from '../common/ThreeLoadingFallback';
 import { Shield, ArrowRight, Database, Cpu, Lock, CheckCircle2 } from 'lucide-react';
 import { HealthResponse } from '../../types';
+
+const SecurityCore3D = React.lazy(() =>
+  import('../3d/SecurityCore3D').then((m) => ({ default: m.SecurityCore3D }))
+);
 
 interface HeroSectionProps {
   health?: HealthResponse | null;
@@ -99,7 +103,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           {/* Right Column: 3D Interactive Security Core */}
           <div className="lg:col-span-5 flex justify-center items-center">
             <div className="w-full max-w-lg aspect-square">
-              <SecurityCore3D onSelectCore={onOpenPhishing} />
+              <Suspense fallback={<ThreeLoadingFallback label="Loading Security Core 3D..." />}>
+                <SecurityCore3D onSelectCore={onOpenPhishing} />
+              </Suspense>
             </div>
           </div>
         </div>

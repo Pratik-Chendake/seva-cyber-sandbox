@@ -1,9 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { NeuralLattice3D } from '../3d/NeuralLattice3D';
+import React, { useEffect, useState, Suspense } from 'react';
+import { ThreeLoadingFallback } from '../common/ThreeLoadingFallback';
 import { GlassCard } from '../common/GlassCard';
 import { apiClient } from '../../services/api';
 import { AiTelemetryResponse } from '../../types';
 import { Cpu, ShieldCheck, Lock, Activity, Sparkles, AlertCircle, BarChart3, CheckCircle2 } from 'lucide-react';
+
+const NeuralLattice3D = React.lazy(() =>
+  import('../3d/NeuralLattice3D').then((m) => ({ default: m.NeuralLattice3D }))
+);
 
 export const AiLabSection: React.FC = () => {
   const [telemetry, setTelemetry] = useState<AiTelemetryResponse | null>(null);
@@ -77,7 +81,9 @@ export const AiLabSection: React.FC = () => {
 
             {/* Canvas */}
             <div className="relative rounded-lg bg-porcelain/60 border border-soft-stone/40 overflow-hidden">
-              <NeuralLattice3D operatingMode={telemetry?.operating_mode || 'shadow'} />
+              <Suspense fallback={<ThreeLoadingFallback label="Loading Neural Lattice 3D..." className="w-full h-[360px]" />}>
+                <NeuralLattice3D operatingMode={telemetry?.operating_mode || 'shadow'} />
+              </Suspense>
               <div className="absolute bottom-3 left-3 right-3 flex justify-between items-center text-[10px] text-slate-grey bg-white/70 backdrop-blur-sm px-3 py-1.5 rounded border border-soft-stone/40">
                 <span>Input: 64 Tokenized Lexical & Heuristic Features</span>
                 <span>Layers: [64 &rarr; 128 &rarr; 64 &rarr; 3]</span>

@@ -1,9 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { ThreatNetwork3D } from '../3d/ThreatNetwork3D';
+import React, { useEffect, useState, Suspense } from 'react';
+import { ThreeLoadingFallback } from '../common/ThreeLoadingFallback';
 import { apiClient } from '../../services/api';
 import type { ThreatGraphResponse, ThreatNode } from '../../types';
 import { GlassCard } from '../common/GlassCard';
 import { Network, RefreshCw, Info } from 'lucide-react';
+
+const ThreatNetwork3D = React.lazy(() =>
+  import('../3d/ThreatNetwork3D').then((m) => ({ default: m.ThreatNetwork3D }))
+);
 
 export const ThreatNetworkSection: React.FC = () => {
   const [graphData, setGraphData] = useState<ThreatGraphResponse | null>(null);
@@ -132,7 +136,9 @@ export const ThreatNetworkSection: React.FC = () => {
         </div>
 
         <div className="relative">
-          <ThreatNetwork3D graphData={graphData} onSelectNode={(node) => setSelectedNode(node)} />
+          <Suspense fallback={<ThreeLoadingFallback label="Loading 3D Threat Topology Network..." className="w-full h-[520px]" />}>
+            <ThreatNetwork3D graphData={graphData} onSelectNode={(node) => setSelectedNode(node)} />
+          </Suspense>
 
           {/* Node Inspect Drawer Overlay */}
           {selectedNode && (

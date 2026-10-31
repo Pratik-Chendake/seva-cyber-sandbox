@@ -124,6 +124,11 @@ def test_cases_list_endpoint(client):
 
 
 def test_create_and_patch_case(client):
+    # Setup and authenticate operator
+    client.post("/api/auth/setup-admin", json={"username": "case_patcher", "password": "ComplexPassword123#!"})
+    login_res = client.post("/api/auth/login", json={"username": "case_patcher", "password": "ComplexPassword123#!"})
+    token = login_res.json()["session_token"]
+
     new_case = {
         "analysis_type": "Message Threat Analysis",
         "target_identifier": "MSEDCL SMS Phishing Alert",
@@ -139,7 +144,11 @@ def test_create_and_patch_case(client):
     case_id = created_data["case_id"]
 
     # Patch case
-    patch_resp = client.patch(f"/api/cases/{case_id}", json={"reviewer": "senior_analyst", "notes": "Verified threat"})
+    patch_resp = client.patch(
+        f"/api/cases/{case_id}",
+        json={"reviewer": "senior_analyst", "notes": "Verified threat"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
     assert patch_resp.status_code == 200
 
 
@@ -185,6 +194,20 @@ def test_privacy_status_and_sanitize(client):
 
 
 def test_evidence_storage_upload_and_retrieve(client):
+    # Setup operator for authorized retrieval
+    setup_res = client.post(
+        "/api/auth/setup-admin",
+        json={"username": "evidence_admin", "password": "SecurePassword123#!"},
+    )
+    assert setup_res.status_code == 200
+    login_res = client.post(
+        "/api/auth/login",
+        json={"username": "evidence_admin", "password": "SecurePassword123#!"},
+    )
+    assert login_res.status_code == 200
+    token = login_res.json()["session_token"]
+    auth_header = {"Authorization": f"Bearer {token}"}
+
     blob_content = b"%PDF-1.4 Fake Evidence Document for Testing"
     files = {"file": ("test_report.pdf", io.BytesIO(blob_content), "application/pdf")}
     upload_resp = client.post("/api/storage/upload", files=files, data={"artifact_type": "pdf"})
@@ -193,42 +216,127 @@ def test_evidence_storage_upload_and_retrieve(client):
     assert "storage_key" in upload_data
     storage_key = upload_data["storage_key"]
 
-    # Retrieve stored blob
-    get_resp = client.get(f"/api/storage/evidence/{storage_key}")
+    # 1. Unauthenticated retrieval must be rejected with 401 Unauthorized
+    unauth_resp = client.get(f"/api/storage/evidence/{storage_key}")
+    assert unauth_resp.status_code == 401
+
+    # 2. Authenticated retrieval must succeed with security headers
+    get_resp = client.get(f"/api/storage/evidence/{storage_key}", headers=auth_header)
     assert get_resp.status_code == 200
     assert get_resp.content == blob_content
+    assert "attachment" in get_resp.headers.get("Content-Disposition", "")
+    assert get_resp.headers.get("X-Content-Type-Options") == "nosniff"
+
+    # 3. Path traversal attack must be blocked with 400
+    bad_resp = client.get("/api/storage/evidence/../../etc/passwd", headers=auth_header)
+    assert bad_resp.status_code in (400, 404)
+
+    # 4. Invalid file signature upload must be rejected with 400
+    fake_apk = b"CORRUPTED_TEXT_NOT_A_ZIP"
+    bad_upload = client.post(
+        "/api/storage/upload",
+        files={"file": ("fake.apk", io.BytesIO(fake_apk), "application/vnd.android.package-archive")},
+        data={"artifact_type": "apk"},
+    )
+    assert bad_upload.status_code == 400
+    assert "Invalid file signature" in bad_upload.json()["detail"]
 
 
 def test_operator_auth_lifecycle(client):
-    # Test unauthenticated /me
+    # 1. Test unauthenticated /me
     me_resp = client.get("/api/auth/me")
     assert me_resp.status_code == 200
     assert me_resp.json()["authenticated"] is False
 
-    # Login
+    # 2. Attempt login before admin exists -> must fail with 401 (NO auto-registration)
+    early_login = client.post("/api/auth/login", json={"username": "operator_lead", "password": "ComplexPassword123#!"})
+    assert early_login.status_code == 401
+
+    # 3. Provision first admin via setup-admin endpoint
+    setup_resp = client.post("/api/auth/setup-admin", json={"username": "operator_lead", "password": "ComplexPassword123#!"})
+    assert setup_resp.status_code == 200
+    assert setup_resp.json()["status"] == "admin_created"
+
+    # 4. Secondary setup-admin attempt must be locked out with 403 Forbidden
+    second_setup = client.post("/api/auth/setup-admin", json={"username": "rogue_admin", "password": "RoguePassword123#!"})
+    assert second_setup.status_code == 403
+    assert "locked" in second_setup.json()["detail"].lower()
+
+    # 5. Login with provisioned credentials
     login_resp = client.post("/api/auth/login", json={"username": "operator_lead", "password": "ComplexPassword123#!"})
     assert login_resp.status_code == 200
     token = login_resp.json()["session_token"]
     assert token is not None
 
-    # Authenticated /me
+    # 6. Authenticated /me
     auth_me_resp = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert auth_me_resp.status_code == 200
     assert auth_me_resp.json()["authenticated"] is True
     assert auth_me_resp.json()["username"] == "operator_lead"
 
-    # Logout
+    # 7. Logout
     logout_resp = client.post("/api/auth/logout", headers={"Authorization": f"Bearer {token}"})
     assert logout_resp.status_code == 200
 
-    # Bad credentials login must fail with 401
+    # 8. Bad credentials login must fail with 401
     bad_login = client.post("/api/auth/login", json={"username": "operator_lead", "password": "WrongPassword!999"})
     assert bad_login.status_code == 401
     assert "detail" in bad_login.json()
 
-    # Post-logout /me
+    # 9. Post-logout /me
     post_me_resp = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert post_me_resp.json()["authenticated"] is False
+
+
+def test_case_authorization_and_patching(client):
+    # Setup admin
+    client.post("/api/auth/setup-admin", json={"username": "case_officer", "password": "SecurePassword123#!"})
+    login_res = client.post("/api/auth/login", json={"username": "case_officer", "password": "SecurePassword123#!"})
+    token = login_res.json()["session_token"]
+    auth_header = {"Authorization": f"Bearer {token}"}
+
+    # Create a case
+    create_resp = client.post(
+        "/api/cases",
+        json={
+            "analysis_type": "phishing",
+            "target_identifier": "test-bank.xyz",
+            "risk_score": 85,
+            "risk_category": "MALICIOUS",
+            "badge_color": "red",
+        },
+    )
+    assert create_resp.status_code == 200
+    case_id = create_resp.json()["case_id"]
+
+    # 1. Unauthenticated PATCH must fail with 401
+    patch_unauth = client.patch(f"/api/cases/{case_id}", json={"notes": "Unapproved edit"})
+    assert patch_unauth.status_code == 401
+
+    # 2. Authenticated operator PATCH must succeed
+    patch_auth = client.patch(
+        f"/api/cases/{case_id}",
+        json={"notes": "Investigated and verified malicious intent.", "reviewer": "case_officer"},
+        headers=auth_header,
+    )
+    assert patch_auth.status_code == 200
+    assert patch_auth.json()["status"] == "updated"
+
+    # 3. GET case details
+    get_res = client.get(f"/api/cases/{case_id}")
+    assert get_res.status_code == 200
+    assert get_res.json()["case"]["case_id"] == case_id
+
+
+def test_security_headers_enforcement(client):
+    res = client.get("/api/health")
+    assert res.status_code == 200
+    headers = res.headers
+    assert headers.get("X-Content-Type-Options") == "nosniff"
+    assert headers.get("X-Frame-Options") == "DENY"
+    assert headers.get("X-XSS-Protection") == "1; mode=block"
+    assert "strict-origin" in headers.get("Referrer-Policy", "")
+    assert "default-src" in headers.get("Content-Security-Policy", "")
 
 
 def test_api_validation_errors(client):

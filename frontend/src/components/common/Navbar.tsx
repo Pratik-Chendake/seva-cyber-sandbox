@@ -13,8 +13,8 @@ export const Navbar: React.FC<NavbarProps> = ({ health, activeSection }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [username, setUsername] = useState('operator_lead');
-  const [password, setPassword] = useState('ComplexPassword123#!');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loggingIn, setLoggingIn] = useState(false);
@@ -247,7 +247,7 @@ export const Navbar: React.FC<NavbarProps> = ({ health, activeSection }) => {
               </div>
 
               <p className="text-xs text-slate-grey mb-4 leading-relaxed">
-                Sign in with local credentials. Passwords are protected using OWASP-compliant memory-hard scrypt (N=16384, r=8, p=5).
+                Sign in with operator credentials. Passwords are protected using OWASP-compliant memory-hard scrypt (N=131072, r=8, p=1).
               </p>
 
               {authError && (

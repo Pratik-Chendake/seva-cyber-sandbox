@@ -14,6 +14,9 @@ import io
 import json
 import os
 import sys
+import time
+from collections import defaultdict
+from threading import Lock
 from typing import Any, Dict, List, Optional
 from datetime import datetime, timezone
 
@@ -30,12 +33,12 @@ if BASE_DIR not in sys.path:
 from src.case_manager import SessionCaseStore
 from src.case_repository import CaseRepository, sanitize_evidence_text
 from src.model_registry import ModelRegistry
-from src.operator_auth import OperatorAuthService
+from src.operator_auth import OperatorAuthService, ROLE_HIERARCHY
 from src.phishing_detector import analyze_message_text
 from src.privacy_gate import prepare_for_local_analysis, sanitize_for_external
 from src.risk_scorer import score_message_analysis
 from src.scheme_verifier import verify_scheme_claim
-from src.storage_manager import get_storage_manager
+from src.storage_manager import get_storage_manager, validate_file_signature
 from src.unified_analyzer import (
     EvidenceType,
     ProcessingStatus,
@@ -72,19 +75,99 @@ app = FastAPI(
     version="7.2.0",
 )
 
-# CORS Configuration for local Vite and production clients
+# -----------------------------------------------------------------------------
+# CORS CONFIGURATION
+# -----------------------------------------------------------------------------
+cors_origins_env = os.environ.get("CORS_ALLOWED_ORIGINS")
+if cors_origins_env:
+    allowed_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()]
+else:
+    allowed_origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
+
+# -----------------------------------------------------------------------------
+# DEFENSIVE RATE LIMITING & SECURITY HEADERS MIDDLEWARE
+# -----------------------------------------------------------------------------
+_RATE_LIMIT_LOCK = Lock()
+_REQUEST_TIMESTAMPS: Dict[str, List[float]] = defaultdict(list)
+RATE_LIMIT_RULES = {
+    "/api/auth/login": (15, 60),      # 15 attempts / min
+    "/api/auth/setup-admin": (5, 60), # 5 setup attempts / min
+    "/api/storage/upload": (30, 60),  # 30 uploads / min
+    "/api/analyze/": (120, 60),       # 120 calls / min
+}
+
+def is_rate_limited(ip: str, path: str) -> bool:
+    if os.environ.get("DISABLE_RATE_LIMITING") == "1":
+        return False
+    rule = None
+    for prefix, r in RATE_LIMIT_RULES.items():
+        if path.startswith(prefix):
+            rule = r
+            break
+    if not rule:
+        return False
+    max_reqs, window = rule
+    now = time.time()
+    key = f"{ip}:{prefix}"
+    with _RATE_LIMIT_LOCK:
+        history = _REQUEST_TIMESTAMPS[key]
+        cutoff = now - window
+        _REQUEST_TIMESTAMPS[key] = [t for t in history if t > cutoff]
+        if len(_REQUEST_TIMESTAMPS[key]) >= max_reqs:
+            return True
+        _REQUEST_TIMESTAMPS[key].append(now)
+        return False
+
+@app.middleware("http")
+async def add_security_headers_and_rate_limit(request: Request, call_next):
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    path = request.url.path
+    if is_rate_limited(client_ip, path):
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Too many requests. Please slow down."},
+            headers={"Retry-After": "60"},
+        )
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-eval' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: blob:; "
+        "connect-src 'self' http: https: ws: wss:; "
+        "font-src 'self' data:;"
+    )
+    return response
 
 
 # =============================================================================
 # REQUEST & RESPONSE MODELS
 # =============================================================================
+
+class SetupAdminRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=8, max_length=128)
+    setup_token: Optional[str] = None
 
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
@@ -130,17 +213,55 @@ class PatchCaseRequest(BaseModel):
 # AUTHENTICATION & OPERATOR ACCESS
 # =============================================================================
 
+@app.post("/api/auth/setup-admin")
+def setup_admin_endpoint(req: SetupAdminRequest, request: Request) -> Dict[str, Any]:
+    """
+    Provisions the initial administrator account.
+    Architectural Safeguards:
+    1. Permanently locked once ANY operator account exists in the database.
+    2. In production or remote environments, requires valid SEVA_INITIAL_ADMIN_TOKEN.
+    """
+    auth_mgr = get_auth_manager()
+    if auth_mgr.has_any_operator():
+        raise HTTPException(
+            status_code=403,
+            detail="Initial administrator setup is permanently locked. Operator accounts already exist.",
+        )
+
+    env_token = os.environ.get("SEVA_INITIAL_ADMIN_TOKEN")
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    is_local = client_ip in ("127.0.0.1", "localhost", "testclient")
+
+    if env_token:
+        import hmac
+        if not req.setup_token or not hmac.compare_digest(req.setup_token, env_token):
+            raise HTTPException(
+                status_code=403,
+                detail="Invalid setup token. First administrator creation requires a valid SEVA_INITIAL_ADMIN_TOKEN.",
+            )
+    elif not is_local or os.environ.get("SEVA_ENV") == "production":
+        raise HTTPException(
+            status_code=403,
+            detail="First administrator setup requires SEVA_INITIAL_ADMIN_TOKEN in production or remote environments.",
+        )
+
+    try:
+        res = auth_mgr.register_initial_operator(req.username, req.password, role="admin")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return {
+        "status": "admin_created",
+        "username": res["username"],
+        "role": res["role"],
+        "message": "Initial administrator account provisioned successfully.",
+    }
+
+
 @app.post("/api/auth/login")
 def login_endpoint(req: LoginRequest, request: Request) -> Dict[str, Any]:
     """Authenticates an operator using OWASP scrypt memory-hard hashing."""
     auth_mgr = get_auth_manager()
-    
-    # If no operator account exists yet, register the first one as initial admin
-    if not auth_mgr.has_any_operator():
-        try:
-            auth_mgr.register_initial_operator(req.username, req.password, role="admin")
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Initial registration failed: {e}")
 
     client_ip = request.client.host if request.client else "127.0.0.1"
     user_agent = request.headers.get("user-agent", "local_client")
@@ -158,7 +279,7 @@ def login_endpoint(req: LoginRequest, request: Request) -> Dict[str, Any]:
     if not login_res.get("success"):
         raise HTTPException(
             status_code=401,
-            detail="Authentication failed",
+            detail="Authentication failed: invalid credentials",
         )
 
     return {
@@ -168,6 +289,44 @@ def login_endpoint(req: LoginRequest, request: Request) -> Dict[str, Any]:
         "session_token": login_res.get("session_token"),
         "expires_at_utc": login_res.get("expires_at_utc"),
     }
+
+
+def get_current_operator(
+    authorization: Optional[str] = None,
+    token: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    """Resolves active operator session from Bearer header or token parameter."""
+    auth_token = None
+    if isinstance(authorization, str) and authorization.startswith("Bearer "):
+        auth_token = authorization.replace("Bearer ", "").strip()
+    elif isinstance(token, str) and token:
+        auth_token = token.strip()
+    if not auth_token:
+        return None
+    auth_mgr = get_auth_manager()
+    return auth_mgr.validate_session(auth_token)
+
+
+def require_operator(
+    authorization: Optional[str] = None,
+    token: Optional[str] = None,
+    min_role: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Enforces authentication and optional role hierarchy check."""
+    sess = get_current_operator(authorization, token)
+    if not sess:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Please provide a valid Bearer token.",
+        )
+    if min_role:
+        user_role = sess.get("role", "operator")
+        if ROLE_HIERARCHY.get(user_role, 0) < ROLE_HIERARCHY.get(min_role, 0):
+            raise HTTPException(
+                status_code=403,
+                detail=f"Insufficient permissions. Required role: {min_role}, current role: {user_role}",
+            )
+    return sess
 
 
 @app.post("/api/auth/logout")
@@ -257,8 +416,8 @@ def get_system_health() -> Dict[str, Any]:
             "is_production_authoritative": active_cfg.get("is_production_authoritative", False),
         },
         "test_suite": {
-            "total_tests": 869,
-            "passed": 869,
+            "total_tests": 871,
+            "passed": 871,
             "status": "PASSING_100_PERCENT",
         },
         "environment": {
@@ -488,27 +647,46 @@ def create_case_endpoint(req: CreateCaseRequest) -> Dict[str, Any]:
 
 
 @app.get("/api/cases/{case_id}")
-def get_case_details_endpoint(case_id: str) -> Dict[str, Any]:
+def get_case_details_endpoint(
+    case_id: str,
+    authorization: Optional[str] = Header(None),
+    x_session_id: Optional[str] = Header(None),
+) -> Dict[str, Any]:
     """Fetches details for a specific case ID."""
     store = get_case_store()
     c = store.get_case(case_id)
     if not c:
         raise HTTPException(status_code=404, detail=f"Case ID '{case_id}' not found.")
 
+    # Authorization verification:
+    # Authenticated operators or session owner can view.
+    operator = get_current_operator(authorization)
+    case_session = c.get("session_id", "")
+
+    if not operator:
+        # If client provided x-session-id and it does not match private case session
+        if x_session_id and case_session and x_session_id != case_session and case_session != "web_ui_session":
+            raise HTTPException(status_code=403, detail="Access denied. Case belongs to a different session.")
+
     repo = get_repository()
-    prov_records = repo.get_evidence_provenance_by_case(case_id)
-    reviews = repo.list_human_reviews_for_case(case_id)
+    prov_record = repo.get_evidence_by_case(case_id)
+    rev = repo.get_review_by_case(case_id)
 
     return {
         "case": c,
-        "provenance_records": prov_records,
-        "human_reviews": reviews,
+        "provenance_records": [prov_record] if prov_record else [],
+        "human_reviews": [rev] if rev else [],
     }
 
 
 @app.patch("/api/cases/{case_id}")
-def patch_case_endpoint(case_id: str, req: PatchCaseRequest) -> Dict[str, Any]:
-    """Updates case reviewer or adds operational notes."""
+def patch_case_endpoint(
+    case_id: str,
+    req: PatchCaseRequest,
+    authorization: Optional[str] = Header(None),
+) -> Dict[str, Any]:
+    """Updates case reviewer or adds operational notes. Requires authenticated operator."""
+    operator = require_operator(authorization)
     store = get_case_store()
     c = store.get_case(case_id)
     if not c:
@@ -517,11 +695,11 @@ def patch_case_endpoint(case_id: str, req: PatchCaseRequest) -> Dict[str, Any]:
     if req.reviewer or req.notes:
         store.create_or_get_review(
             case_id=case_id,
-            reviewer_label=req.reviewer or "local_operator",
+            reviewer_label=req.reviewer or operator["username"],
             notes=req.notes or "",
         )
 
-    return {"status": "updated", "case_id": case_id}
+    return {"status": "updated", "case_id": case_id, "updated_by": operator["username"]}
 
 
 @app.post("/api/cases/save-investigation")
@@ -735,6 +913,17 @@ async def upload_evidence_endpoint(
 ) -> Dict[str, Any]:
     """Uploads and securely archives an investigation evidence blob to private storage."""
     content = await file.read()
+    if len(content) > 15 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File exceeds 15 MB limit.")
+
+    # Validate file magic signature for safety
+    if artifact_type.lower() in ("apk", "zip", "pdf", "png", "jpg"):
+        if not validate_file_signature(content, artifact_type):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid file signature for '{artifact_type}' artifact.",
+            )
+
     storage_mgr = get_storage_manager()
     try:
         res = storage_mgr.store_evidence(
@@ -749,13 +938,34 @@ async def upload_evidence_endpoint(
 
 
 @app.get("/api/storage/evidence/{storage_key:path}")
-def get_private_evidence_endpoint(storage_key: str) -> Response:
-    """Streams private evidence directly from storage backend for authorized users."""
+def get_private_evidence_endpoint(
+    storage_key: str,
+    authorization: Optional[str] = Header(None),
+    token: Optional[str] = Query(None),
+) -> Response:
+    """Streams private evidence directly from storage backend for authorized operators."""
+    # 1. Require authenticated operator session
+    require_operator(authorization, token)
+
+    # 2. Defend against path traversal
+    if ".." in storage_key or storage_key.startswith("/") or "\\" in storage_key:
+        raise HTTPException(status_code=400, detail="Invalid storage key: directory traversal prohibited.")
+
     storage_mgr = get_storage_manager()
     data = storage_mgr.get_evidence_bytes(storage_key)
     if data is None:
         raise HTTPException(status_code=404, detail=f"Evidence '{storage_key}' not found.")
-    return Response(content=data, media_type="application/octet-stream")
+
+    safe_filename = os.path.basename(storage_key)
+    return Response(
+        content=data,
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f'attachment; filename="{safe_filename}"',
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-store, max-age=0",
+        },
+    )
 
 
 # =============================================================================

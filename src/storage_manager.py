@@ -158,7 +158,9 @@ class EvidenceStorageManager:
 
     def _write_local(self, key: str, content: bytes) -> str:
         """Writes content to local filesystem within instance/storage."""
-        local_path = os.path.join(self.local_dir, key.replace("/", os.sep))
+        local_path = os.path.abspath(os.path.join(self.local_dir, key.replace("/", os.sep)))
+        if not local_path.startswith(os.path.abspath(self.local_dir)):
+            raise ValueError("Invalid storage key: directory traversal prohibited.")
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
         with open(local_path, "wb") as f:
             f.write(content)
@@ -173,7 +175,11 @@ class EvidenceStorageManager:
             except Exception:
                 pass
         
-        local_path = os.path.join(self.local_dir, storage_key.replace("/", os.sep))
+        # Path traversal defense: ensure resolved path is strictly within self.local_dir
+        local_path = os.path.abspath(os.path.join(self.local_dir, storage_key.replace("/", os.sep)))
+        if not local_path.startswith(os.path.abspath(self.local_dir)):
+            return None
+
         if os.path.isfile(local_path):
             with open(local_path, "rb") as f:
                 return f.read()
