@@ -26,6 +26,7 @@ from src.scheme_verifier import load_official_sources, verify_scheme_claim
 from src.url_analyzer import analyze_url
 from src.hybrid_decision_engine import evaluate_message_hybrid
 from src.model_registry import get_default_model_registry
+from src.unified_workspace_ui import render_unified_evidence_workspace
 from src.case_manager import (
     SessionCaseStore,
     create_apk_case,
@@ -150,6 +151,15 @@ def main() -> None:
     if "case_store" not in st.session_state:
         st.session_state.case_store = SessionCaseStore()
 
+    if "auth_service" not in st.session_state:
+        from src.operator_auth import OperatorAuthService
+        st.session_state.auth_service = OperatorAuthService(
+            db_path=st.session_state.case_store.repository.db_path
+        )
+
+    if "operator_session" not in st.session_state:
+        st.session_state.operator_session = None
+
     case_count = st.session_state.case_store.count()
     render_editorial_header(session_case_count=case_count)
     render_bento_overview(case_count=case_count)
@@ -217,9 +227,9 @@ def main() -> None:
             "- **`[HELPLINE]`**: Report real financial cyber fraud immediately to **1930** or `https://cybercrime.gov.in`."
         )
 
-    tab_phishing, tab_apk, tab_url, tab_scheme, tab_cases, tab_eval, tab_review = st.tabs(
+    tab_unified, tab_apk, tab_url, tab_scheme, tab_cases, tab_eval, tab_review = st.tabs(
         [
-            "01 // MESSAGE INTEL",
+            "01 // UNIFIED EVIDENCE ANALYSIS",
             "02 // APK INSPECTION",
             "03 // URL RADAR",
             "04 // SCHEME VERIFIER",
@@ -230,184 +240,16 @@ def main() -> None:
     )
 
     # =========================================================================
-    # TAB 1: VERNACULAR PHISHING DETECTOR
+    # TAB 1: UNIFIED EVIDENCE ANALYSIS WORKSPACE (Phase 7.1.0)
     # =========================================================================
-    with tab_phishing:
-        st.markdown("<div class='bento-card-label'>01 // MESSAGE INTELLIGENCE ENGINE</div>", unsafe_allow_html=True)
-        st.subheader("Message Security Analyzer (Marathi, Romanized Marathi, Mixed & English)")
-        st.caption(
-            "Paste or type a suspicious message for local analysis. English, Marathi (Devanagari), Romanized Marathi, or mixed."
+    with tab_unified:
+        render_unified_evidence_workspace(
+            case_store=st.session_state.case_store,
+            session_id=st.session_state.session_id,
+            enable_audio=enable_audio,
+            show_ml_panel=show_ml_panel,
+            operator_username=st.session_state.get("operator_username"),
         )
-
-        msg_sub_col1, msg_sub_col2 = st.columns([2, 1])
-        with msg_sub_col1:
-            message_input = st.text_area(
-                "Message Text to Analyze (WhatsApp, SMS, Email, Social Media):",
-                value="",
-                height=130,
-                placeholder="Paste a Marathi (Devanagari), Romanized Marathi, Mixed, or English message here...",
-                key="msg_text_input",
-            )
-        with msg_sub_col2:
-            uploaded_txt = st.file_uploader(
-                "Or import exported text file (.txt):",
-                type=["txt"],
-                key="msg_file_upload",
-                help="Upload an exported WhatsApp chat or message text file for local static inspection.",
-            )
-            if uploaded_txt is not None:
-                try:
-                    file_content = uploaded_txt.getvalue().decode("utf-8", errors="replace")
-                    if file_content.strip() and not message_input.strip():
-                        message_input = file_content.strip()
-                        st.info(f"Loaded message ({len(message_input)} chars) from `{uploaded_txt.name}`.")
-                except Exception as txt_err:
-                    st.error(f"Failed to read text file: {txt_err}")
-
-        training_consent_opt_in = st.checkbox(
-            "🔒 Opt-in: Allow anonymous Machine Learning feature extraction for future model improvement",
-            value=False,
-            help=(
-                "OPT-IN ONLY (Default: Off). If checked, the system computes and retains an abstract 1024-dimensional "
-                "numerical feature representation from sanitized text for local model improvement. "
-                "The original message text is NOT stored. Derived features are retained strictly on this local device "
-                "and are not guaranteed anonymous."
-            ),
-            key="training_consent_checkbox",
-        )
-
-        if st.button("🔍 Analyze WhatsApp Message", type="primary", key="run_msg_btn"):
-            msg_res = analyze_message_text(message_input)
-            if msg_res["is_empty"]:
-                st.warning("Please enter or select a non-empty message to analyze.")
-            else:
-                scored_msg = score_message_analysis(msg_res)
-                st.markdown(f"<span class='tech-pill tech-pill-lime'>SCRIPT: {msg_res['script_detected']}</span>", unsafe_allow_html=True)
-
-                if msg_res.get("context_only_suppressed"):
-                    st.success(
-                        "✅ **Context Safeguard Active:** This message mentions a utility or bank (such as MSEDCL or SBI), "
-                        "but contains **no** suspicious links, `.apk` files, urgency threats, or credential requests. "
-                        "It was therefore not flagged."
-                    )
-                if msg_res.get("protective_advisory_detected"):
-                    st.success(
-                        "✅ **Protective Negation Safeguard Active:** Detected security awareness phrasing "
-                        "(e.g., advising users *never* to share OTPs or download unknown APKs)."
-                    )
-
-                render_risk_assessment_panel(
-                    scored_msg, enable_audio=enable_audio, key_prefix="msg"
-                )
-                msg_case = create_message_case(msg_res, scored_msg)
-                msg_case_id = st.session_state.case_store.add_case(msg_case)
-                st.caption(f"📋 **Case Logged to Session Dashboard:** `{msg_case_id}` (Inspect in Tab 5)")
-
-                # Phase 6.1: Opt-in Derived Feature Capture
-                if training_consent_opt_in:
-                    feat_capture = st.session_state.case_store.capture_training_features(
-                        case_id=msg_case_id,
-                        message_text=message_input,
-                        consent_given=True,
-                    )
-                    if feat_capture.get("captured"):
-                        st.caption(
-                            f"🔒 **Derived Training Features Captured (Opt-In Active):** "
-                            f"Record `{feat_capture.get('feature_record_id')}` ({feat_capture.get('feature_dim')} dimensions, zero raw text stored)"
-                        )
-                    else:
-                        st.caption(f"ℹ️ Training feature capture skipped: {feat_capture.get('reason')}")
-
-                # -------------------------------------------------------------
-                # Hybrid Decision Engine Diagnostics (Phase 4)
-                # -------------------------------------------------------------
-                hybrid_eval = evaluate_message_hybrid(
-                    message_text=message_input,
-                    rule_analysis=msg_res,
-                )
-                try:
-                    from src.shadow_controller import ShadowMonitorController
-                    ShadowMonitorController().record_inference_telemetry(hybrid_eval)
-                except Exception:
-                    pass
-                with st.expander("🛡️ Hybrid Decision Engine & Guardrails Diagnostics", expanded=False):
-                    c_h1, c_h2, c_h3 = st.columns(3)
-                    c_h1.metric("Engine Mode", hybrid_eval["operating_mode"].upper(), help="Configured via HYBRID_ENGINE_MODE (Default: shadow)")
-                    c_h2.metric("Rule Score (Authoritative)", f"{hybrid_eval['final_decision']['final_risk_score']} / 100")
-                    conc_status = hybrid_eval["concordance"]["status"]
-                    c_h3.metric(
-                        "Model-Rule Concordance",
-                        conc_status,
-                        delta="Agreed" if conc_status == "AGREEMENT" else ("Disagreed" if conc_status == "DISAGREEMENT" else "N/A"),
-                        delta_color="normal" if conc_status == "AGREEMENT" else "inverse",
-                    )
-
-                    st.markdown("##### 🔬 Evidence Decomposition")
-                    st.write(f"- **Authoritative Rule Verdict:** `{hybrid_eval['rule_based_evidence']['rule_label']}` (Findings: {hybrid_eval['rule_based_evidence']['findings_count']})")
-                    exp_m = hybrid_eval["experimental_model"]
-                    if exp_m.get("is_available"):
-                        st.write(
-                            f"- **Experimental Custom Neural Model:** `{exp_m.get('predicted_label')}` "
-                            f"(Uncalibrated Confidence: `{exp_m.get('confidence', 0.0):.2%}`, Version: `{exp_m.get('model_version')}`)"
-                        )
-                        st.caption(f"⚠️ *{exp_m.get('confidence_warning')}*")
-                    else:
-                        st.write(f"- **Experimental Neural Model:** Unavailable ({exp_m.get('fallback_reason')})")
-
-                    st.markdown("##### 🛡️ Active Safety Guardrails")
-                    for gd in hybrid_eval["final_decision"]["guardrails_applied"]:
-                        st.markdown(f"- `{gd}`")
-
-                if msg_res["findings"]:
-                    st.markdown("#### 📋 Detailed Warning Indicators Table")
-                    st.table(
-                        [
-                            {
-                                "Category": f["category"],
-                                "Severity": f["severity"],
-                                "Matched Phrase": f["matched_text"],
-                                "Why It Matters (English)": f["why_it_matters_en"],
-                                "मराठी स्पष्टीकरण": f["why_it_matters_mr"],
-                            }
-                            for f in msg_res["findings"]
-                        ]
-                    )
-
-                if msg_res["extracted_urls"]:
-                    st.markdown("#### 🌐 Extracted URLs from Message (Safe Offline Inspection)")
-                    for e_url in msg_res["extracted_urls"]:
-                        u_res = analyze_url(e_url)
-                        u_color = u_res["badge_color"]
-                        u_icon = "🚨" if u_color == "red" else ("⚠️" if u_color == "orange" else "ℹ️")
-                        with st.expander(f"{u_icon} {e_url} — {u_res['risk_level']} (Score: {u_res['score']}/100)"):
-                            st.markdown(f"**English:** {u_res['summary_en']}")
-                            st.markdown(f"**मराठी:** {u_res['summary_mr']}")
-                            st.markdown("**Evidence & Findings:**")
-                            for ev in u_res["evidence"]:
-                                st.markdown(f"- {ev}")
-                            st.error("**⚠️ CITIZEN SAFETY RULE:** Never enter OTPs, bank passwords, or UPI PINs into unverified web links.")
-
-                if show_ml_panel:
-                    st.markdown("#### 🧪 Experimental Local ML Baseline Comparison")
-                    ml_out = predict_with_local_ml(message_input)
-                    if ml_out["is_available"]:
-                        st.info(
-                            f"**Experimental TF-IDF + Logistic Regression Output:** `{ml_out['ml_flag']}` "
-                            f"(Experimental Score: `{ml_out['experimental_ml_confidence']}%`)\n\n"
-                            f"*{ml_out['evaluation_summary'].get('methodology_note', '')}*"
-                        )
-                    else:
-                        st.warning(f"Optional ML baseline unavailable: {ml_out.get('error')}")
-
-        st.markdown("---")
-        with st.expander("📱 WhatsApp Integration — Current Status", expanded=False):
-            st.info(
-                "**WhatsApp Integration is not currently active.**\n\n"
-                "This application performs local analysis only. Messages can be submitted manually by pasting them into the text area above.\n\n"
-                "A future WhatsApp integration would require registering a verified WhatsApp Business Account and configuring Meta Cloud API credentials. "
-                "No unofficial scraping is implemented or planned.\n\n"
-                "**To report real cyber fraud:** Call **1930** or file a complaint at https://cybercrime.gov.in"
-            )
 
     # =========================================================================
     # TAB 2: APK STATIC SECURITY ANALYZER
@@ -1032,16 +874,92 @@ def main() -> None:
             "structural indicators, and anonymized diagnostic fingerprints. Raw chat text is never displayed or stored.\n"
             "- **Strict Model Isolation:** Operator review adjudication NEVER automatically triggers model retraining or modifies "
             "production threat scores. Production scoring is permanently governed by deterministic rules.\n"
-            "- **Unauthenticated Local Desk:** Review attribution is an unauthenticated local label for development and testing. "
-            "Do not treat local audit trails as non-repudiable forensic proof."
+            "- **Authenticated Operator Accountability:** Reviews, state transitions, and corroboration rationale are attributed "
+            "to authenticated operator accounts via local PBKDF2-HMAC-SHA256 salted credentials."
         )
 
-        subtab_desk, subtab_registry, subtab_discovery, subtab_disagreement = st.tabs(
+        auth_service = st.session_state.auth_service
+        current_session = st.session_state.operator_session
+        if current_session:
+            valid_session = auth_service.validate_session(current_session.get("session_token"))
+            if not valid_session:
+                st.session_state.operator_session = None
+                current_session = None
+
+        col_auth_status, col_auth_action = st.columns([3, 1])
+        with col_auth_status:
+            if current_session:
+                st.success(
+                    f"👤 **Authenticated Operator:** `{current_session['username']}` | "
+                    f"**Role:** `{current_session['role'].upper()}` | "
+                    f"**Session Expires:** `{current_session['expires_at_utc']}`"
+                )
+            else:
+                st.info("🔒 **Reviewer Identity:** `local_operator_unauthenticated` (Log in below to enable corroboration and lifecycle transitions)")
+
+        with col_auth_action:
+            if current_session:
+                if st.button("🚪 Log Out", key="btn_operator_logout_top"):
+                    auth_service.logout(current_session["session_token"])
+                    st.session_state.operator_session = None
+                    st.rerun()
+
+        if not current_session:
+            if not auth_service.has_any_operator():
+                st.warning(
+                    "⚠️ **Initial Operator Setup:** No operator accounts exist in SQLite yet. "
+                    "Create the initial administrator account below. No hardcoded default credentials are permitted."
+                )
+                with st.expander("🛠️ First-Time Operator Registration", expanded=True):
+                    with st.form("form_initial_operator_reg"):
+                        init_user = st.text_input("Administrator Username:", value="admin").strip()
+                        init_pass = st.text_input("Administrator Password (minimum 8 characters):", type="password")
+                        init_pass_conf = st.text_input("Confirm Password:", type="password")
+                        submit_init_btn = st.form_submit_button("🛡️ Create Initial Admin Account", type="primary")
+                        if submit_init_btn:
+                            if not init_user:
+                                st.error("Username cannot be empty.")
+                            elif len(init_pass) < 8:
+                                st.error("Password must be at least 8 characters long.")
+                            elif init_pass != init_pass_conf:
+                                st.error("Passwords do not match.")
+                            else:
+                                try:
+                                    auth_service.register_initial_operator(username=init_user, password=init_pass, role="admin")
+                                    login_res = auth_service.login(username=init_user, password=init_pass)
+                                    st.session_state.operator_session = login_res
+                                    st.success(f"Administrator account '{init_user}' registered and authenticated!")
+                                    st.rerun()
+                                except Exception as ex:
+                                    st.error(f"Registration failed: {ex}")
+            else:
+                with st.expander("🔐 Operator Login (Authenticate for Sensitive Review Actions)", expanded=False):
+                    with st.form("form_operator_login"):
+                        col_l1, col_l2 = st.columns(2)
+                        with col_l1:
+                            u_in = st.text_input("Operator Username:", key="txt_login_username").strip()
+                        with col_l2:
+                            p_in = st.text_input("Password:", type="password", key="txt_login_password")
+                        btn_login_submit = st.form_submit_button("🔑 Authenticate Session", type="primary")
+                        if btn_login_submit:
+                            try:
+                                res = auth_service.login(username=u_in, password=p_in)
+                                if res.get("success"):
+                                    st.session_state.operator_session = res
+                                    st.success(f"Authenticated as '{u_in}'!")
+                                    st.rerun()
+                                else:
+                                    st.error(res.get("error", "Invalid credentials."))
+                            except Exception as ex:
+                                st.error(f"Authentication failed: {ex}")
+
+        subtab_desk, subtab_governance, subtab_registry, subtab_discovery, subtab_disagreement = st.tabs(
             [
                 "07A // HUMAN REVIEW DESK",
-                "07B // MODEL REGISTRY & ROLLBACK",
-                "07C // FRAUD PATTERN DISCOVERY",
-                "07D // MODEL DISAGREEMENT REVIEW",
+                "07B // EVIDENCE GOVERNANCE & PROVENANCE",
+                "07C // MODEL REGISTRY & ROLLBACK",
+                "07D // FRAUD PATTERN DISCOVERY",
+                "07E // MODEL DISAGREEMENT REVIEW",
             ]
         )
 
@@ -1212,9 +1130,324 @@ def main() -> None:
                 except Exception as c_err:
                     st.info(f"Feature curation requires configured HMAC key: {c_err}")
 
-            # -----------------------------------------------------------------
-            # SECTION B: MODEL VERSION REGISTRY & ROLLBACK
-            # -----------------------------------------------------------------
+        # ---------------------------------------------------------------------
+        # SECTION B: EVIDENCE GOVERNANCE, PROVENANCE & LIFECYCLE (Phase 6.8.2)
+        # ---------------------------------------------------------------------
+        with subtab_governance:
+            st.markdown("#### 🏛️ Evidence Governance, Provenance & Lifecycle Management")
+            st.caption(
+                "Traceable provenance tracking, multi-stage evidence lifecycle state machine, "
+                "independent corroboration requirements, campaign clustering, and strict training eligibility gating."
+            )
+
+            store: SessionCaseStore = st.session_state.case_store
+            all_evidence = store.list_evidence(limit=500)
+
+            # Metrics
+            total_evid = len(all_evidence)
+            submitted_cnt = sum(1 for e in all_evidence if e["lifecycle_status"] == "submitted")
+            awaiting_cnt = sum(1 for e in all_evidence if e["lifecycle_status"] == "awaiting_review")
+            under_review_cnt = sum(1 for e in all_evidence if e["lifecycle_status"] == "under_review")
+            corroborated_cnt = sum(1 for e in all_evidence if e["lifecycle_status"] == "corroborated")
+            disputed_cnt = sum(1 for e in all_evidence if e["lifecycle_status"] in ("disputed", "rejected"))
+            withdrawn_cnt = sum(1 for e in all_evidence if e["lifecycle_status"] == "withdrawn")
+
+            col_g1, col_g2, col_g3, col_g4, col_g5, col_g6 = st.columns(6)
+            col_g1.metric("01 // TOTAL", total_evid)
+            col_g2.metric("02 // SUBMITTED", submitted_cnt)
+            col_g3.metric("03 // AWAITING", awaiting_cnt)
+            col_g4.metric("04 // REVIEW", under_review_cnt)
+            col_g5.metric("05 // CORROBORATED", corroborated_cnt)
+            col_g6.metric("06 // DISPUTED", disputed_cnt)
+
+            st.markdown("---")
+            st.markdown("##### 📥 Evidence Provenance Queue & Filters")
+
+            col_flt_orig, col_flt_stat = st.columns(2)
+            with col_flt_orig:
+                flt_orig = st.selectbox(
+                    "Filter by Evidence Origin:",
+                    ["all", "user_reported", "analyst_submitted", "internal_case", "public_source_reference", "system_generated", "synthetic_test_data"],
+                    key="sel_filter_evid_origin",
+                )
+            with col_flt_stat:
+                flt_stat = st.selectbox(
+                    "Filter by Lifecycle Status:",
+                    ["all", "submitted", "awaiting_review", "under_review", "corroborated", "disputed", "rejected", "withdrawn"],
+                    key="sel_filter_evid_status",
+                )
+
+            req_origin = None if flt_orig == "all" else flt_orig
+            req_status = None if flt_stat == "all" else flt_stat
+            filtered_evidence = store.list_evidence(origin=req_origin, lifecycle_status=req_status, limit=100)
+
+            if not filtered_evidence:
+                st.info(
+                    "No evidence records matching the selected filters found. "
+                    "Analyze messages, APKs, URLs, or scheme claims in Tabs 01-04 to log genuine submissions into the evidence queue."
+                )
+            else:
+                table_rows = []
+                for ev in filtered_evidence:
+                    table_rows.append({
+                        "Evidence ID": ev["evidence_id"],
+                        "Case ID": ev["case_id"],
+                        "Origin": ev["evidence_origin"],
+                        "Type": ev["evidence_type"].upper(),
+                        "Lifecycle Status": ev["lifecycle_status"].upper(),
+                        "User Class": ev.get("user_classification") or "N/A",
+                        "Rule Assessment": ev.get("rule_assessment") or "N/A",
+                        "Model Pred": ev.get("model_prediction") or "N/A",
+                        "Reviewer Class": ev.get("reviewer_classification") or "Unreviewed",
+                        "Corroborated": ev.get("corroborated_conclusion") or "Pending",
+                        "Consented": "Yes" if ev.get("consent_given") else "No",
+                        "Created At (UTC)": ev.get("created_at_utc"),
+                    })
+                st.dataframe(table_rows, use_container_width=True)
+
+                st.markdown("---")
+                st.markdown("##### 🔍 Evidence Inspector & State Transition Desk")
+                ev_options = [f"{e['evidence_id']} — {e['evidence_type'].upper()} ({e['lifecycle_status']})" for e in filtered_evidence]
+                chosen_ev_entry = st.selectbox("Select Evidence Item to Inspect & Adjudicate:", ev_options, key="sel_evid_item")
+
+                if chosen_ev_entry:
+                    chosen_ev_id = chosen_ev_entry.split(" — ")[0].strip()
+                    chosen_ev = store.get_evidence(chosen_ev_id)
+
+                    st.markdown("###### 📋 Provenance, Integrity & Trust Verification")
+                    c_ev1, c_ev2 = st.columns(2)
+                    with c_ev1:
+                        st.markdown(f"- **Evidence ID:** `{chosen_ev['evidence_id']}`")
+                        st.markdown(f"- **Case ID:** `{chosen_ev['case_id']}`")
+                        st.markdown(f"- **Origin Category:** `{chosen_ev['evidence_origin']}`")
+                        st.markdown(f"- **Evidence Type:** `{chosen_ev['evidence_type']}`")
+                        st.markdown(f"- **Sanitization Status:** `{chosen_ev['sanitization_status']}`")
+                        st.markdown(f"- **Consent Status:** `{'Affirmative Consent Granted' if chosen_ev['consent_given'] else 'Consent Not Granted'}`")
+                        st.markdown(f"- **Artifact SHA-256:** `{chosen_ev.get('artifact_sha256') or 'Not recorded'}`")
+                    with c_ev2:
+                        st.markdown(f"- **Lifecycle Status:** `{chosen_ev['lifecycle_status'].upper()}`")
+                        v_level = (chosen_ev.get('verification_level') or 'unverified').upper()
+                        if v_level == "INDEPENDENTLY_CORROBORATED":
+                            st.markdown(f"- **Trust Level:** 🟢 `{v_level}` (Dual-Review Verified)")
+                        elif v_level in ("SINGLE_REVIEWED", "SELF_REVIEWED"):
+                            st.markdown(f"- **Trust Level:** 🟡 `{v_level}` (Single-Analyst Verification)")
+                        elif v_level in ("DISPUTED", "REJECTED"):
+                            st.markdown(f"- **Trust Level:** 🔴 `{v_level}` (Adjudicated Ineligible)")
+                        else:
+                            st.markdown(f"- **Trust Level:** ⚪ `{v_level}`")
+
+                        st.markdown(f"- **Submitted By:** `{chosen_ev.get('submitted_by') or 'Client / Ingestion'}`")
+                        st.markdown(f"- **Reviewed By:** `{chosen_ev.get('reviewed_by') or 'Pending'}`")
+                        st.markdown(f"- **Corroborated By:** `{chosen_ev.get('corroborated_by') or 'Pending'}`")
+                        st.markdown(f"- **Corroborated Conclusion:** `{chosen_ev.get('corroborated_conclusion') or 'None'}`")
+
+                    # Cryptographic Tamper Verification Button
+                    if chosen_ev.get("artifact_sha256"):
+                        if st.button("🛡️ Cryptographically Verify Artifact Integrity", key=f"btn_verify_digest_{chosen_ev_id}"):
+                            try:
+                                v_res = store.verify_evidence_integrity(chosen_ev_id)
+                                if v_res["is_valid"]:
+                                    st.success(f"✅ Cryptographic digest verified: {v_res['digest']}")
+                                else:
+                                    st.error("❌ Tamper detected: digest mismatch.")
+                            except Exception as ex:
+                                st.error(f"Integrity check failed: {ex}")
+
+                    if chosen_ev.get("corroboration_rationale"):
+                        st.info(f"📌 **Recorded Corroboration Rationale:** {chosen_ev['corroboration_rationale']}")
+
+                    # Training Eligibility Section
+                    st.markdown("###### 🛡️ Multi-Tier Training Eligibility Gate Evaluation")
+                    elig = store.check_training_eligibility(chosen_ev_id)
+                    tier = elig.get("eligibility_tier", "not_eligible")
+
+                    if tier == "independently_corroborated_evaluation_candidate":
+                        st.success("🌟 **TIER 4 — EVALUATION CANDIDATE:** Independently corroborated via dual-review. Reserved exclusively for evaluation benchmarks (strictly isolated from training).")
+                    elif tier == "eligible_supervised_candidate_training":
+                        st.success("✅ **TIER 3 — SUPERVISED CANDIDATE TRAINING:** Fully vetted, consented, sanitized, and human-reviewed. Eligible for candidate model retraining.")
+                    elif tier == "eligible_exploratory_review":
+                        st.info("ℹ️ **TIER 2 — EXPLORATORY REVIEW ONLY:** Consented and sanitized, but unverified or single-reviewer. Restricted from model training.")
+                    else:
+                        st.error("❌ **TIER 1 — INELIGIBLE:** Governance, consent, or corroboration criteria not satisfied. Strictly excluded from all models.")
+
+                    with st.expander("View 8-Point Governance Gate Breakdown", expanded=False):
+                        checks = elig["checks"]
+                        chk_cols = st.columns(4)
+                        chk_cols[0].markdown(f"- **Consent Valid:** {'✅ Yes' if checks['consent_valid'] else '❌ No'}")
+                        chk_cols[0].markdown(f"- **Genuine Origin:** {'✅ Yes' if checks['provenance_valid'] else '❌ No'}")
+                        chk_cols[1].markdown(f"- **Corroborated:** {'✅ Yes' if checks['human_review_completed'] else '❌ No'}")
+                        chk_cols[1].markdown(f"- **Definitive Class:** {'✅ Yes' if checks['classification_definitive'] else '❌ No'}")
+                        chk_cols[2].markdown(f"- **Not Withdrawn:** {'✅ Yes' if checks['not_withdrawn'] else '❌ No'}")
+                        chk_cols[2].markdown(f"- **Sanitization Passed:** {'✅ Yes' if checks['privacy_sanitization_passed'] else '❌ No'}")
+                        chk_cols[3].markdown(f"- **Conflict Resolved:** {'✅ Yes' if checks['conflict_resolved'] else '❌ No'}")
+                        chk_cols[3].markdown(f"- **Feature Vector Available:** {'✅ Yes' if checks['feature_vector_available'] else '❌ No'}")
+                        st.markdown("**Governance Assessment Notes:**")
+                        for r in elig["reasons"]:
+                            st.markdown(f"- {r}")
+
+                    # Two-Person Rule Corroboration & Lifecycle State Transition Controls
+                    st.markdown("###### 🔄 Independent Corroboration & State Transition Controls")
+                    curr_status = chosen_ev["lifecycle_status"]
+                    from src.case_repository import VALID_LIFECYCLE_TRANSITIONS, ALLOWED_VERIFICATION_METHODS
+                    allowed_next = sorted(list(VALID_LIFECYCLE_TRANSITIONS.get(curr_status, set())))
+
+                    if not allowed_next:
+                        st.warning(f"Evidence is in terminal state `{curr_status}`. No further transitions allowed.")
+                    else:
+                        st.markdown(f"**Current State:** `{curr_status}` | **Permissible Next States:** `{allowed_next}`")
+
+                        if not current_session:
+                            st.warning("⚠️ **Authentication Required:** You must log in as an operator above to perform lifecycle state transitions.")
+                        else:
+                            # Two-person review warning
+                            is_self_submission = bool(chosen_ev.get("submitted_by") and chosen_ev["submitted_by"] == current_session["username"])
+                            is_same_reviewer = bool(chosen_ev.get("reviewed_by") and chosen_ev["reviewed_by"] == current_session["username"])
+                            if is_self_submission or is_same_reviewer:
+                                st.info(
+                                    "ℹ️ **Two-Person Rule Notice:** You submitted or performed primary review on this evidence. "
+                                    "Your corroboration will be recorded as `self_reviewed` or `single_reviewed`. "
+                                    "Independent corroboration (`independently_corroborated`) requires a distinct second reviewer."
+                                )
+
+                            with st.form(f"form_transition_{chosen_ev_id}"):
+                                target_status = st.selectbox("Target Lifecycle Status:", allowed_next)
+                                rev_class = st.selectbox(
+                                    "Reviewer Classification:",
+                                    ["phishing", "legitimate", "protective_advisory", "unknown"],
+                                    index=0 if not chosen_ev.get("reviewer_classification") else
+                                          ["phishing", "legitimate", "protective_advisory", "unknown"].index(chosen_ev.get("reviewer_classification", "phishing")),
+                                )
+                                trans_reason = st.text_input(
+                                    "State Transition Reason (Mandatory, min 5 chars):",
+                                    placeholder="Explain why this state transition is occurring...",
+                                )
+
+                                corr_rationale = ""
+                                corr_conclusion = None
+                                v_method = None
+                                ref_input = ""
+                                if target_status == "corroborated":
+                                    st.markdown("---")
+                                    st.markdown("**Two-Person Corroboration & Verification Requirements:**")
+                                    v_method = st.selectbox(
+                                        "Verification Method (Approved Standards):",
+                                        sorted(list(ALLOWED_VERIFICATION_METHODS)),
+                                    )
+                                    ref_input = st.text_input(
+                                        "Supporting Technical References (Mandatory, e.g. APK SHA-256, domain, or GR reference):",
+                                        value=chosen_ev.get("artifact_sha256") or "",
+                                        placeholder="Enter specific indicators, hashes, or Government Resolution citations...",
+                                    )
+                                    corr_rationale = st.text_area(
+                                        "Independent Verification Rationale (Mandatory, min 15 chars):",
+                                        value=chosen_ev.get("corroboration_rationale", ""),
+                                        placeholder="Detail independent technical indicators or external verification confirming this finding...",
+                                    )
+                                    corr_conclusion = st.selectbox(
+                                        "Corroborated Ground Truth Conclusion:",
+                                        ["phishing", "legitimate", "protective_advisory"],
+                                        help="Cannot be 'unknown' for corroboration.",
+                                    )
+
+                                submit_trans_btn = st.form_submit_button("⚡ Execute State Transition", type="primary")
+
+                                if submit_trans_btn:
+                                    try:
+                                        if target_status == "corroborated" and v_method and ref_input:
+                                            # Use corroborate_evidence method
+                                            refs = [r.strip() for r in ref_input.split(",") if r.strip()]
+                                            res = store.corroborate_evidence(
+                                                evidence_id=chosen_ev_id,
+                                                operator_username=current_session["username"],
+                                                rationale=corr_rationale,
+                                                conclusion=corr_conclusion or rev_class,
+                                                verification_method=v_method,
+                                                supporting_references=refs,
+                                                require_independent=False,  # Allow single-analyst local mode without exception
+                                                operator_role=current_session.get("role", "reviewer"),
+                                            )
+                                        else:
+                                            res = store.transition_evidence(
+                                                evidence_id=chosen_ev_id,
+                                                to_status=target_status,
+                                                operator_username=current_session["username"],
+                                                transition_reason=trans_reason,
+                                                corroboration_rationale=corr_rationale,
+                                                reviewer_classification=rev_class,
+                                                corroborated_conclusion=corr_conclusion,
+                                            )
+                                        st.success(f"Evidence successfully transitioned from '{curr_status}' to '{target_status}'!")
+                                        st.rerun()
+                                    except Exception as ex:
+                                        st.error(f"Transition rejected: {ex}")
+
+                    # Campaign Association & Conflict View
+                    st.markdown("###### 🏷️ Campaign Association & Anti-Poisoning Controls")
+                    col_camp1, col_camp2 = st.columns(2)
+                    with col_camp1:
+                        st.markdown(f"- **Assigned Campaign ID:** `{chosen_ev.get('campaign_id') or 'None'}`")
+                        st.markdown(f"- **Relationship Strength:** `{chosen_ev.get('relationship_strength', 'unrelated_evidence')}`")
+                        if chosen_ev.get("relationship_strength") == "weak_similarity":
+                            st.warning("⚠️ **Shared Infrastructure:** Coarse domain association suppressed to prevent false campaign clustering.")
+                        if chosen_ev.get("campaign_id"):
+                            conf_info = store.get_campaign_conflict_status(chosen_ev["campaign_id"])
+                            if conf_info.get("is_conflict"):
+                                st.error(f"⚠️ **Conflict in Campaign:** Mixed labels detected: {conf_info.get('conflicting_labels')}. Campaign quarantined from training.")
+                            else:
+                                st.success(f"✅ **Consistent Labels:** {conf_info.get('distinct_labels') or 'Unclassified'}")
+                    with col_camp2:
+                        if current_session:
+                            with st.expander("Reassign Campaign Cluster", expanded=False):
+                                new_camp = st.text_input("New Campaign ID:", value=chosen_ev.get("campaign_id") or "").strip()
+                                reassign_reason = st.text_input("Reassignment Justification:", placeholder="Reason for updating campaign association")
+                                if st.button("Update Campaign", key=f"btn_reassign_camp_{chosen_ev_id}"):
+                                    if new_camp and reassign_reason:
+                                        try:
+                                            store.assign_campaign(chosen_ev_id, new_camp, current_session["username"], reassign_reason)
+                                            st.success("Campaign association updated!")
+                                            st.rerun()
+                                        except Exception as ex:
+                                            st.error(f"Reassignment failed: {ex}")
+                                    else:
+                                        st.error("Campaign ID and Justification are required.")
+
+                    # Withdrawal Control
+                    if chosen_ev["lifecycle_status"] != "withdrawn" and current_session:
+                        with st.expander("⚠️ Withdraw Evidence from System", expanded=False):
+                            st.warning(
+                                "Withdrawing evidence moves it to the terminal 'withdrawn' state, "
+                                "immediately revokes training consent, and excludes it from all candidate exports."
+                            )
+                            w_reason = st.text_input("Withdrawal Reason:", key=f"txt_w_reason_{chosen_ev_id}")
+                            if st.button("🚨 Withdraw Evidence", type="secondary", key=f"btn_withdraw_{chosen_ev_id}"):
+                                if len(w_reason.strip()) >= 5:
+                                    try:
+                                        store.withdraw_evidence(chosen_ev_id, current_session["username"], w_reason)
+                                        st.success(f"Evidence {chosen_ev_id} withdrawn.")
+                                        st.rerun()
+                                    except Exception as ex:
+                                        st.error(f"Withdrawal failed: {ex}")
+                                else:
+                                    st.error("Withdrawal reason must be at least 5 characters.")
+
+                    # Audit Trail Viewer
+                    st.markdown("###### 📜 State Transition Audit Trail (Append-Only)")
+                    hist = store.get_evidence_history(chosen_ev_id)
+                    if hist:
+                        hist_rows = []
+                        for h in hist:
+                            hist_rows.append({
+                                "Timestamp (UTC)": h["timestamp_utc"],
+                                "Actor": h["operator_username"],
+                                "From Status": h["from_status"].upper(),
+                                "To Status": h["to_status"].upper(),
+                                "Reason": h["transition_reason"],
+                            })
+                        st.dataframe(hist_rows, use_container_width=True)
+
+        # -----------------------------------------------------------------
+        # SECTION C: MODEL VERSION REGISTRY & ROLLBACK
+        # -----------------------------------------------------------------
             with subtab_registry:
                 registry = get_default_model_registry()
                 active_cfg = registry.get_active_model_config()
@@ -1651,7 +1884,7 @@ def main() -> None:
                                     outcome_label=form_outcome,
                                     reviewer_assessment=form_assessment,
                                     confidence_rating=form_conf,
-                                    reviewer_label="local_operator_unauthenticated",
+                                    reviewer_label=current_session["username"] if current_session else "local_operator_unauthenticated",
                                     notes=form_notes,
                                     supersede_existing=form_supersede,
                                     reason=form_supersede_reason,

@@ -1,0 +1,27 @@
+{
+  "manifest_version": "1.0.0",
+  "creation_timestamp_utc": "2026-10-31T13:30:41.307018+00:00",
+  "db_path": "instance/seva_cases.sqlite3",
+  "status": "CONSTRUCTION_BLOCKED",
+  "reason": "BLOCKED_INSUFFICIENT_REAL_WORLD_EVIDENCE",
+  "blocking_reasons": [
+    "No real-world evidence records available (Zero evidence records registered in database.).",
+    "Corroborated samples deficit: 30.",
+    "Phishing samples deficit: 10.",
+    "Legitimate samples deficit: 10.",
+    "Independent campaigns deficit: 5."
+  ],
+  "deficits": {
+    "corroborated_samples_needed": 30,
+    "phishing_samples_needed": 10,
+    "legitimate_samples_needed": 10,
+    "independent_campaigns_needed": 5
+  },
+  "total_records": 0,
+  "splits": {
+    "train": 0,
+    "dev": 0,
+    "sealed_eval": 0,
+    "excluded": 0
+  }
+}

@@ -62,18 +62,100 @@ class SessionCaseStore:
         """Backwards compatibility property returning session cases as a dictionary."""
         return {c["case_id"]: c for c in self.list_cases()}
 
-    def add_case(self, case_record: Dict[str, Any]) -> str:
-        """Adds a case record to this session's isolated SQLite store."""
+    def add_case(self, case_record: Dict[str, Any], origin: Optional[str] = None) -> str:
+        """Adds a case record to this session's isolated SQLite store and registers provenance."""
         case_id = case_record.get("case_id") or generate_case_id()
         case_record["case_id"] = case_id
         if "timestamp_utc" not in case_record or not case_record["timestamp_utc"]:
             case_record["timestamp_utc"] = get_utc_timestamp_iso()
 
-        return self.repository.save_case(
+        saved_id = self.repository.save_case(
             case_record=case_record,
             session_id=self.session_id,
             source_type="web_simulator",
         )
+
+        try:
+            evid_origin = origin or case_record.get("evidence_origin") or "user_reported"
+            analysis_type = case_record.get("analysis_type", "")
+            if "APK" in analysis_type:
+                evid_type = "apk"
+            elif "URL" in analysis_type:
+                evid_type = "url"
+            elif "Scheme" in analysis_type:
+                evid_type = "scheme_claim"
+            else:
+                evid_type = "message"
+
+            # Determine campaign cluster key if available
+            campaign_id = None
+            sha = case_record.get("sha256_hash")
+            art_sha = case_record.get("artifact_sha256")
+            if sha and sha != "N/A" and len(sha) == 64:
+                cluster = self.repository.create_or_get_campaign_cluster(
+                    cluster_type="apk_sha256",
+                    cluster_key=sha,
+                    campaign_name=f"APK-{sha[:8].upper()}",
+                )
+                campaign_id = cluster["campaign_id"]
+                art_sha = sha
+            elif evid_type == "url" and case_record.get("target_identifier"):
+                target = case_record["target_identifier"].strip()
+                if "." in target:
+                    cluster = self.repository.create_or_get_campaign_cluster(
+                        cluster_type="domain",
+                        cluster_key=target,
+                        campaign_name=f"Domain-{target}",
+                    )
+                    campaign_id = cluster["campaign_id"]
+                if not art_sha and case_record.get("source_url"):
+                    art_sha = hashlib.sha256(case_record["source_url"].encode("utf-8")).hexdigest()
+            elif evid_type == "message" and case_record.get("extracted_urls"):
+                # Associate message with campaign cluster of its primary extracted link domain
+                for u in case_record["extracted_urls"]:
+                    from urllib.parse import urlparse
+                    netloc = urlparse(u).netloc or u.split("/")[0]
+                    if "." in netloc:
+                        cluster = self.repository.create_or_get_campaign_cluster(
+                            cluster_type="domain",
+                            cluster_key=netloc.lower(),
+                            campaign_name=f"Domain-{netloc.lower()}",
+                        )
+                        campaign_id = cluster["campaign_id"]
+                        break
+
+            # Metadata packaging
+            meta = {
+                "source_session": self.session_id,
+                "user_description": case_record.get("user_description", ""),
+                "target_identifier": case_record.get("target_identifier", ""),
+                "script_detected": case_record.get("script_detected", ""),
+                "package_name": case_record.get("package_name", ""),
+            }
+            if case_record.get("metadata") and isinstance(case_record["metadata"], dict):
+                meta.update(case_record["metadata"])
+
+            submitted_by = case_record.get("submitted_by") or case_record.get("operator_username")
+
+            evid = self.repository.register_evidence_provenance(
+                case_id=saved_id,
+                evidence_origin=evid_origin,
+                evidence_type=evid_type,
+                user_classification=case_record.get("user_classification"),
+                model_prediction=case_record.get("model_prediction"),
+                rule_assessment=case_record.get("risk_category"),
+                consent_given=bool(case_record.get("consent_given", False)),
+                sanitization_status=case_record.get("sanitization_status", "passed"),
+                campaign_id=campaign_id,
+                metadata=meta,
+                submitted_by=submitted_by,
+                artifact_sha256=art_sha,
+            )
+            case_record["evidence_id"] = evid["evidence_id"]
+        except Exception:
+            pass
+
+        return saved_id
 
     def get_case(self, case_id: str) -> Optional[Dict[str, Any]]:
         """Retrieves a specific case belonging to this session by its ID."""
@@ -339,6 +421,229 @@ class SessionCaseStore:
         from src.feedback_analytics import FeedbackAnalytics
         analytics = FeedbackAnalytics(repository=self.repository)
         return analytics.compute_analytics()
+
+    # -------------------------------------------------------------------------
+    # Phase 6.8.2: Evidence Governance, Provenance, Lifecycle & Clusters
+    # -------------------------------------------------------------------------
+
+    def register_evidence(
+        self,
+        case_id: str,
+        evidence_origin: str,
+        evidence_type: str,
+        user_classification: Optional[str] = None,
+        model_prediction: Optional[str] = None,
+        rule_assessment: Optional[str] = None,
+        consent_given: bool = False,
+        sanitization_status: str = "unverified",
+        campaign_id: Optional[str] = None,
+        corroboration_rationale: str = "",
+        metadata: Optional[Dict[str, Any]] = None,
+        operator_username: str = "system",
+        submitted_by: Optional[str] = None,
+        artifact_sha256: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Registers evidence provenance directly."""
+        return self.repository.register_evidence_provenance(
+            case_id=case_id,
+            evidence_origin=evidence_origin,
+            evidence_type=evidence_type,
+            user_classification=user_classification,
+            model_prediction=model_prediction,
+            rule_assessment=rule_assessment,
+            consent_given=consent_given,
+            sanitization_status=sanitization_status,
+            campaign_id=campaign_id,
+            corroboration_rationale=corroboration_rationale,
+            metadata=metadata,
+            operator_username=operator_username,
+            submitted_by=submitted_by,
+            artifact_sha256=artifact_sha256,
+        )
+
+    def get_evidence(self, evidence_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieves evidence record by its ID."""
+        return self.repository.get_evidence_provenance(evidence_id)
+
+    def get_evidence_for_case(self, case_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieves evidence record linked to a given case ID."""
+        return self.repository.get_evidence_by_case(case_id)
+
+    def list_evidence(
+        self,
+        origin: Optional[str] = None,
+        lifecycle_status: Optional[str] = None,
+        campaign_id: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """Lists evidence provenance records with optional filters."""
+        return self.repository.list_evidence_provenance(
+            origin=origin,
+            lifecycle_status=lifecycle_status,
+            campaign_id=campaign_id,
+            limit=limit,
+        )
+
+    def transition_evidence(
+        self,
+        evidence_id: str,
+        to_status: str,
+        operator_username: str,
+        transition_reason: str,
+        corroboration_rationale: Optional[str] = None,
+        reviewer_classification: Optional[str] = None,
+        corroborated_conclusion: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+        operator_role: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Transitions evidence status through the lifecycle state machine."""
+        return self.repository.transition_evidence_status(
+            evidence_id=evidence_id,
+            to_status=to_status,
+            operator_username=operator_username,
+            transition_reason=transition_reason,
+            corroboration_rationale=corroboration_rationale,
+            reviewer_classification=reviewer_classification,
+            corroborated_conclusion=corroborated_conclusion,
+            details=details,
+            operator_role=operator_role,
+        )
+
+    def get_evidence_history(self, evidence_id: str) -> List[Dict[str, Any]]:
+        """Retrieves append-only lifecycle transition audit history."""
+        return self.repository.get_evidence_lifecycle_history(evidence_id)
+
+    def check_training_eligibility(self, evidence_id: str) -> Dict[str, Any]:
+        """Evaluates strict training eligibility criteria."""
+        return self.repository.check_training_eligibility(evidence_id)
+
+    def create_or_get_campaign(
+        self,
+        cluster_type: str,
+        cluster_key: str,
+        campaign_name: Optional[str] = None,
+        created_by: str = "system",
+        description: str = "",
+    ) -> Dict[str, Any]:
+        """Creates or retrieves a campaign cluster."""
+        return self.repository.create_or_get_campaign_cluster(
+            cluster_type=cluster_type,
+            cluster_key=cluster_key,
+            campaign_name=campaign_name,
+            created_by=created_by,
+            description=description,
+        )
+
+    def assign_campaign(
+        self,
+        evidence_id: str,
+        campaign_id: str,
+        operator_username: str,
+        reason: str = "",
+    ) -> Dict[str, Any]:
+        """Assigns an evidence item to a campaign cluster."""
+        return self.repository.assign_campaign_cluster(
+            evidence_id=evidence_id,
+            campaign_id=campaign_id,
+            operator_username=operator_username,
+            reason=reason,
+        )
+
+    def list_campaigns(self) -> List[Dict[str, Any]]:
+        """Lists all campaigns with member count and conflict summary."""
+        return self.repository.list_campaign_clusters()
+
+    def get_campaign_conflict_status(self, campaign_id: str) -> Dict[str, Any]:
+        """Checks conflict status of classifications in a campaign."""
+        return self.repository.get_campaign_conflict_status(campaign_id)
+
+    def assign_reviewer(
+        self,
+        evidence_id: str,
+        reviewer_username: str,
+        assigned_by: str,
+        notes: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Assigns or reassigns an investigator/reviewer to an evidence item."""
+        return self.repository.assign_reviewer(
+            evidence_id=evidence_id,
+            reviewer_username=reviewer_username,
+            assigned_by=assigned_by,
+            notes=notes,
+        )
+
+    def corroborate_evidence(
+        self,
+        evidence_id: str,
+        operator_username: str,
+        rationale: str,
+        conclusion: str,
+        verification_method: str,
+        supporting_references: List[str],
+        conflicting_evidence: Optional[List[Dict[str, Any]]] = None,
+        require_independent: bool = True,
+        operator_role: str = "reviewer",
+        details: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Corroborates evidence adhering to Two-Person Rule and verification requirements."""
+        return self.repository.corroborate_evidence(
+            evidence_id=evidence_id,
+            operator_username=operator_username,
+            rationale=rationale,
+            conclusion=conclusion,
+            verification_method=verification_method,
+            supporting_references=supporting_references,
+            conflicting_evidence=conflicting_evidence,
+            require_independent=require_independent,
+            operator_role=operator_role,
+            details=details,
+        )
+
+    def verify_evidence_integrity(
+        self,
+        evidence_id: str,
+        artifact_content: Optional[Any] = None,
+    ) -> Dict[str, Any]:
+        """Cryptographically verifies evidence artifact digest for tamper detection."""
+        return self.repository.verify_evidence_integrity(
+            evidence_id=evidence_id,
+            artifact_content=artifact_content,
+        )
+
+    def export_curated_training_features(
+        self,
+        export_path: Optional[str] = None,
+        secret: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Exports training-eligible feature records (Tier 3 only, strictly excluding Tier 4)."""
+        return self.repository.export_curated_training_features(
+            export_path=export_path,
+            secret=secret,
+        )
+
+    def export_evaluation_candidate_features(
+        self,
+        export_path: Optional[str] = None,
+        secret: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Exports independently corroborated evaluation candidates (Tier 4 only)."""
+        return self.repository.export_evaluation_candidate_features(
+            export_path=export_path,
+            secret=secret,
+        )
+
+    def withdraw_evidence(
+        self,
+        evidence_id: str,
+        operator_username: str,
+        reason: str,
+    ) -> Dict[str, Any]:
+        """Withdraws evidence from active review and training."""
+        return self.repository.withdraw_evidence(
+            evidence_id=evidence_id,
+            operator_username=operator_username,
+            reason=reason,
+        )
 
 
 # =============================================================================

@@ -29,7 +29,7 @@ import re
 import sqlite3
 import urllib.parse
 import uuid
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 SCHEMA_VERSION = 1
 DEFAULT_RETENTION_DAYS = 30
@@ -50,9 +50,122 @@ EXPECTED_FEATURE_DIM = 1024
 ALLOWED_ELIGIBILITY_STATES = {"pending_review", "eligible", "ineligible"}
 FEEDBACK_LABEL_TO_IDX = {"phishing": 0, "legitimate": 1, "protective_advisory": 2}
 
+# Phase 6.8.2: Evidence Governance, Provenance & Lifecycle Constants
+ALLOWED_EVIDENCE_ORIGINS = {
+    "user_reported",
+    "analyst_submitted",
+    "internal_case",
+    "public_source_reference",
+    "system_generated",
+    "synthetic_test_data",
+}
+ALLOWED_LIFECYCLE_STATUSES = {
+    "submitted",
+    "awaiting_review",
+    "under_review",
+    "corroborated",
+    "disputed",
+    "rejected",
+    "withdrawn",
+}
+ALLOWED_EVIDENCE_CLASSIFICATIONS = {
+    "phishing",
+    "legitimate",
+    "protective_advisory",
+    "unknown",
+}
+VALID_LIFECYCLE_TRANSITIONS: Dict[str, Set[str]] = {
+    "submitted": {"awaiting_review", "withdrawn"},
+    "awaiting_review": {"under_review", "withdrawn"},
+    "under_review": {"corroborated", "disputed", "rejected", "awaiting_review", "withdrawn"},
+    "corroborated": {"disputed", "withdrawn"},
+    "disputed": {"under_review", "rejected", "corroborated", "withdrawn"},
+    "rejected": {"under_review", "withdrawn"},
+    "withdrawn": set(),
+}
+
+
+# Phase 6.8.3: Evidence Trust, Verification, and Anti-Poisoning Constants
+ALLOWED_VERIFICATION_METHODS = {
+    "apk_static_structural_audit",
+    "domain_dns_lexical_analysis",
+    "official_gazette_scheme_crosscheck",
+    "multi_analyst_independent_review",
+    "technical_indicator_correlation",
+    "heuristic_rule_validation",
+}
+
+ALLOWED_VERIFICATION_LEVELS = {
+    "unverified",
+    "self_reviewed",
+    "single_reviewed",
+    "independently_corroborated",
+    "disputed",
+    "rejected",
+}
+
+SHARED_INFRASTRUCTURE_DOMAINS = {
+    "bit.ly", "tinyurl.com", "t.co", "is.gd", "buff.ly", "ow.ly", "goo.gl",
+    "github.io", "pages.dev", "web.app", "firebaseapp.com", "netlify.app",
+    "vercel.app", "blogspot.com", "wordpress.com", "sites.google.com",
+    "gov.in", "nic.in", "maharashtra.gov.in", "india.gov.in", "digitalindia.gov.in",
+    "s3.amazonaws.com", "storage.googleapis.com", "blob.core.windows.net",
+}
+
+RELATIONSHIP_STRENGTHS = {
+    "exact_duplicate",
+    "strong_technical_relationship",
+    "possible_campaign_relationship",
+    "weak_similarity",
+    "unrelated_evidence",
+    "human_confirmed_association",
+}
+
+ELIGIBILITY_TIERS = {
+    "not_eligible",
+    "eligible_exploratory_review",
+    "eligible_supervised_candidate_training",
+    "independently_corroborated_evaluation_candidate",
+}
+
 
 class CaseRepositoryError(Exception):
     """Base exception for all case repository operations."""
+    pass
+
+
+class EvidenceGovernanceError(CaseRepositoryError):
+    """Base exception for evidence governance operations."""
+    pass
+
+
+class EvidenceProvenanceError(EvidenceGovernanceError):
+    """Raised when evidence provenance data or origin fails validation."""
+    pass
+
+
+class InvalidStateTransitionError(EvidenceGovernanceError):
+    """Raised when an illegal lifecycle state transition is attempted."""
+    pass
+
+
+class CorroborationError(EvidenceGovernanceError):
+    """Raised when corroboration requirements (rationale, reviewer, status) are not met."""
+    pass
+
+
+class SelfApprovalProhibitedError(CorroborationError):
+    """Raised when an operator attempts to independently corroborate their own submission or review."""
+    pass
+
+
+class TamperedEvidenceError(EvidenceGovernanceError):
+    """Raised when an evidence artifact's cryptographic digest does not match its recorded digest."""
+    pass
+
+
+class TrainingEligibilityError(EvidenceGovernanceError):
+    """Raised when checking training eligibility fails or invalid record is evaluated."""
     pass
 
 
@@ -862,6 +975,196 @@ class CaseRepository:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_disagree_audit_event ON disagreement_review_audit(event_id);")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_disagree_audit_time ON disagreement_review_audit(timestamp_utc DESC);")
 
+    def ensure_evidence_tables(self) -> None:
+        """
+        Idempotently initializes Phase 6.8.2 Evidence Governance tables,
+        indexes, and schema columns if not already present.
+        """
+        with self.get_connection() as conn:
+            try:
+                cur = conn.execute("PRAGMA table_info(threat_cases);")
+                columns = [row["name"] for row in cur.fetchall()]
+                if columns and "evidence_id" not in columns:
+                    conn.execute("ALTER TABLE threat_cases ADD COLUMN evidence_id TEXT;")
+            except Exception:
+                pass
+
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS evidence_provenance (
+                    evidence_id TEXT PRIMARY KEY,
+                    case_id TEXT NOT NULL,
+                    evidence_origin TEXT NOT NULL,
+                    evidence_type TEXT NOT NULL,
+                    lifecycle_status TEXT NOT NULL DEFAULT 'submitted',
+                    user_classification TEXT,
+                    model_prediction TEXT,
+                    rule_assessment TEXT,
+                    reviewer_classification TEXT,
+                    corroborated_conclusion TEXT,
+                    corroboration_rationale TEXT NOT NULL DEFAULT '',
+                    campaign_id TEXT,
+                    consent_given INTEGER NOT NULL DEFAULT 0,
+                    consent_timestamp_utc TEXT,
+                    sanitization_status TEXT NOT NULL DEFAULT 'unverified',
+                    created_at_utc TEXT NOT NULL,
+                    updated_at_utc TEXT NOT NULL,
+                    metadata_json TEXT NOT NULL DEFAULT '{}'
+                );
+                """
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_evid_case ON evidence_provenance(case_id);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_evid_origin ON evidence_provenance(evidence_origin);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_evid_status ON evidence_provenance(lifecycle_status);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_evid_campaign ON evidence_provenance(campaign_id);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_evid_created ON evidence_provenance(created_at_utc DESC);")
+
+            # Phase 6.8.3 hardening columns on evidence_provenance
+            try:
+                cur = conn.execute("PRAGMA table_info(evidence_provenance);")
+                evid_cols = [r["name"] for r in cur.fetchall()]
+                new_cols = [
+                    ("submitted_by", "TEXT"),
+                    ("reviewed_by", "TEXT"),
+                    ("corroborated_by", "TEXT"),
+                    ("verification_level", "TEXT NOT NULL DEFAULT 'unverified'"),
+                    ("verification_method", "TEXT"),
+                    ("supporting_references_json", "TEXT NOT NULL DEFAULT '[]'"),
+                    ("conflicting_evidence_json", "TEXT NOT NULL DEFAULT '[]'"),
+                    ("relationship_strength", "TEXT NOT NULL DEFAULT 'unrelated_evidence'"),
+                    ("poisoning_risk_flags_json", "TEXT NOT NULL DEFAULT '[]'"),
+                    ("eligibility_tier", "TEXT NOT NULL DEFAULT 'not_eligible'"),
+                    ("artifact_sha256", "TEXT"),
+                ]
+                for col_name, col_def in new_cols:
+                    if col_name not in evid_cols:
+                        conn.execute(f"ALTER TABLE evidence_provenance ADD COLUMN {col_name} {col_def};")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_evid_vlevel ON evidence_provenance(verification_level);")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_evid_tier ON evidence_provenance(eligibility_tier);")
+            except Exception:
+                pass
+
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS evidence_lifecycle_audit (
+                    audit_id TEXT PRIMARY KEY,
+                    evidence_id TEXT NOT NULL,
+                    from_status TEXT NOT NULL,
+                    to_status TEXT NOT NULL,
+                    operator_username TEXT NOT NULL,
+                    transition_reason TEXT NOT NULL,
+                    timestamp_utc TEXT NOT NULL,
+                    details_json TEXT NOT NULL DEFAULT '{}',
+                    FOREIGN KEY (evidence_id) REFERENCES evidence_provenance(evidence_id)
+                );
+                """
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_evid_audit_evid ON evidence_lifecycle_audit(evidence_id);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_evid_audit_time ON evidence_lifecycle_audit(timestamp_utc DESC);")
+
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS operator_accounts (
+                    username TEXT PRIMARY KEY,
+                    password_hash TEXT NOT NULL,
+                    salt TEXT NOT NULL,
+                    role TEXT NOT NULL DEFAULT 'operator',
+                    created_at_utc TEXT NOT NULL,
+                    last_login_utc TEXT,
+                    failed_login_count INTEGER NOT NULL DEFAULT 0,
+                    locked_until_utc TEXT,
+                    is_active INTEGER NOT NULL DEFAULT 1
+                );
+                """
+            )
+            # Ensure operator_accounts columns
+            try:
+                cur = conn.execute("PRAGMA table_info(operator_accounts);")
+                op_cols = [r["name"] for r in cur.fetchall()]
+                if "failed_login_count" not in op_cols:
+                    conn.execute("ALTER TABLE operator_accounts ADD COLUMN failed_login_count INTEGER NOT NULL DEFAULT 0;")
+                if "locked_until_utc" not in op_cols:
+                    conn.execute("ALTER TABLE operator_accounts ADD COLUMN locked_until_utc TEXT;")
+            except Exception:
+                pass
+
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS operator_sessions (
+                    session_token TEXT PRIMARY KEY,
+                    username TEXT NOT NULL,
+                    created_at_utc TEXT NOT NULL,
+                    expires_at_utc TEXT NOT NULL,
+                    client_ip TEXT NOT NULL DEFAULT '127.0.0.1',
+                    user_agent TEXT NOT NULL DEFAULT 'local_client',
+                    is_revoked INTEGER NOT NULL DEFAULT 0,
+                    FOREIGN KEY (username) REFERENCES operator_accounts(username)
+                );
+                """
+            )
+            # Ensure operator_sessions columns
+            try:
+                cur = conn.execute("PRAGMA table_info(operator_sessions);")
+                sess_cols = [r["name"] for r in cur.fetchall()]
+                if "client_ip" not in sess_cols:
+                    conn.execute("ALTER TABLE operator_sessions ADD COLUMN client_ip TEXT NOT NULL DEFAULT '127.0.0.1';")
+                if "user_agent" not in sess_cols:
+                    conn.execute("ALTER TABLE operator_sessions ADD COLUMN user_agent TEXT NOT NULL DEFAULT 'local_client';")
+            except Exception:
+                pass
+
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON operator_sessions(username);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON operator_sessions(expires_at_utc);")
+
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS campaign_clusters (
+                    campaign_id TEXT PRIMARY KEY,
+                    campaign_name TEXT NOT NULL,
+                    cluster_type TEXT NOT NULL,
+                    cluster_key TEXT NOT NULL,
+                    description TEXT NOT NULL DEFAULT '',
+                    created_at_utc TEXT NOT NULL,
+                    created_by TEXT NOT NULL DEFAULT 'system',
+                    is_shared_infrastructure INTEGER NOT NULL DEFAULT 0,
+                    infrastructure_notes TEXT NOT NULL DEFAULT '',
+                    has_conflicting_classifications INTEGER NOT NULL DEFAULT 0,
+                    quarantined_from_training INTEGER NOT NULL DEFAULT 0,
+                    metadata_json TEXT NOT NULL DEFAULT '{}'
+                );
+                """
+            )
+            # Ensure campaign_clusters columns
+            try:
+                cur = conn.execute("PRAGMA table_info(campaign_clusters);")
+                camp_cols = [r["name"] for r in cur.fetchall()]
+                camp_new = [
+                    ("is_shared_infrastructure", "INTEGER NOT NULL DEFAULT 0"),
+                    ("infrastructure_notes", "TEXT NOT NULL DEFAULT ''"),
+                    ("has_conflicting_classifications", "INTEGER NOT NULL DEFAULT 0"),
+                    ("quarantined_from_training", "INTEGER NOT NULL DEFAULT 0"),
+                ]
+                for c_name, c_def in camp_new:
+                    if c_name not in camp_cols:
+                        conn.execute(f"ALTER TABLE campaign_clusters ADD COLUMN {c_name} {c_def};")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_campaign_shared ON campaign_clusters(is_shared_infrastructure);")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_campaign_quarantine ON campaign_clusters(quarantined_from_training);")
+            except Exception:
+                pass
+
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_campaign_key ON campaign_clusters(cluster_type, cluster_key);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_campaign_created ON campaign_clusters(created_at_utc DESC);")
+
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS schema_migrations (
+                    migration_id TEXT PRIMARY KEY,
+                    applied_at_utc TEXT NOT NULL,
+                    description TEXT NOT NULL
+                );
+                """
+            )
+
     def save_case(
         self,
         case_record: Dict[str, Any],
@@ -1211,6 +1514,7 @@ class CaseRepository:
             "heuristic_inferences": json.loads(row["heuristic_inferences_json"] or "[]"),
             "extracted_urls": json.loads(row["extracted_urls_json"] or "[]"),
             "official_sources": json.loads(row["official_sources_json"] or "[]"),
+            "evidence_id": row["evidence_id"] if "evidence_id" in row.keys() else None,
             "raw_data_stored": False,
         }
         # Unpack safe metadata for backward compatibility
@@ -2586,8 +2890,30 @@ class CaseRepository:
         eligible = curation_res["eligible_records"]
         now_utc = get_utc_now_iso()
 
+        # Check whether evidence_provenance table exists without creating it lazily
+        has_evid_table = False
+        try:
+            with self.get_connection() as conn:
+                c = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='evidence_provenance';")
+                has_evid_table = bool(c.fetchone())
+        except Exception:
+            has_evid_table = False
+
         exported_records: List[Dict[str, Any]] = []
         for item in eligible:
+            # Phase 6.8.3 Security Hardening: Dataset Isolation.
+            # Independently corroborated evaluation candidates (Tier 4) MUST NOT be exported
+            # in candidate training datasets to prevent evaluation benchmark contamination.
+            case_id = item.get("case_id")
+            if case_id and has_evid_table:
+                try:
+                    evid = self.get_evidence_by_case(case_id)
+                    if evid:
+                        if evid.get("verification_level") == "independently_corroborated" or evid.get("eligibility_tier") == "independently_corroborated_evaluation_candidate":
+                            continue
+                except Exception:
+                    pass
+
             rec = {
                 "example_id": f"curated_feat_{item['feature_record_id']}",
                 "feature_vector": item["feature_vector"],
@@ -2623,6 +2949,50 @@ class CaseRepository:
                     f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
         return exported_records
+
+    def export_evaluation_candidate_features(
+        self,
+        export_path: Optional[str] = None,
+        secret: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Exports independently corroborated evaluation candidates (Tier 4) in an isolated format.
+        Strictly segregated from candidate training exports to preserve evaluation benchmark integrity.
+        """
+        curation_res = self.curate_training_features(secret=secret)
+        eligible = curation_res["eligible_records"]
+        now_utc = get_utc_now_iso()
+
+        exported_records: List[Dict[str, Any]] = []
+        for item in eligible:
+            case_id = item.get("case_id")
+            if not case_id:
+                continue
+            try:
+                evid = self.get_evidence_by_case(case_id)
+                if not evid:
+                    continue
+                if evid.get("verification_level") != "independently_corroborated" and evid.get("eligibility_tier") != "independently_corroborated_evaluation_candidate":
+                    continue
+            except Exception:
+                continue
+
+            rec = {
+                "example_id": f"eval_feat_{item['feature_record_id']}",
+                "feature_vector": item["feature_vector"],
+                "feature_dim": item["feature_dim"],
+                "label": item["label"],
+                "label_idx": item["label_idx"],
+                "feature_schema_version": item["feature_schema_version"],
+                "preprocessing_version": item["preprocessing_version"],
+                "feature_extractor_version": item["feature_extractor_version"],
+                "review_provenance": "independently_corroborated_dual_reviewer",
+                "verification_level": "independently_corroborated",
+                "confidence_category": item["confidence_rating"],
+                "dataset_generation_timestamp": now_utc,
+                "disclaimer": "Independently corroborated gold-standard evaluation candidate. Isolated from candidate training sets.",
+            }
+            exported_records.append(rec)
 
         if export_path:
             os.makedirs(os.path.dirname(os.path.abspath(export_path)), exist_ok=True)
@@ -3079,6 +3449,1269 @@ class CaseRepository:
             "is_superseded": bool(row["is_superseded"]),
             "superseded_by": row["superseded_by"],
             "metadata": json.loads(row["metadata_json"] or "{}") if "metadata_json" in row_keys else {},
+        }
+
+    # =========================================================================
+    # Phase 6.8.2: Evidence Governance, Provenance, Lifecycle & Corroboration
+    # =========================================================================
+
+    def _row_to_evidence_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
+        """Maps an SQLite evidence_provenance row to a dictionary."""
+        row_keys = row.keys()
+        return {
+            "evidence_id": row["evidence_id"],
+            "case_id": row["case_id"],
+            "evidence_origin": row["evidence_origin"],
+            "evidence_type": row["evidence_type"],
+            "lifecycle_status": row["lifecycle_status"],
+            "user_classification": row["user_classification"],
+            "model_prediction": row["model_prediction"],
+            "rule_assessment": row["rule_assessment"],
+            "reviewer_classification": row["reviewer_classification"],
+            "corroborated_conclusion": row["corroborated_conclusion"],
+            "corroboration_rationale": row["corroboration_rationale"],
+            "campaign_id": row["campaign_id"],
+            "consent_given": bool(row["consent_given"]),
+            "consent_timestamp_utc": row["consent_timestamp_utc"],
+            "sanitization_status": row["sanitization_status"],
+            "created_at_utc": row["created_at_utc"],
+            "updated_at_utc": row["updated_at_utc"],
+            "submitted_by": row["submitted_by"] if "submitted_by" in row_keys else None,
+            "reviewed_by": row["reviewed_by"] if "reviewed_by" in row_keys else None,
+            "corroborated_by": row["corroborated_by"] if "corroborated_by" in row_keys else None,
+            "verification_level": row["verification_level"] if "verification_level" in row_keys else "unverified",
+            "verification_method": row["verification_method"] if "verification_method" in row_keys else None,
+            "supporting_references": json.loads(row["supporting_references_json"] or "[]") if "supporting_references_json" in row_keys else [],
+            "conflicting_evidence": json.loads(row["conflicting_evidence_json"] or "[]") if "conflicting_evidence_json" in row_keys else [],
+            "relationship_strength": row["relationship_strength"] if "relationship_strength" in row_keys else "unrelated_evidence",
+            "poisoning_risk_flags": json.loads(row["poisoning_risk_flags_json"] or "[]") if "poisoning_risk_flags_json" in row_keys else [],
+            "eligibility_tier": row["eligibility_tier"] if "eligibility_tier" in row_keys else "not_eligible",
+            "artifact_sha256": row["artifact_sha256"] if "artifact_sha256" in row_keys else None,
+            "metadata": json.loads(row["metadata_json"] or "{}") if "metadata_json" in row_keys else {},
+        }
+
+    def register_evidence_provenance(
+        self,
+        case_id: str,
+        evidence_origin: str,
+        evidence_type: str,
+        user_classification: Optional[str] = None,
+        model_prediction: Optional[str] = None,
+        rule_assessment: Optional[str] = None,
+        consent_given: bool = False,
+        sanitization_status: str = "unverified",
+        campaign_id: Optional[str] = None,
+        corroboration_rationale: str = "",
+        metadata: Optional[Dict[str, Any]] = None,
+        operator_username: str = "system",
+        submitted_by: Optional[str] = None,
+        artifact_sha256: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Registers traceable provenance for a newly submitted or existing case.
+        Initial lifecycle status is strictly 'submitted'.
+        """
+        self.ensure_evidence_tables()
+        if evidence_origin not in ALLOWED_EVIDENCE_ORIGINS:
+            raise EvidenceProvenanceError(
+                f"Invalid evidence origin '{evidence_origin}'. Allowed origins: {sorted(list(ALLOWED_EVIDENCE_ORIGINS))}"
+            )
+
+        now_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+        evidence_id = f"EVID-{now_str}-{uuid.uuid4().hex[:8].upper()}"
+        now_iso = get_utc_now_iso()
+        consent_ts = now_iso if consent_given else None
+        meta_dict = metadata or {}
+        meta_json = json.dumps(meta_dict)
+
+        actual_submitted_by = submitted_by or (operator_username if operator_username != "system" else None)
+        actual_artifact_sha256 = artifact_sha256
+        if not actual_artifact_sha256 and meta_dict:
+            if meta_dict.get("apk_sha256"):
+                actual_artifact_sha256 = meta_dict["apk_sha256"]
+            elif meta_dict.get("cleaned_url"):
+                actual_artifact_sha256 = hashlib.sha256(meta_dict["cleaned_url"].encode("utf-8")).hexdigest()
+            else:
+                actual_artifact_sha256 = hashlib.sha256(meta_json.encode("utf-8")).hexdigest()
+
+        with self.get_connection() as conn:
+            cur_info = conn.execute("PRAGMA table_info(evidence_provenance);")
+            cols = [r["name"] for r in cur_info.fetchall()]
+
+            if "submitted_by" in cols:
+                conn.execute(
+                    """
+                    INSERT INTO evidence_provenance (
+                        evidence_id, case_id, evidence_origin, evidence_type,
+                        lifecycle_status, user_classification, model_prediction,
+                        rule_assessment, reviewer_classification, corroborated_conclusion,
+                        corroboration_rationale, campaign_id, consent_given,
+                        consent_timestamp_utc, sanitization_status, created_at_utc,
+                        updated_at_utc, metadata_json, submitted_by, verification_level,
+                        eligibility_tier, artifact_sha256
+                    ) VALUES (?, ?, ?, ?, 'submitted', ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unverified', 'not_eligible', ?);
+                    """,
+                    (
+                        evidence_id,
+                        case_id,
+                        evidence_origin,
+                        evidence_type,
+                        user_classification,
+                        model_prediction,
+                        rule_assessment,
+                        corroboration_rationale or "",
+                        campaign_id,
+                        1 if consent_given else 0,
+                        consent_ts,
+                        sanitization_status,
+                        now_iso,
+                        now_iso,
+                        meta_json,
+                        actual_submitted_by,
+                        actual_artifact_sha256,
+                    ),
+                )
+            else:
+                conn.execute(
+                    """
+                    INSERT INTO evidence_provenance (
+                        evidence_id, case_id, evidence_origin, evidence_type,
+                        lifecycle_status, user_classification, model_prediction,
+                        rule_assessment, reviewer_classification, corroborated_conclusion,
+                        corroboration_rationale, campaign_id, consent_given,
+                        consent_timestamp_utc, sanitization_status, created_at_utc,
+                        updated_at_utc, metadata_json
+                    ) VALUES (?, ?, ?, ?, 'submitted', ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?);
+                    """,
+                    (
+                        evidence_id,
+                        case_id,
+                        evidence_origin,
+                        evidence_type,
+                        user_classification,
+                        model_prediction,
+                        rule_assessment,
+                        corroboration_rationale or "",
+                        campaign_id,
+                        1 if consent_given else 0,
+                        consent_ts,
+                        sanitization_status,
+                        now_iso,
+                        now_iso,
+                        meta_json,
+                    ),
+                )
+
+            # Link threat_case if exists
+            conn.execute(
+                "UPDATE threat_cases SET evidence_id = ? WHERE case_id = ?;",
+                (evidence_id, case_id),
+            )
+
+            # Record initial audit entry
+            audit_id = f"AUD-EVID-{now_str}-{uuid.uuid4().hex[:8].upper()}"
+            audit_details = {
+                "origin": evidence_origin,
+                "evidence_type": evidence_type,
+                "submitted_by": actual_submitted_by,
+                "artifact_sha256": actual_artifact_sha256,
+            }
+            conn.execute(
+                """
+                INSERT INTO evidence_lifecycle_audit (
+                    audit_id, evidence_id, from_status, to_status,
+                    operator_username, transition_reason, timestamp_utc, details_json
+                ) VALUES (?, ?, 'none', 'submitted', ?, 'Initial evidence submission registered.', ?, ?);
+                """,
+                (
+                    audit_id,
+                    evidence_id,
+                    operator_username,
+                    now_iso,
+                    json.dumps(audit_details),
+                ),
+            )
+
+        rec = self.get_evidence_provenance(evidence_id)
+        if not rec:
+            raise EvidenceGovernanceError(f"Failed to retrieve registered evidence '{evidence_id}'.")
+        return rec
+
+    def get_evidence_provenance(self, evidence_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieves evidence record by its unique evidence_id."""
+        self.ensure_evidence_tables()
+        with self.get_connection() as conn:
+            cur = conn.execute(
+                "SELECT * FROM evidence_provenance WHERE evidence_id = ? LIMIT 1;",
+                (evidence_id,),
+            )
+            row = cur.fetchone()
+            return self._row_to_evidence_dict(row) if row else None
+
+    def get_evidence_by_case(self, case_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieves the most recent evidence provenance record for a given case_id."""
+        self.ensure_evidence_tables()
+        with self.get_connection() as conn:
+            cur = conn.execute(
+                "SELECT * FROM evidence_provenance WHERE case_id = ? ORDER BY created_at_utc DESC LIMIT 1;",
+                (case_id,),
+            )
+            row = cur.fetchone()
+            return self._row_to_evidence_dict(row) if row else None
+
+    def list_evidence_provenance(
+        self,
+        origin: Optional[str] = None,
+        lifecycle_status: Optional[str] = None,
+        campaign_id: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> List[Dict[str, Any]]:
+        """Lists evidence provenance records with optional filters."""
+        self.ensure_evidence_tables()
+        query = "SELECT * FROM evidence_provenance"
+        conditions = []
+        params: List[Any] = []
+
+        if origin:
+            conditions.append("evidence_origin = ?")
+            params.append(origin)
+        if lifecycle_status:
+            conditions.append("lifecycle_status = ?")
+            params.append(lifecycle_status)
+        if campaign_id:
+            conditions.append("campaign_id = ?")
+            params.append(campaign_id)
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY created_at_utc DESC LIMIT ? OFFSET ?;"
+        params.extend([max(1, min(limit, 500)), max(0, offset)])
+
+        with self.get_connection() as conn:
+            cur = conn.execute(query, params)
+            return [self._row_to_evidence_dict(r) for r in cur.fetchall()]
+
+    def transition_evidence_status(
+        self,
+        evidence_id: str,
+        to_status: str,
+        operator_username: str,
+        transition_reason: str,
+        corroboration_rationale: Optional[str] = None,
+        reviewer_classification: Optional[str] = None,
+        corroborated_conclusion: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+        verification_method: Optional[str] = None,
+        supporting_references: Optional[List[str]] = None,
+        conflicting_evidence: Optional[List[Dict[str, Any]]] = None,
+        operator_role: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Transitions evidence to a new lifecycle status enforcing the state machine,
+        operator accountability, two-person rule, and independent corroboration checks.
+        """
+        if to_status not in ALLOWED_LIFECYCLE_STATUSES:
+            raise EvidenceGovernanceError(
+                f"Unknown lifecycle status '{to_status}'. Allowed: {sorted(list(ALLOWED_LIFECYCLE_STATUSES))}"
+            )
+
+        rec = self.get_evidence_provenance(evidence_id)
+        if not rec:
+            raise EvidenceProvenanceError(f"Evidence '{evidence_id}' does not exist.")
+
+        from_status = rec["lifecycle_status"]
+        allowed_next = VALID_LIFECYCLE_TRANSITIONS.get(from_status, set())
+        if to_status not in allowed_next:
+            raise InvalidStateTransitionError(
+                f"Cannot transition evidence '{evidence_id}' from '{from_status}' to '{to_status}'. "
+                f"Permissible transitions: {sorted(list(allowed_next))}"
+            )
+
+        if not operator_username or operator_username.strip().lower() in ("unauthenticated", "none", ""):
+            raise EvidenceGovernanceError("A valid authenticated operator identity is required for state transitions.")
+
+        if not transition_reason or len(transition_reason.strip()) < 5:
+            raise EvidenceGovernanceError("A transition reason of at least 5 characters is required.")
+
+        # Submitter role separation: Submitters can only submit; they cannot review or corroborate
+        effective_role = operator_role
+        if not effective_role and operator_username != "system":
+            try:
+                with self.get_connection() as conn:
+                    c = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='operator_accounts';")
+                    if c.fetchone():
+                        cur = conn.execute("SELECT role FROM operator_accounts WHERE username = ?;", (operator_username,))
+                        row = cur.fetchone()
+                        if row:
+                            effective_role = row["role"]
+            except Exception:
+                pass
+
+        if effective_role == "submitter" and to_status in ("under_review", "corroborated"):
+            raise EvidenceGovernanceError(
+                f"Submitters are not authorized to transition evidence to '{to_status}'. "
+                "Reviewer, analyst, senior reviewer, or admin role required."
+            )
+
+        # Determine reviewer / corroborator roles & verification level
+        reviewed_by = rec.get("reviewed_by")
+        corroborated_by = rec.get("corroborated_by")
+        verification_level = rec.get("verification_level", "unverified")
+
+        if to_status == "under_review":
+            if not reviewed_by:
+                reviewed_by = operator_username
+
+        # Specific checks for 'corroborated'
+        if to_status == "corroborated":
+            rationale = (corroboration_rationale or rec.get("corroboration_rationale") or "").strip()
+            if len(rationale) < 15:
+                raise CorroborationError(
+                    "Corroboration requires a substantive independent verification rationale (minimum 15 characters)."
+                )
+            conclusion = corroborated_conclusion or reviewer_classification or rec.get("reviewer_classification")
+            if not conclusion or conclusion == "unknown":
+                raise CorroborationError(
+                    "Cannot corroborate evidence with 'unknown' classification. "
+                    "A definitive ground truth label ('phishing', 'legitimate', 'protective_advisory') is required."
+                )
+            if conclusion not in ALLOWED_EVIDENCE_CLASSIFICATIONS:
+                raise CorroborationError(f"Invalid corroborated conclusion '{conclusion}'.")
+
+            # Check two-person rule
+            is_self_submission = bool(rec.get("submitted_by") and rec["submitted_by"] == operator_username)
+            is_same_reviewer = bool(reviewed_by and reviewed_by == operator_username)
+
+            if is_self_submission:
+                verification_level = "self_reviewed"
+                corroborated_by = None
+            elif is_same_reviewer or reviewed_by is None:
+                verification_level = "single_reviewed"
+                corroborated_by = None
+                if reviewed_by is None:
+                    reviewed_by = operator_username
+            else:
+                # Distinct second operator!
+                verification_level = "independently_corroborated"
+                corroborated_by = operator_username
+
+        elif to_status == "disputed":
+            verification_level = "disputed"
+        elif to_status == "rejected":
+            verification_level = "rejected"
+
+        if reviewer_classification and reviewer_classification not in ALLOWED_EVIDENCE_CLASSIFICATIONS:
+            raise EvidenceGovernanceError(f"Invalid reviewer classification '{reviewer_classification}'.")
+
+        now_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+        now_iso = get_utc_now_iso()
+        audit_id = f"AUD-EVID-{now_str}-{uuid.uuid4().hex[:8].upper()}"
+
+        final_rationale = (corroboration_rationale or rec.get("corroboration_rationale") or "").strip()
+        final_reviewer_cls = reviewer_classification or rec.get("reviewer_classification")
+        final_corroborated_cls = (
+            corroborated_conclusion
+            if to_status == "corroborated"
+            else (rec.get("corroborated_conclusion") if to_status != "withdrawn" else None)
+        )
+
+        audit_details = dict(details or {})
+        if final_reviewer_cls:
+            audit_details["reviewer_classification"] = final_reviewer_cls
+        if final_corroborated_cls:
+            audit_details["corroborated_conclusion"] = final_corroborated_cls
+        if final_rationale:
+            audit_details["corroboration_rationale_length"] = len(final_rationale)
+        audit_details["verification_level"] = verification_level
+        if reviewed_by:
+            audit_details["reviewed_by"] = reviewed_by
+        if corroborated_by:
+            audit_details["corroborated_by"] = corroborated_by
+
+        with self.get_connection() as conn:
+            cur_info = conn.execute("PRAGMA table_info(evidence_provenance);")
+            cols = [r["name"] for r in cur_info.fetchall()]
+
+            if "corroborated_by" in cols:
+                conn.execute(
+                    """
+                    UPDATE evidence_provenance
+                    SET lifecycle_status = ?,
+                        reviewer_classification = ?,
+                        corroborated_conclusion = ?,
+                        corroboration_rationale = ?,
+                        reviewed_by = ?,
+                        corroborated_by = ?,
+                        verification_level = ?,
+                        updated_at_utc = ?
+                    WHERE evidence_id = ?;
+                    """,
+                    (
+                        to_status,
+                        final_reviewer_cls,
+                        final_corroborated_cls,
+                        final_rationale,
+                        reviewed_by,
+                        corroborated_by,
+                        verification_level,
+                        now_iso,
+                        evidence_id,
+                    ),
+                )
+            else:
+                conn.execute(
+                    """
+                    UPDATE evidence_provenance
+                    SET lifecycle_status = ?,
+                        reviewer_classification = ?,
+                        corroborated_conclusion = ?,
+                        corroboration_rationale = ?,
+                        updated_at_utc = ?
+                    WHERE evidence_id = ?;
+                    """,
+                    (
+                        to_status,
+                        final_reviewer_cls,
+                        final_corroborated_cls,
+                        final_rationale,
+                        now_iso,
+                        evidence_id,
+                    ),
+                )
+
+            conn.execute(
+                """
+                INSERT INTO evidence_lifecycle_audit (
+                    audit_id, evidence_id, from_status, to_status,
+                    operator_username, transition_reason, timestamp_utc, details_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+                """,
+                (
+                    audit_id,
+                    evidence_id,
+                    from_status,
+                    to_status,
+                    operator_username,
+                    transition_reason.strip(),
+                    now_iso,
+                    json.dumps(audit_details),
+                ),
+            )
+
+        return self.get_evidence_provenance(evidence_id)
+
+    def corroborate_evidence(
+        self,
+        evidence_id: str,
+        operator_username: str,
+        rationale: str,
+        conclusion: str,
+        verification_method: str,
+        supporting_references: List[str],
+        conflicting_evidence: Optional[List[Dict[str, Any]]] = None,
+        require_independent: bool = True,
+        operator_role: str = "reviewer",
+        details: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Corroborates evidence adhering to the Two-Person Rule and Anti-Poisoning Verification.
+        Enforces:
+        - Substantive rationale >= 15 chars.
+        - Definitive conclusion (phishing, legitimate, protective_advisory).
+        - Verification method from ALLOWED_VERIFICATION_METHODS.
+        - Non-empty structured supporting technical references (>= 1).
+        - Self-approval prohibition: An operator who submitted or performed primary review
+          CANNOT mark evidence as independently_corroborated. If require_independent is True,
+          raises SelfApprovalProhibitedError. If require_independent is False, honestly records
+          as 'single_reviewed' or 'self_reviewed'.
+        """
+        self.ensure_evidence_tables()
+        rec = self.get_evidence_provenance(evidence_id)
+        if not rec:
+            raise EvidenceProvenanceError(f"Evidence '{evidence_id}' does not exist.")
+
+        if rec["lifecycle_status"] == "withdrawn":
+            raise InvalidStateTransitionError("Cannot corroborate withdrawn evidence.")
+        if rec["lifecycle_status"] not in ("under_review", "awaiting_review", "submitted", "disputed"):
+            raise InvalidStateTransitionError(f"Cannot corroborate evidence in status '{rec['lifecycle_status']}'.")
+
+        clean_rationale = (rationale or "").strip()
+        if len(clean_rationale) < 15:
+            raise CorroborationError("Corroboration requires a substantive verification rationale (minimum 15 characters).")
+
+        clean_conclusion = (conclusion or "").strip().lower()
+        if clean_conclusion not in ("phishing", "legitimate", "protective_advisory"):
+            raise CorroborationError(
+                f"Cannot corroborate evidence with conclusion '{clean_conclusion}'. "
+                "A definitive ground truth label ('phishing', 'legitimate', 'protective_advisory') is required."
+            )
+
+        if verification_method not in ALLOWED_VERIFICATION_METHODS:
+            raise CorroborationError(
+                f"Invalid verification method '{verification_method}'. Allowed: {sorted(list(ALLOWED_VERIFICATION_METHODS))}"
+            )
+
+        if not supporting_references or not any(str(r).strip() for r in supporting_references):
+            raise CorroborationError("Corroboration requires at least one non-empty structured supporting reference.")
+        cleaned_refs = [str(r).strip() for r in supporting_references if str(r).strip()]
+
+        is_self_submission = bool(rec.get("submitted_by") and rec["submitted_by"] == operator_username)
+        prior_reviewer = rec.get("reviewed_by")
+        is_same_reviewer = bool(prior_reviewer and prior_reviewer == operator_username)
+
+        if is_self_submission or is_same_reviewer:
+            if require_independent:
+                raise SelfApprovalProhibitedError(
+                    f"Self-approval prohibited: Operator '{operator_username}' submitted or performed primary review "
+                    f"for evidence '{evidence_id}' and cannot independently corroborate it. "
+                    f"A distinct second reviewer is required."
+                )
+            verification_level = "self_reviewed" if is_self_submission else "single_reviewed"
+            corroborated_by = None
+            transition_reason = f"Single-reviewer verification ({verification_level}) by {operator_username} using {verification_method}."
+        else:
+            if operator_role not in ("admin", "senior_reviewer", "reviewer", "analyst"):
+                raise CorroborationError(f"Operator role '{operator_role}' is not authorized to independently corroborate evidence.")
+            verification_level = "independently_corroborated"
+            corroborated_by = operator_username
+            transition_reason = f"Independent corroboration verified by distinct operator {operator_username} using {verification_method}."
+
+        now_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+        now_iso = get_utc_now_iso()
+        audit_id = f"AUD-EVID-{now_str}-{uuid.uuid4().hex[:8].upper()}"
+
+        audit_details = dict(details or {})
+        audit_details.update({
+            "verification_method": verification_method,
+            "verification_level": verification_level,
+            "supporting_references": cleaned_refs,
+            "conflicting_evidence": conflicting_evidence or [],
+            "corroborated_conclusion": clean_conclusion,
+            "corroborated_by": corroborated_by,
+            "reviewed_by": prior_reviewer or operator_username,
+        })
+
+        with self.get_connection() as conn:
+            cur_info = conn.execute("PRAGMA table_info(evidence_provenance);")
+            cols = [r["name"] for r in cur_info.fetchall()]
+
+            if "corroborated_by" in cols:
+                conn.execute(
+                    """
+                    UPDATE evidence_provenance
+                    SET lifecycle_status = 'corroborated',
+                        corroborated_conclusion = ?,
+                        corroboration_rationale = ?,
+                        corroborated_by = ?,
+                        verification_level = ?,
+                        verification_method = ?,
+                        supporting_references_json = ?,
+                        conflicting_evidence_json = ?,
+                        updated_at_utc = ?
+                    WHERE evidence_id = ?;
+                    """,
+                    (
+                        clean_conclusion,
+                        clean_rationale,
+                        corroborated_by,
+                        verification_level,
+                        verification_method,
+                        json.dumps(cleaned_refs),
+                        json.dumps(conflicting_evidence or []),
+                        now_iso,
+                        evidence_id,
+                    ),
+                )
+            else:
+                conn.execute(
+                    """
+                    UPDATE evidence_provenance
+                    SET lifecycle_status = 'corroborated',
+                        corroborated_conclusion = ?,
+                        corroboration_rationale = ?,
+                        updated_at_utc = ?
+                    WHERE evidence_id = ?;
+                    """,
+                    (clean_conclusion, clean_rationale, now_iso, evidence_id),
+                )
+
+            conn.execute(
+                """
+                INSERT INTO evidence_lifecycle_audit (
+                    audit_id, evidence_id, from_status, to_status,
+                    operator_username, transition_reason, timestamp_utc, details_json
+                ) VALUES (?, ?, ?, 'corroborated', ?, ?, ?, ?);
+                """,
+                (
+                    audit_id,
+                    evidence_id,
+                    rec["lifecycle_status"],
+                    operator_username,
+                    transition_reason,
+                    now_iso,
+                    json.dumps(audit_details),
+                ),
+            )
+
+        self.check_training_eligibility(evidence_id)
+        return self.get_evidence_provenance(evidence_id)
+
+    def get_evidence_lifecycle_history(self, evidence_id: str) -> List[Dict[str, Any]]:
+        """Retrieves append-only audit trail for an evidence item."""
+        self.ensure_evidence_tables()
+        with self.get_connection() as conn:
+            cur = conn.execute(
+                """
+                SELECT audit_id, evidence_id, from_status, to_status,
+                       operator_username, transition_reason, timestamp_utc, details_json
+                FROM evidence_lifecycle_audit
+                WHERE evidence_id = ?
+                ORDER BY timestamp_utc ASC;
+                """,
+                (evidence_id,),
+            )
+            results = []
+            for r in cur.fetchall():
+                results.append({
+                    "audit_id": r["audit_id"],
+                    "evidence_id": r["evidence_id"],
+                    "from_status": r["from_status"],
+                    "to_status": r["to_status"],
+                    "operator_username": r["operator_username"],
+                    "transition_reason": r["transition_reason"],
+                    "timestamp_utc": r["timestamp_utc"],
+                    "details": json.loads(r["details_json"] or "{}"),
+                })
+            return results
+
+    def create_or_get_campaign_cluster(
+        self,
+        cluster_type: str,
+        cluster_key: str,
+        campaign_name: Optional[str] = None,
+        created_by: str = "system",
+        description: str = "",
+    ) -> Dict[str, Any]:
+        """Creates or retrieves a campaign cluster grouping related evidence."""
+        self.ensure_evidence_tables()
+        cluster_key = cluster_key.strip()
+
+        # Shared infrastructure awareness
+        is_shared_infra = 0
+        infra_notes = ""
+        rel_strength = "possible_campaign_relationship"
+
+        if cluster_type == "apk_sha256":
+            rel_strength = "exact_duplicate"
+        elif cluster_type == "domain":
+            ckey_lower = cluster_key.lower()
+            for d in SHARED_INFRASTRUCTURE_DOMAINS:
+                if ckey_lower == d or ckey_lower.endswith("." + d):
+                    is_shared_infra = 1
+                    infra_notes = f"Shared infrastructure domain '{cluster_key}' detected. Coarse domain clustering suppressed."
+                    rel_strength = "weak_similarity"
+                    break
+            if not is_shared_infra:
+                rel_strength = "strong_technical_relationship"
+
+        with self.get_connection() as conn:
+            cur = conn.execute(
+                "SELECT * FROM campaign_clusters WHERE cluster_type = ? AND cluster_key = ? LIMIT 1;",
+                (cluster_type, cluster_key),
+            )
+            row = cur.fetchone()
+            if row:
+                row_keys = row.keys()
+                return {
+                    "campaign_id": row["campaign_id"],
+                    "campaign_name": row["campaign_name"],
+                    "cluster_type": row["cluster_type"],
+                    "cluster_key": row["cluster_key"],
+                    "description": row["description"],
+                    "created_at_utc": row["created_at_utc"],
+                    "created_by": row["created_by"],
+                    "is_shared_infrastructure": bool(row["is_shared_infrastructure"]) if "is_shared_infrastructure" in row_keys else bool(is_shared_infra),
+                    "infrastructure_notes": row["infrastructure_notes"] if "infrastructure_notes" in row_keys else infra_notes,
+                    "has_conflicting_classifications": bool(row["has_conflicting_classifications"]) if "has_conflicting_classifications" in row_keys else False,
+                    "quarantined_from_training": bool(row["quarantined_from_training"]) if "quarantined_from_training" in row_keys else False,
+                    "metadata": json.loads(row["metadata_json"] or "{}"),
+                }
+
+            now_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+            campaign_id = f"CAMP-{now_str}-{uuid.uuid4().hex[:8].upper()}"
+            name = campaign_name or f"Campaign-{cluster_type.upper()}-{cluster_key[:12]}"
+            now_iso = get_utc_now_iso()
+
+            cur_info = conn.execute("PRAGMA table_info(campaign_clusters);")
+            camp_cols = [r["name"] for r in cur_info.fetchall()]
+
+            if "is_shared_infrastructure" in camp_cols:
+                conn.execute(
+                    """
+                    INSERT INTO campaign_clusters (
+                        campaign_id, campaign_name, cluster_type, cluster_key,
+                        description, created_at_utc, created_by,
+                        is_shared_infrastructure, infrastructure_notes,
+                        has_conflicting_classifications, quarantined_from_training,
+                        metadata_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '{}');
+                    """,
+                    (
+                        campaign_id,
+                        name,
+                        cluster_type,
+                        cluster_key,
+                        description,
+                        now_iso,
+                        created_by,
+                        is_shared_infra,
+                        infra_notes,
+                    ),
+                )
+            else:
+                conn.execute(
+                    """
+                    INSERT INTO campaign_clusters (
+                        campaign_id, campaign_name, cluster_type, cluster_key,
+                        description, created_at_utc, created_by, metadata_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, '{}');
+                    """,
+                    (
+                        campaign_id,
+                        name,
+                        cluster_type,
+                        cluster_key,
+                        description,
+                        now_iso,
+                        created_by,
+                    ),
+                )
+
+        return {
+            "campaign_id": campaign_id,
+            "campaign_name": name,
+            "cluster_type": cluster_type,
+            "cluster_key": cluster_key,
+            "description": description,
+            "created_at_utc": now_iso,
+            "created_by": created_by,
+            "is_shared_infrastructure": bool(is_shared_infra),
+            "infrastructure_notes": infra_notes,
+            "has_conflicting_classifications": False,
+            "quarantined_from_training": False,
+            "relationship_strength": rel_strength,
+            "metadata": {},
+        }
+
+    def assign_campaign_cluster(
+        self,
+        evidence_id: str,
+        campaign_id: str,
+        operator_username: str,
+        reason: str = "",
+    ) -> Dict[str, Any]:
+        """Assigns or updates campaign association for an evidence item."""
+        rec = self.get_evidence_provenance(evidence_id)
+        if not rec:
+            raise EvidenceProvenanceError(f"Evidence '{evidence_id}' does not exist.")
+
+        with self.get_connection() as conn:
+            cur = conn.execute("SELECT * FROM campaign_clusters WHERE campaign_id = ?;", (campaign_id,))
+            camp_row = cur.fetchone()
+            if not camp_row:
+                raise EvidenceGovernanceError(f"Campaign '{campaign_id}' does not exist.")
+
+            now_iso = get_utc_now_iso()
+            camp_keys = camp_row.keys()
+            is_shared = bool(camp_row["is_shared_infrastructure"]) if "is_shared_infrastructure" in camp_keys else False
+            c_type = camp_row["cluster_type"]
+
+            if is_shared:
+                rel_strength = "weak_similarity"
+            elif c_type == "apk_sha256":
+                rel_strength = "exact_duplicate"
+            else:
+                rel_strength = "strong_technical_relationship"
+
+            cur_info = conn.execute("PRAGMA table_info(evidence_provenance);")
+            evid_cols = [r["name"] for r in cur_info.fetchall()]
+
+            if "relationship_strength" in evid_cols:
+                conn.execute(
+                    "UPDATE evidence_provenance SET campaign_id = ?, relationship_strength = ?, updated_at_utc = ? WHERE evidence_id = ?;",
+                    (campaign_id, rel_strength, now_iso, evidence_id),
+                )
+            else:
+                conn.execute(
+                    "UPDATE evidence_provenance SET campaign_id = ?, updated_at_utc = ? WHERE evidence_id = ?;",
+                    (campaign_id, now_iso, evidence_id),
+                )
+
+            # Record audit entry
+            now_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+            audit_id = f"AUD-EVID-{now_str}-{uuid.uuid4().hex[:8].upper()}"
+            conn.execute(
+                """
+                INSERT INTO evidence_lifecycle_audit (
+                    audit_id, evidence_id, from_status, to_status,
+                    operator_username, transition_reason, timestamp_utc, details_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+                """,
+                (
+                    audit_id,
+                    evidence_id,
+                    rec["lifecycle_status"],
+                    rec["lifecycle_status"],
+                    operator_username,
+                    f"Campaign assignment to '{campaign_id}': {reason or 'Operator cluster grouping'}",
+                    now_iso,
+                    json.dumps({
+                        "campaign_id": campaign_id,
+                        "previous_campaign_id": rec.get("campaign_id"),
+                        "relationship_strength": rel_strength,
+                        "is_shared_infrastructure": is_shared,
+                    }),
+                ),
+            )
+
+        return self.get_evidence_provenance(evidence_id)
+
+    def assign_reviewer(
+        self,
+        evidence_id: str,
+        reviewer_username: str,
+        assigned_by: str,
+        notes: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Assigns or reassigns an investigator/reviewer to an evidence item,
+        updating lifecycle status to 'under_review' if currently 'submitted' or 'awaiting_review',
+        and recording an append-only audit event.
+        """
+        self.ensure_evidence_tables()
+        rec = self.get_evidence_provenance(evidence_id)
+        if not rec:
+            raise EvidenceProvenanceError(f"Evidence '{evidence_id}' does not exist.")
+
+        if rec["lifecycle_status"] == "withdrawn":
+            raise InvalidStateTransitionError("Cannot assign a reviewer to withdrawn evidence.")
+
+        clean_reviewer = (reviewer_username or "").strip()
+        if not clean_reviewer or clean_reviewer.lower() in ("none", "unauthenticated", ""):
+            raise EvidenceGovernanceError("A valid reviewer username is required.")
+
+        clean_assigned_by = (assigned_by or "").strip()
+        if not clean_assigned_by or clean_assigned_by.lower() in ("none", "unauthenticated", ""):
+            raise EvidenceGovernanceError("A valid assigning operator username is required.")
+
+        current_status = rec["lifecycle_status"]
+        new_status = "under_review" if current_status in ("submitted", "awaiting_review") else current_status
+
+        now_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+        now_iso = get_utc_now_iso()
+        audit_id = f"AUD-ASSIGN-{now_str}-{uuid.uuid4().hex[:8].upper()}"
+
+        audit_details = {
+            "assigned_to": clean_reviewer,
+            "assigned_by": clean_assigned_by,
+            "notes": (notes or "").strip(),
+            "previous_reviewer": rec.get("reviewed_by"),
+            "previous_status": current_status,
+            "new_status": new_status,
+        }
+
+        with self.get_connection() as conn:
+            cur_info = conn.execute("PRAGMA table_info(evidence_provenance);")
+            evid_cols = [r["name"] for r in cur_info.fetchall()]
+
+            if "reviewed_by" in evid_cols:
+                conn.execute(
+                    """
+                    UPDATE evidence_provenance
+                    SET reviewed_by = ?,
+                        lifecycle_status = ?,
+                        updated_at_utc = ?
+                    WHERE evidence_id = ?;
+                    """,
+                    (clean_reviewer, new_status, now_iso, evidence_id),
+                )
+            else:
+                conn.execute(
+                    """
+                    UPDATE evidence_provenance
+                    SET lifecycle_status = ?,
+                        updated_at_utc = ?
+                    WHERE evidence_id = ?;
+                    """,
+                    (new_status, now_iso, evidence_id),
+                )
+
+            conn.execute(
+                """
+                INSERT INTO evidence_lifecycle_audit (
+                    audit_id, evidence_id, from_status, to_status,
+                    operator_username, transition_reason, timestamp_utc, details_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+                """,
+                (
+                    audit_id,
+                    evidence_id,
+                    current_status,
+                    new_status,
+                    clean_assigned_by,
+                    f"Assigned reviewer '{clean_reviewer}'. Notes: {notes or 'None'}",
+                    now_iso,
+                    json.dumps(audit_details),
+                ),
+            )
+
+        return self.get_evidence_provenance(evidence_id)
+
+    def list_campaign_clusters(self) -> List[Dict[str, Any]]:
+        """Lists all campaign clusters with member count and conflict summary."""
+        self.ensure_evidence_tables()
+        with self.get_connection() as conn:
+            cur = conn.execute(
+                """
+                SELECT c.*, COUNT(e.evidence_id) as member_count
+                FROM campaign_clusters c
+                LEFT JOIN evidence_provenance e ON c.campaign_id = e.campaign_id
+                GROUP BY c.campaign_id
+                ORDER BY c.created_at_utc DESC;
+                """
+            )
+            campaigns = []
+            for r in cur.fetchall():
+                camp_id = r["campaign_id"]
+                conflict_status = self.get_campaign_conflict_status(camp_id)
+                campaigns.append({
+                    "campaign_id": camp_id,
+                    "campaign_name": r["campaign_name"],
+                    "cluster_type": r["cluster_type"],
+                    "cluster_key": r["cluster_key"],
+                    "description": r["description"],
+                    "created_at_utc": r["created_at_utc"],
+                    "created_by": r["created_by"],
+                    "member_count": r["member_count"],
+                    "is_conflict": conflict_status["is_conflict"],
+                    "conflicting_labels": conflict_status["conflicting_labels"],
+                })
+            return campaigns
+
+    def get_campaign_conflict_status(self, campaign_id: str) -> Dict[str, Any]:
+        """
+        Checks whether any evidence items within a campaign have conflicting human classifications.
+        """
+        items = self.list_evidence_provenance(campaign_id=campaign_id, limit=500)
+        labels = set()
+        classified_items = []
+        for it in items:
+            lbl = it.get("corroborated_conclusion") or it.get("reviewer_classification")
+            if lbl and lbl in ("phishing", "legitimate", "protective_advisory"):
+                labels.add(lbl)
+                classified_items.append({"evidence_id": it["evidence_id"], "label": lbl})
+
+        is_conflict = len(labels) > 1
+        if is_conflict:
+            try:
+                with self.get_connection() as conn:
+                    cur_info = conn.execute("PRAGMA table_info(campaign_clusters);")
+                    cols = [r["name"] for r in cur_info.fetchall()]
+                    if "quarantined_from_training" in cols:
+                        conn.execute(
+                            """
+                            UPDATE campaign_clusters
+                            SET has_conflicting_classifications = 1, quarantined_from_training = 1
+                            WHERE campaign_id = ?;
+                            """,
+                            (campaign_id,),
+                        )
+            except Exception:
+                pass
+
+        return {
+            "campaign_id": campaign_id,
+            "is_conflict": is_conflict,
+            "conflicting_labels": sorted(list(labels)) if is_conflict else [],
+            "distinct_labels": sorted(list(labels)),
+            "classified_count": len(classified_items),
+            "total_items": len(items),
+            "items": classified_items,
+            "is_quarantined": is_conflict,
+        }
+
+    def withdraw_evidence(
+        self,
+        evidence_id: str,
+        operator_username: str,
+        reason: str,
+    ) -> Dict[str, Any]:
+        """
+        Withdraws evidence from the active review and training lifecycle.
+        Immediately transitions to 'withdrawn' and revokes training feature consent.
+        """
+        rec = self.get_evidence_provenance(evidence_id)
+        if not rec:
+            raise EvidenceProvenanceError(f"Evidence '{evidence_id}' does not exist.")
+
+        # Transition status
+        updated = self.transition_evidence_status(
+            evidence_id=evidence_id,
+            to_status="withdrawn",
+            operator_username=operator_username,
+            transition_reason=f"Evidence withdrawal: {reason}",
+        )
+
+        # Revoke consent on training features for the case
+        try:
+            self.revoke_training_consent(
+                case_id=rec["case_id"],
+                reason=f"Evidence {evidence_id} withdrawn by {operator_username}: {reason}",
+            )
+        except Exception:
+            pass
+
+        return updated
+
+    def check_training_eligibility(self, evidence_id: str) -> Dict[str, Any]:
+        """
+        Evaluates strict multi-stage training eligibility gating for an evidence item.
+        Guarantees that unconsented, unverified, disputed, withdrawn, or poisoned items
+        can never be consumed by candidate training or exported.
+        """
+        rec = self.get_evidence_provenance(evidence_id)
+        if not rec:
+            raise TrainingEligibilityError(f"Evidence '{evidence_id}' does not exist.")
+
+        checks = {
+            "consent_valid": False,
+            "provenance_valid": False,
+            "human_review_completed": False,
+            "classification_definitive": False,
+            "not_withdrawn": False,
+            "privacy_sanitization_passed": False,
+            "conflict_resolved": False,
+            "feature_vector_available": False,
+        }
+        reasons: List[str] = []
+
+        # 1. Consent Check
+        # Must have affirmative consent and consent must not be revoked
+        consent_revoked = False
+        with self.get_connection() as conn:
+            cur = conn.execute(
+                "SELECT eligibility_state FROM training_feature_records WHERE case_id = ?;",
+                (rec["case_id"],),
+            )
+            for r in cur.fetchall():
+                if r["eligibility_state"] == "consent_revoked":
+                    consent_revoked = True
+                    break
+
+        if rec["consent_given"] and not consent_revoked:
+            checks["consent_valid"] = True
+        else:
+            reasons.append("Consent not granted or has been revoked.")
+
+        # 2. Provenance Valid Check
+        # Allowed genuine sources only; strictly no synthetic or system-generated test data
+        allowed_training_origins = {"user_reported", "analyst_submitted", "internal_case", "public_source_reference"}
+        if rec["evidence_origin"] in allowed_training_origins:
+            checks["provenance_valid"] = True
+        else:
+            reasons.append(
+                f"Origin '{rec['evidence_origin']}' is not eligible for training (synthetic or system-generated data excluded)."
+            )
+
+        # 3. Human Review Completed Check
+        # Must be corroborated
+        if rec["lifecycle_status"] == "corroborated":
+            checks["human_review_completed"] = True
+        else:
+            reasons.append(
+                f"Lifecycle status is '{rec['lifecycle_status']}' (training requires 'corroborated')."
+            )
+
+        # 4. Classification Definitive Check
+        # Must have definitive label (phishing, legitimate, protective_advisory); NOT unknown
+        effective_label = rec.get("corroborated_conclusion") or rec.get("reviewer_classification")
+        if effective_label and effective_label in ("phishing", "legitimate", "protective_advisory"):
+            checks["classification_definitive"] = True
+        else:
+            reasons.append(
+                f"Classification is '{effective_label or 'None'}' (must be phishing, legitimate, or protective_advisory; unknown is ineligible)."
+            )
+
+        # 5. Not Withdrawn Check
+        if rec["lifecycle_status"] != "withdrawn":
+            checks["not_withdrawn"] = True
+        else:
+            reasons.append("Evidence has been withdrawn.")
+
+        # 6. Privacy Sanitization Passed Check
+        if rec["sanitization_status"] == "passed":
+            checks["privacy_sanitization_passed"] = True
+        else:
+            reasons.append(f"Sanitization status is '{rec['sanitization_status']}' (requires 'passed').")
+
+        # 7. Conflict Resolved Check
+        if rec.get("campaign_id"):
+            conflict_info = self.get_campaign_conflict_status(rec["campaign_id"])
+            if conflict_info.get("is_conflict"):
+                reasons.append(
+                    f"Campaign '{rec['campaign_id']}' has unresolved conflicting labels: {conflict_info.get('conflicting_labels')}."
+                )
+            else:
+                checks["conflict_resolved"] = True
+        else:
+            # Standalone item has no campaign conflict
+            checks["conflict_resolved"] = True
+
+        # 8. Feature Vector Available Check
+        feat = self.get_training_features_by_case(rec["case_id"])
+        if feat and feat.get("feature_dim") == EXPECTED_FEATURE_DIM:
+            checks["feature_vector_available"] = True
+        else:
+            reasons.append(f"No valid {EXPECTED_FEATURE_DIM}-dim derived feature vector available for case.")
+
+        is_eligible = all(checks.values())
+        if is_eligible:
+            reasons.append("All training governance and consent criteria met.")
+
+        # Phase 6.8.3 Four-Tier Eligibility Determination
+        # Hard fail disqualifications for Tier 1:
+        is_hard_ineligible = (
+            not checks["consent_valid"]
+            or not checks["privacy_sanitization_passed"]
+            or not checks["not_withdrawn"]
+            or not checks["provenance_valid"]
+            or not checks["conflict_resolved"]
+            or rec["lifecycle_status"] in ("disputed", "rejected")
+        )
+        if is_hard_ineligible:
+            tier = "not_eligible"
+            is_eligible = False
+        else:
+            v_level = rec.get("verification_level", "unverified")
+            if (
+                v_level == "independently_corroborated"
+                and checks["human_review_completed"]
+                and checks["classification_definitive"]
+                and checks["feature_vector_available"]
+            ):
+                tier = "independently_corroborated_evaluation_candidate"
+                is_eligible = True
+            elif (
+                checks["human_review_completed"]
+                and checks["classification_definitive"]
+                and checks["feature_vector_available"]
+            ):
+                tier = "eligible_supervised_candidate_training"
+                is_eligible = True
+            else:
+                tier = "eligible_exploratory_review"
+                is_eligible = False
+
+        # Persist eligibility_tier in DB
+        with self.get_connection() as conn:
+            cur_info = conn.execute("PRAGMA table_info(evidence_provenance);")
+            cols = [r["name"] for r in cur_info.fetchall()]
+            if "eligibility_tier" in cols:
+                conn.execute(
+                    "UPDATE evidence_provenance SET eligibility_tier = ? WHERE evidence_id = ?;",
+                    (tier, evidence_id),
+                )
+
+        return {
+            "evidence_id": evidence_id,
+            "case_id": rec["case_id"],
+            "is_eligible": is_eligible,
+            "eligibility_tier": tier,
+            "verification_level": rec.get("verification_level", "unverified"),
+            "effective_label": effective_label,
+            "checks": checks,
+            "reasons": reasons,
+        }
+
+    def verify_evidence_integrity(
+        self,
+        evidence_id: str,
+        artifact_content: Optional[Any] = None,
+    ) -> Dict[str, Any]:
+        """
+        Verifies cryptographic integrity of an evidence artifact.
+        Detects tampering or unauthorized modification.
+        """
+        self.ensure_evidence_tables()
+        rec = self.get_evidence_provenance(evidence_id)
+        if not rec:
+            raise EvidenceProvenanceError(f"Evidence '{evidence_id}' does not exist.")
+
+        stored_hash = rec.get("artifact_sha256")
+        if not stored_hash:
+            return {
+                "evidence_id": evidence_id,
+                "has_digest": False,
+                "is_valid": True,
+                "tamper_detected": False,
+                "message": "No artifact digest recorded at ingestion.",
+            }
+
+        if artifact_content is not None:
+            if isinstance(artifact_content, str):
+                computed_hash = hashlib.sha256(artifact_content.encode("utf-8")).hexdigest()
+            elif isinstance(artifact_content, bytes):
+                computed_hash = hashlib.sha256(artifact_content).hexdigest()
+            elif isinstance(artifact_content, dict):
+                computed_hash = hashlib.sha256(json.dumps(artifact_content, sort_keys=True).encode("utf-8")).hexdigest()
+            else:
+                computed_hash = hashlib.sha256(str(artifact_content).encode("utf-8")).hexdigest()
+
+            is_match = hmac.compare_digest(computed_hash, stored_hash)
+            if not is_match:
+                now_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+                now_iso = get_utc_now_iso()
+                audit_id = f"AUD-EVID-{now_str}-{uuid.uuid4().hex[:8].upper()}"
+                with self.get_connection() as conn:
+                    conn.execute(
+                        """
+                        INSERT INTO evidence_lifecycle_audit (
+                            audit_id, evidence_id, from_status, to_status,
+                            operator_username, transition_reason, timestamp_utc, details_json
+                        ) VALUES (?, ?, ?, 'disputed', 'system_integrity', 'Tamper detected: SHA-256 digest mismatch.', ?, ?);
+                        """,
+                        (
+                            audit_id,
+                            evidence_id,
+                            rec["lifecycle_status"],
+                            now_iso,
+                            json.dumps({"expected_sha256": stored_hash, "computed_sha256": computed_hash}),
+                        ),
+                    )
+                    conn.execute(
+                        "UPDATE evidence_provenance SET lifecycle_status = 'disputed', verification_level = 'disputed', updated_at_utc = ? WHERE evidence_id = ?;",
+                        (now_iso, evidence_id),
+                    )
+                raise TamperedEvidenceError(
+                    f"Tamper detected for evidence '{evidence_id}': expected SHA-256 {stored_hash}, computed {computed_hash}."
+                )
+
+            return {
+                "evidence_id": evidence_id,
+                "has_digest": True,
+                "is_valid": True,
+                "tamper_detected": False,
+                "digest": stored_hash,
+            }
+
+        return {
+            "evidence_id": evidence_id,
+            "has_digest": True,
+            "is_valid": True,
+            "tamper_detected": False,
+            "digest": stored_hash,
         }
 
 
