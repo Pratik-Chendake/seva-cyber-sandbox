@@ -19,27 +19,75 @@ function getAuthHeaders(): HeadersInit {
   return headers;
 }
 
+async function safeFetch(url: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (err: any) {
+    throw new Error(
+      'Network connection failed. The local API server at http://127.0.0.1:8000 could not be reached.'
+    );
+  }
+}
+
+async function handleResponseError(res: Response, defaultMessage: string): Promise<never> {
+  if (res.status === 502 || res.status === 503 || res.status === 504) {
+    let extra = '';
+    try {
+      const errJson = await res.json();
+      if (errJson && errJson.detail) {
+        extra = ` (${errJson.detail})`;
+      }
+    } catch {}
+    throw new Error(
+      `Local API server is unreachable (HTTP ${res.status} ${res.statusText || 'Bad Gateway'})${extra}. Please verify that the FastAPI backend is running on http://127.0.0.1:8000.`
+    );
+  }
+
+  let errorDetail = '';
+  try {
+    const errorJson = await res.json();
+    if (errorJson && typeof errorJson === 'object') {
+      if (typeof errorJson.detail === 'string') {
+        errorDetail = errorJson.detail;
+      } else if (Array.isArray(errorJson.detail)) {
+        errorDetail = errorJson.detail
+          .map((d: any) => (d.msg ? `${d.loc ? d.loc.slice(-1) + ': ' : ''}${d.msg}` : JSON.stringify(d)))
+          .join('; ');
+      } else if (errorJson.message) {
+        errorDetail = errorJson.message;
+      }
+    }
+  } catch {
+    try {
+      const text = await res.text();
+      if (text && text.length < 250) {
+        errorDetail = text;
+      }
+    } catch {}
+  }
+  throw new Error(errorDetail || `${defaultMessage} (HTTP ${res.status}: ${res.statusText})`);
+}
+
 export async function fetchHealth(): Promise<HealthResponse> {
-  const res = await fetch(`${API_BASE}/health`);
-  if (!res.ok) throw new Error(`Health check failed: ${res.statusText}`);
+  const res = await safeFetch(`${API_BASE}/health`);
+  if (!res.ok) await handleResponseError(res, 'Health check failed');
   return res.json();
 }
 
 export async function fetchDashboardSummary(): Promise<any> {
-  const res = await fetch(`${API_BASE}/dashboard/summary`);
-  if (!res.ok) throw new Error('Failed to load dashboard summary');
+  const res = await safeFetch(`${API_BASE}/dashboard/summary`);
+  if (!res.ok) await handleResponseError(res, 'Failed to load dashboard summary');
   return res.json();
 }
 
 export async function loginOperator(username: string, password: string): Promise<any> {
-  const res = await fetch(`${API_BASE}/auth/login`, {
+  const res = await safeFetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: 'Authentication failed' }));
-    throw new Error(err.detail || 'Login failed');
+    await handleResponseError(res, 'Authentication failed');
   }
   const data = await res.json();
   if (data.session_token) {
@@ -49,7 +97,7 @@ export async function loginOperator(username: string, password: string): Promise
 }
 
 export async function logoutOperator(): Promise<void> {
-  await fetch(`${API_BASE}/auth/logout`, {
+  await safeFetch(`${API_BASE}/auth/logout`, {
     method: 'POST',
     headers: getAuthHeaders(),
   }).catch(() => {});
@@ -57,43 +105,50 @@ export async function logoutOperator(): Promise<void> {
 }
 
 export async function fetchAuthMe(): Promise<any> {
-  const res = await fetch(`${API_BASE}/auth/me`, {
-    headers: getAuthHeaders(),
-  });
-  if (!res.ok) return { authenticated: false, username: 'anonymous', role: 'viewer' };
-  return res.json();
+  try {
+    const res = await safeFetch(`${API_BASE}/auth/me`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) return { authenticated: false, username: 'anonymous', role: 'viewer' };
+    return res.json();
+  } catch {
+    return { authenticated: false, username: 'anonymous', role: 'viewer' };
+  }
 }
 
 export async function analyzeUnified(formData: FormData): Promise<UnifiedAnalysisResponse> {
-  const res = await fetch(`${API_BASE}/analyze/unified`, {
+  const res = await safeFetch(`${API_BASE}/analyze/unified`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: formData,
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || 'Analysis request failed');
+    await handleResponseError(res, 'Evidence analysis failed');
   }
   return res.json();
 }
 
 export async function analyzeMessage(message: string, enableShadowAi: boolean = true): Promise<UnifiedAnalysisResponse> {
-  const res = await fetch(`${API_BASE}/analyze/message`, {
+  const res = await safeFetch(`${API_BASE}/analyze/message`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({ message, enable_shadow_ai: enableShadowAi }),
   });
-  if (!res.ok) throw new Error('Message analysis failed');
+  if (!res.ok) {
+    await handleResponseError(res, 'Message analysis failed');
+  }
   return res.json();
 }
 
 export async function analyzeUrl(url: string): Promise<any> {
-  const res = await fetch(`${API_BASE}/analyze/url`, {
+  const res = await safeFetch(`${API_BASE}/analyze/url`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({ url }),
   });
-  if (!res.ok) throw new Error('URL analysis failed');
+  if (!res.ok) {
+    await handleResponseError(res, 'URL analysis failed');
+  }
   return res.json();
 }
 
@@ -101,22 +156,26 @@ export async function analyzeApk(file: File, enableShadowAi: boolean = true): Pr
   const formData = new FormData();
   formData.append('apk_file', file);
   formData.append('enable_shadow_ai', String(enableShadowAi));
-  const res = await fetch(`${API_BASE}/analyze/apk`, {
+  const res = await safeFetch(`${API_BASE}/analyze/apk`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: formData,
   });
-  if (!res.ok) throw new Error('APK analysis failed');
+  if (!res.ok) {
+    await handleResponseError(res, 'APK analysis failed');
+  }
   return res.json();
 }
 
 export async function analyzeScheme(claimText: string): Promise<any> {
-  const res = await fetch(`${API_BASE}/analyze/scheme`, {
+  const res = await safeFetch(`${API_BASE}/analyze/scheme`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({ claim_text: claimText }),
   });
-  if (!res.ok) throw new Error('Scheme verification failed');
+  if (!res.ok) {
+    await handleResponseError(res, 'Scheme verification failed');
+  }
   return res.json();
 }
 
@@ -124,19 +183,23 @@ export async function fetchCases(search?: string, riskCategory?: string): Promis
   const params = new URLSearchParams();
   if (search) params.append('search', search);
   if (riskCategory && riskCategory !== 'ALL') params.append('risk_category', riskCategory);
-  const res = await fetch(`${API_BASE}/cases?${params.toString()}`);
-  if (!res.ok) throw new Error('Failed to load cases');
+  const res = await safeFetch(`${API_BASE}/cases?${params.toString()}`);
+  if (!res.ok) {
+    await handleResponseError(res, 'Failed to load cases');
+  }
   return res.json();
 }
 
 export async function fetchCaseDetails(caseId: string): Promise<{ case: CaseRecord; investigation_details?: any }> {
-  const res = await fetch(`${API_BASE}/cases/${encodeURIComponent(caseId)}`);
-  if (!res.ok) throw new Error('Failed to load case details');
+  const res = await safeFetch(`${API_BASE}/cases/${encodeURIComponent(caseId)}`);
+  if (!res.ok) {
+    await handleResponseError(res, 'Failed to load case details');
+  }
   return res.json();
 }
 
 export async function saveInvestigation(analysisResult: any, consentGiven: boolean = true): Promise<any> {
-  const res = await fetch(`${API_BASE}/cases/save-investigation`, {
+  const res = await safeFetch(`${API_BASE}/cases/save-investigation`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({
@@ -145,13 +208,17 @@ export async function saveInvestigation(analysisResult: any, consentGiven: boole
       consent_given: consentGiven,
     }),
   });
-  if (!res.ok) throw new Error('Failed to save investigation');
+  if (!res.ok) {
+    await handleResponseError(res, 'Failed to save investigation');
+  }
   return res.json();
 }
 
 export async function fetchThreatGraph(): Promise<ThreatGraphResponse> {
-  const res = await fetch(`${API_BASE}/threat-intel/graph`);
-  if (!res.ok) throw new Error('Failed to load threat intelligence graph');
+  const res = await safeFetch(`${API_BASE}/threat-intel/graph`);
+  if (!res.ok) {
+    await handleResponseError(res, 'Failed to load threat intelligence graph');
+  }
   return res.json();
 }
 
@@ -159,24 +226,30 @@ export async function fetchThreatIndicators(type?: string, reviewState?: string)
   const params = new URLSearchParams();
   if (type) params.append('indicator_type', type);
   if (reviewState) params.append('review_state', reviewState);
-  const res = await fetch(`${API_BASE}/threat-intelligence/indicators?${params.toString()}`);
-  if (!res.ok) throw new Error('Failed to load threat indicators');
+  const res = await safeFetch(`${API_BASE}/threat-intelligence/indicators?${params.toString()}`);
+  if (!res.ok) {
+    await handleResponseError(res, 'Failed to load threat indicators');
+  }
   return res.json();
 }
 
 export async function fetchAiModels(): Promise<AiModelsResponse> {
-  const res = await fetch(`${API_BASE}/ai/models`);
-  if (!res.ok) throw new Error('Failed to load AI models telemetry');
+  const res = await safeFetch(`${API_BASE}/ai/models`);
+  if (!res.ok) {
+    await handleResponseError(res, 'Failed to load AI models telemetry');
+  }
   return res.json();
 }
 
 export async function sanitizeText(text: string): Promise<SanitizeResponse> {
-  const res = await fetch(`${API_BASE}/privacy/sanitize`, {
+  const res = await safeFetch(`${API_BASE}/privacy/sanitize`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),
   });
-  if (!res.ok) throw new Error('Sanitization failed');
+  if (!res.ok) {
+    await handleResponseError(res, 'Sanitization failed');
+  }
   return res.json();
 }
 
@@ -184,12 +257,14 @@ export async function uploadEvidenceStorage(file: File, artifactType: string = '
   const formData = new FormData();
   formData.append('file', file);
   formData.append('artifact_type', artifactType);
-  const res = await fetch(`${API_BASE}/storage/upload`, {
+  const res = await safeFetch(`${API_BASE}/storage/upload`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: formData,
   });
-  if (!res.ok) throw new Error('Evidence storage upload failed');
+  if (!res.ok) {
+    await handleResponseError(res, 'Evidence storage upload failed');
+  }
   return res.json();
 }
 

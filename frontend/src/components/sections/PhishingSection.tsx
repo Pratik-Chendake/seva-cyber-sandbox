@@ -43,7 +43,10 @@ export const PhishingSection: React.FC = () => {
   ];
 
   const handleRunAnalysis = async () => {
-    if (!messageText.trim() && !urlText.trim()) {
+    const cleanMsg = messageText.trim();
+    const cleanUrls = urlText.trim();
+
+    if (!cleanMsg && !cleanUrls) {
       setErrorMessage('Please provide a suspicious message or a target URL to analyze.');
       return;
     }
@@ -54,8 +57,14 @@ export const PhishingSection: React.FC = () => {
 
     try {
       const formData = new FormData();
-      if (messageText.trim()) formData.append('message', messageText.trim());
-      if (urlText.trim()) formData.append('urls', urlText.trim());
+      if (cleanMsg) {
+        formData.append('message', cleanMsg);
+        formData.append('message_text', cleanMsg);
+      }
+      if (cleanUrls) {
+        formData.append('urls', cleanUrls);
+        formData.append('url', cleanUrls);
+      }
       formData.append('enable_shadow_ai', 'true');
       formData.append('training_consent', 'false');
 
@@ -193,9 +202,20 @@ export const PhishingSection: React.FC = () => {
         </div>
 
         {errorMessage && (
-          <div className="p-4 rounded-2xl bg-[#C0392B]/10 border border-[#C0392B]/30 text-[#C0392B] text-xs mb-8 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>{errorMessage}</span>
+          <div className="p-4 rounded-2xl bg-[#C0392B]/10 border border-[#C0392B]/30 text-[#C0392B] text-xs mb-8 flex items-start justify-between gap-3 animate-in fade-in duration-200">
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <div className="font-semibold uppercase tracking-wider text-[11px]">Analysis Request Notice</div>
+                <div className="leading-relaxed">{errorMessage}</div>
+              </div>
+            </div>
+            <button
+              onClick={() => setErrorMessage(null)}
+              className="text-[#C0392B] hover:text-[#962d22] text-xs font-bold px-2 py-1 rounded cursor-pointer"
+            >
+              Dismiss
+            </button>
           </div>
         )}
 

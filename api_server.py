@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 from fastapi import FastAPI, File, Form, Header, HTTPException, Query, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 # Ensure root directory is in sys.path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -149,8 +149,22 @@ class MessageAnalysisRequest(BaseModel):
     enable_shadow_ai: bool = True
     operator_username: str = "web_analyst"
 
+    @field_validator("message")
+    @classmethod
+    def validate_message(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Suspicious communication text cannot be empty or whitespace only.")
+        return v
+
 class UrlAnalysisRequest(BaseModel):
     url: str = Field(..., min_length=1, max_length=2048)
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Target URL cannot be empty or whitespace only.")
+        return v
 
 class SchemeAnalysisRequest(BaseModel):
     claim_text: str = Field(..., min_length=1, max_length=10000)
@@ -433,14 +447,29 @@ def get_dashboard_summary() -> Dict[str, Any]:
 @app.post("/api/analyze/unified")
 async def analyze_unified_endpoint(
     message_text: Optional[str] = Form(None),
+    message: Optional[str] = Form(None),
     urls: Optional[str] = Form(None),
+    url: Optional[str] = Form(None),
     files: List[UploadFile] = File(default=[]),
     enable_shadow_ai: bool = Form(True),
+    training_consent: bool = Form(False),
     operator_username: str = Form("web_analyst"),
 ) -> Dict[str, Any]:
     """Intakes heterogeneous cybersecurity evidence together in a unified workspace."""
     repo = get_repository()
     analyzer = UnifiedEvidenceAnalyzer(case_repository=repo)
+
+    # Reconcile field aliases (supports both message_text and message)
+    final_message = (message_text if message_text is not None else message) or ""
+
+    # Reconcile URL fields (supports both urls and url)
+    url_inputs = []
+    if urls:
+        url_inputs.append(urls)
+    if url:
+        url_inputs.append(url)
+    combined_urls = "\n".join(url_inputs)
+    url_list = [u.strip() for u in combined_urls.splitlines() if u.strip()]
 
     file_payloads = []
     storage_mgr = get_storage_manager()
@@ -448,28 +477,41 @@ async def analyze_unified_endpoint(
     for up_file in files:
         content = await up_file.read()
         filename = up_file.filename or "uploaded_artifact"
-        file_payloads.append({
-            "filename": filename,
-            "content": content,
-            "content_type": up_file.content_type,
-        })
-        # Safely archive to private evidence storage
-        try:
-            etype = "apk" if filename.lower().endswith(".apk") else "document"
-            storage_mgr.store_evidence(content=content, filename=filename, artifact_type=etype)
-        except Exception:
-            pass
+        if len(content) > 0:
+            file_payloads.append({
+                "filename": filename,
+                "content": content,
+                "content_type": up_file.content_type,
+            })
+            # Safely archive to private evidence storage
+            try:
+                etype = "apk" if filename.lower().endswith(".apk") else "document"
+                storage_mgr.store_evidence(content=content, filename=filename, artifact_type=etype)
+            except Exception:
+                pass
 
-    url_list = [u.strip() for u in (urls or "").splitlines() if u.strip()]
+    # Fail-closed validation: ensure at least one substantive artifact is provided
+    if not final_message.strip() and not url_list and not file_payloads:
+        raise HTTPException(
+            status_code=400,
+            detail="Please provide at least one piece of evidence (suspicious message text, target URL, or evidence file) to analyze.",
+        )
 
-    result = analyzer.analyze_submission(
-        message_text=message_text,
-        urls=url_list,
-        files=file_payloads,
-        enable_shadow_ai=enable_shadow_ai,
-        operator_username=operator_username,
-    )
-    return result
+    try:
+        result = analyzer.analyze_submission(
+            message_text=final_message.strip() if final_message else None,
+            urls=url_list if url_list else None,
+            files=file_payloads if file_payloads else None,
+            enable_shadow_ai=enable_shadow_ai,
+            training_consent_opt_in=training_consent,
+            operator_username=operator_username,
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unified evidence analysis failed during execution: {str(e)}",
+        )
 
 
 # =============================================================================
@@ -480,17 +522,29 @@ async def analyze_unified_endpoint(
 @app.post("/api/phishing/analyze")
 def analyze_message_endpoint(req: MessageAnalysisRequest) -> Dict[str, Any]:
     """Analyzes a suspicious text message (Marathi, Hindi, English) for phishing lures."""
+    msg = (req.message or "").strip()
+    if not msg:
+        raise HTTPException(
+            status_code=400,
+            detail="Suspicious communication text cannot be empty or whitespace only.",
+        )
     repo = get_repository()
     analyzer = UnifiedEvidenceAnalyzer(case_repository=repo)
-    res = analyzer.analyze_submission(
-        message_text=req.message,
-        enable_shadow_ai=req.enable_shadow_ai,
-        operator_username=req.operator_username,
-    )
-    if "overall_verdict" in res:
-        res["risk_score"] = res["overall_verdict"].get("score", 0)
-        res["risk_category"] = res["overall_verdict"].get("risk_category", "")
-    return res
+    try:
+        res = analyzer.analyze_submission(
+            message_text=msg,
+            enable_shadow_ai=req.enable_shadow_ai,
+            operator_username=req.operator_username,
+        )
+        if "overall_verdict" in res:
+            res["risk_score"] = res["overall_verdict"].get("score", 0)
+            res["risk_category"] = res["overall_verdict"].get("risk_category", "")
+        return res
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Message analysis failed during execution: {str(e)}",
+        )
 
 
 @app.get("/api/phishing/results/{case_id}")
@@ -506,17 +560,29 @@ def get_phishing_result_by_id(case_id: str) -> Dict[str, Any]:
 @app.post("/api/analyze/url")
 def analyze_url_endpoint(req: UrlAnalysisRequest) -> Dict[str, Any]:
     """Performs static URL threat radar analysis on a web domain or link."""
-    radar_res = analyze_url(req.url)
-    repo = get_repository()
-    analyzer = UnifiedEvidenceAnalyzer(case_repository=repo)
-    inv_res = analyzer.analyze_submission(urls=[req.url])
-    return {
-        "url": req.url,
-        "risk_score": radar_res.get("score", 0),
-        "risk_category": radar_res.get("risk_level", "Low Risk"),
-        "url_radar_details": radar_res,
-        "investigation_result": inv_res,
-    }
+    u = (req.url or "").strip()
+    if not u:
+        raise HTTPException(
+            status_code=400,
+            detail="Target URL cannot be empty or whitespace only.",
+        )
+    try:
+        radar_res = analyze_url(u)
+        repo = get_repository()
+        analyzer = UnifiedEvidenceAnalyzer(case_repository=repo)
+        inv_res = analyzer.analyze_submission(urls=[u])
+        return {
+            "url": u,
+            "risk_score": radar_res.get("score", 0),
+            "risk_category": radar_res.get("risk_level", "Low Risk"),
+            "url_radar_details": radar_res,
+            "investigation_result": inv_res,
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"URL analysis failed during execution: {str(e)}",
+        )
 
 
 @app.post("/api/analyze/apk")
@@ -859,9 +925,18 @@ def get_privacy_status_endpoint() -> Dict[str, Any]:
 @app.post("/api/privacy/sanitize")
 def sanitize_privacy_endpoint(req: SanitizeRequest) -> Dict[str, Any]:
     """Demonstrates fail-closed PII sanitization (Aadhaar & Phone redaction)."""
-    clean_text = sanitize_evidence_text(req.text)
-    redacted_aadhaar = "[AADHAAR_REDACTED]" in clean_text
-    redacted_phone = "[PHONE_REDACTED]" in clean_text
+    gate_res = sanitize_for_external(req.text)
+    clean_text = gate_res.sanitized_text
+    redacted_aadhaar = bool(
+        gate_res.redaction_counts.get("aadhaar_number", 0) > 0
+        or "[AADHAAR_REDACTED]" in clean_text
+        or "XXXX-XXXX-" in clean_text
+    )
+    redacted_phone = bool(
+        gate_res.redaction_counts.get("phone_number", 0) > 0
+        or "[PHONE_REDACTED]" in clean_text
+        or "+91-" in clean_text
+    )
 
     return {
         "original_length": len(req.text),
