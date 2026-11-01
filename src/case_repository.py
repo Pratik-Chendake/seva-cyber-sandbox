@@ -683,6 +683,10 @@ class CaseRepository:
             raise CaseRepositoryError(f"Database operation failed: {exc}") from exc
         except sqlite3.DatabaseError as exc:
             raise CaseRepositoryError(f"Database error at '{self.db_path}': {exc}") from exc
+        except Exception as exc:
+            if type(exc).__name__ in ("OperationalError", "DatabaseError", "ProgrammingError", "IntegrityError", "InterfaceError", "InternalError", "DataError", "NotSupportedError", "Error"):
+                raise CaseRepositoryError(f"Database operation failed: {exc}") from exc
+            raise
 
     def init_db(self) -> None:
         """

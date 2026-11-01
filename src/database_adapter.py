@@ -10,6 +10,7 @@ from contextlib import contextmanager
 import os
 import re
 import sqlite3
+import threading
 from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 
 try:
@@ -26,6 +27,11 @@ except ImportError:
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(BASE_DIR, ".env"))
+except ImportError:
+    pass
 DEFAULT_SQLITE_PATH = os.path.join(BASE_DIR, "instance", "seva_cases.sqlite3")
 
 
@@ -34,6 +40,22 @@ def is_postgres_url(target: Optional[str]) -> bool:
     if not target or not isinstance(target, str):
         return False
     return target.startswith("postgresql://") or target.startswith("postgres://")
+
+
+def sanitize_db_target(target: Optional[str]) -> str:
+    """Masks credentials in database target strings for safe logs and telemetry output."""
+    if not target or not isinstance(target, str):
+        return ""
+    if "://" in target:
+        try:
+            import urllib.parse
+            parsed = urllib.parse.urlparse(target)
+            if parsed.password:
+                netloc = parsed.netloc.replace(f":{parsed.password}@", ":****@")
+                return urllib.parse.urlunparse(parsed._replace(netloc=netloc))
+        except Exception:
+            return "postgresql://***:***@.../"
+    return target
 
 
 def get_active_database_target() -> str:
@@ -227,11 +249,52 @@ class PostgresConnectionWrapper:
             self.commit()
 
 
+_PG_POOL: Optional[Any] = None
+_PG_POOL_LOCK = threading.Lock()
+_PG_POOL_TARGET: Optional[str] = None
+
+
+def get_postgres_pool(target: str, minconn: int = 1, maxconn: int = 10):
+    """Returns a thread-safe connection pool for PostgreSQL."""
+    global _PG_POOL, _PG_POOL_TARGET
+    if _PG_POOL is None or _PG_POOL_TARGET != target:
+        with _PG_POOL_LOCK:
+            if _PG_POOL is None or _PG_POOL_TARGET != target:
+                if _PG_POOL is not None:
+                    try:
+                        _PG_POOL.closeall()
+                    except Exception:
+                        pass
+                if not PSYCOPG2_AVAILABLE:
+                    raise RuntimeError(
+                        "PostgreSQL target requested but neither 'psycopg2' nor 'psycopg' is installed. "
+                        "Install psycopg2-binary: pip install psycopg2-binary"
+                    )
+                from psycopg2.pool import ThreadedConnectionPool
+                _PG_POOL = ThreadedConnectionPool(minconn=minconn, maxconn=maxconn, dsn=target)
+                _PG_POOL_TARGET = target
+    return _PG_POOL
+
+
+def close_postgres_pool() -> None:
+    """Closes all connections in the PostgreSQL pool and resets pool state."""
+    global _PG_POOL, _PG_POOL_TARGET
+    with _PG_POOL_LOCK:
+        if _PG_POOL is not None:
+            try:
+                _PG_POOL.closeall()
+            except Exception:
+                pass
+            _PG_POOL = None
+            _PG_POOL_TARGET = None
+
+
 @contextmanager
 def get_db_connection(target: Optional[str] = None) -> Generator[Any, None, None]:
     """
     Context manager providing an active database connection.
-    Transparently selects between PostgreSQL and SQLite based on connection string.
+    Transparently selects between PostgreSQL (with thread-safe connection pooling)
+    and SQLite based on connection string.
     """
     db_target = target or get_active_database_target()
 
@@ -241,7 +304,15 @@ def get_db_connection(target: Optional[str] = None) -> Generator[Any, None, None
                 "PostgreSQL target requested but neither 'psycopg2' nor 'psycopg' is installed. "
                 "Install psycopg2-binary: pip install psycopg2-binary"
             )
-        raw_conn = psycopg2.connect(db_target)
+        pool = None
+        raw_conn = None
+        try:
+            pool = get_postgres_pool(db_target)
+            raw_conn = pool.getconn()
+        except Exception:
+            raw_conn = psycopg2.connect(db_target)
+            pool = None
+
         wrapper = PostgresConnectionWrapper(raw_conn)
         try:
             yield wrapper
@@ -250,7 +321,13 @@ def get_db_connection(target: Optional[str] = None) -> Generator[Any, None, None
             wrapper.rollback()
             raise
         finally:
-            wrapper.close()
+            if pool is not None and raw_conn is not None:
+                try:
+                    pool.putconn(raw_conn)
+                except Exception:
+                    wrapper.close()
+            else:
+                wrapper.close()
 
     else:
         # SQLite Connection

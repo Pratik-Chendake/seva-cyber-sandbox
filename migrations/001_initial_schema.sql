@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS threat_cases (
     official_sources_json TEXT NOT NULL DEFAULT '[]',
     metadata_json TEXT NOT NULL DEFAULT '{}',
     expires_at TIMESTAMPTZ NOT NULL,
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    is_deleted INTEGER NOT NULL DEFAULT 0,
     evidence_id TEXT
 );
 
@@ -58,10 +58,10 @@ CREATE TABLE IF NOT EXISTS campaign_clusters (
     description TEXT NOT NULL DEFAULT '',
     created_at_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_by TEXT NOT NULL DEFAULT 'system',
-    is_shared_infrastructure BOOLEAN NOT NULL DEFAULT FALSE,
+    is_shared_infrastructure INTEGER NOT NULL DEFAULT 0,
     infrastructure_notes TEXT NOT NULL DEFAULT '',
-    has_conflicting_classifications BOOLEAN NOT NULL DEFAULT FALSE,
-    quarantined_from_training BOOLEAN NOT NULL DEFAULT FALSE,
+    has_conflicting_classifications INTEGER NOT NULL DEFAULT 0,
+    quarantined_from_training INTEGER NOT NULL DEFAULT 0,
     metadata_json TEXT NOT NULL DEFAULT '{}'
 );
 
@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS evidence_provenance (
     corroborated_conclusion TEXT,
     corroboration_rationale TEXT NOT NULL DEFAULT '',
     campaign_id TEXT REFERENCES campaign_clusters(campaign_id) ON DELETE SET NULL,
-    consent_given BOOLEAN NOT NULL DEFAULT FALSE,
+    consent_given INTEGER NOT NULL DEFAULT 0,
     consent_timestamp_utc TIMESTAMPTZ,
     sanitization_status TEXT NOT NULL DEFAULT 'unverified',
     created_at_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS threat_indicators (
     confidence_score INTEGER NOT NULL DEFAULT 50,
     severity TEXT NOT NULL DEFAULT 'medium',
     review_state TEXT NOT NULL DEFAULT 'unreviewed',
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    is_active INTEGER NOT NULL DEFAULT 1,
     first_seen_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_seen_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMPTZ,
@@ -168,7 +168,7 @@ CREATE TABLE IF NOT EXISTS operator_accounts (
     last_login_utc TIMESTAMPTZ,
     failed_login_count INTEGER NOT NULL DEFAULT 0,
     locked_until_utc TIMESTAMPTZ,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE
+    is_active INTEGER NOT NULL DEFAULT 1
 );
 
 -- 9. Operator Active Sessions
@@ -179,7 +179,7 @@ CREATE TABLE IF NOT EXISTS operator_sessions (
     expires_at_utc TIMESTAMPTZ NOT NULL,
     client_ip TEXT NOT NULL DEFAULT '127.0.0.1',
     user_agent TEXT NOT NULL DEFAULT 'local_client',
-    is_revoked BOOLEAN NOT NULL DEFAULT FALSE
+    is_revoked INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_pg_sessions_user ON operator_sessions(username);
@@ -229,7 +229,7 @@ CREATE TABLE IF NOT EXISTS training_feature_records (
     feature_extractor_version TEXT NOT NULL,
     feature_vector_json TEXT NOT NULL DEFAULT '[]',
     feature_dim INTEGER NOT NULL,
-    consent_given BOOLEAN NOT NULL DEFAULT FALSE,
+    consent_given INTEGER NOT NULL DEFAULT 0,
     consent_timestamp_utc TIMESTAMPTZ NOT NULL,
     created_at_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     eligibility_state TEXT NOT NULL DEFAULT 'pending_review',
@@ -260,7 +260,7 @@ CREATE TABLE IF NOT EXISTS model_disagreement_events (
     message_length_bucket TEXT DEFAULT 'short (<100)',
     review_state TEXT NOT NULL DEFAULT 'pending',
     created_at_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    consent_given BOOLEAN NOT NULL DEFAULT FALSE,
+    consent_given INTEGER NOT NULL DEFAULT 0,
     feature_record_id TEXT,
     case_id TEXT,
     metadata_json TEXT NOT NULL DEFAULT '{}'
@@ -282,7 +282,7 @@ CREATE TABLE IF NOT EXISTS disagreement_reviews (
     notes TEXT NOT NULL DEFAULT '',
     created_at_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    is_superseded BOOLEAN NOT NULL DEFAULT FALSE,
+    is_superseded INTEGER NOT NULL DEFAULT 0,
     superseded_by TEXT,
     metadata_json TEXT NOT NULL DEFAULT '{}'
 );

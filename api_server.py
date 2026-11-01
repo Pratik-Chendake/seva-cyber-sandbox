@@ -36,6 +36,7 @@ except ImportError:
             sys.exit(_res.returncode)
     raise
 from collections import defaultdict
+from contextlib import asynccontextmanager
 from threading import Lock
 from typing import Any, Dict, List, Optional
 from datetime import datetime, timezone
@@ -49,6 +50,12 @@ from pydantic import BaseModel, Field, field_validator
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(BASE_DIR, ".env"))
+except ImportError:
+    pass
 
 from src.case_manager import SessionCaseStore
 from src.case_repository import CaseRepository, sanitize_evidence_text
@@ -67,9 +74,28 @@ from src.unified_analyzer import (
     correlate_investigation_evidence,
     detect_evidence_type,
 )
-from src.database_adapter import get_active_database_target, is_postgres_url
+from src.database_adapter import (
+    close_postgres_pool,
+    get_active_database_target,
+    is_postgres_url,
+)
 from src.rate_limiter import check_rate_limit
 from src.url_analyzer import analyze_url
+
+def sanitize_db_target(target: str) -> str:
+    """Masks credentials in database target strings for safe telemetry output."""
+    if not target or not isinstance(target, str):
+        return ""
+    if "://" in target:
+        try:
+            from urllib.parse import urlparse, urlunparse
+            parsed = urlparse(target)
+            if parsed.password:
+                netloc = parsed.netloc.replace(f":{parsed.password}@", ":****@")
+                return urlunparse(parsed._replace(netloc=netloc))
+        except Exception:
+            return "postgresql://***:***@.../"
+    return target
 
 def get_db_path() -> str:
     """Resolves the active database path or PostgreSQL connection URL."""
@@ -91,10 +117,50 @@ def get_auth_manager() -> OperatorAuthService:
     return OperatorAuthService(db_path=get_db_path())
 
 
+def verify_startup_database():
+    """
+    Validates database connectivity at startup.
+    If DATABASE_URL or SEVA_STRICT_DB_STARTUP or SEVA_ENV=production is set,
+    ensures the configured database is reachable and schema is initialized.
+    Fails fast if unreachable, preventing silent degraded operation.
+    """
+    db_target = get_db_path()
+    is_pg = is_postgres_url(db_target)
+    is_strict = os.environ.get("SEVA_STRICT_DB_STARTUP", "").lower() in ("true", "1")
+    is_prod = os.environ.get("SEVA_ENV", "").lower() in ("production", "prod")
+
+    if is_pg or is_strict or is_prod:
+        try:
+            repo = get_repository()
+            with repo.get_connection() as conn:
+                cur = conn.execute("SELECT 1")
+                cur.fetchone()
+        except Exception as e:
+            sanitized = sanitize_db_target(db_target)
+            raise RuntimeError(
+                f"Production database startup failure: Unable to establish connection to configured database "
+                f"('{sanitized}'). Refusing to start in unverified database state: {e}"
+            ) from e
+
+
+def cleanup_database_resources():
+    """Gracefully closes database connection pools on server shutdown."""
+    close_postgres_pool()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manages application startup checks and graceful shutdown resource disposal."""
+    verify_startup_database()
+    yield
+    cleanup_database_resources()
+
+
 app = FastAPI(
     title="Seva Cyber Sandbox API",
     description="Local Cybersecurity Detection & Threat Intelligence Platform API",
     version="7.2.0",
+    lifespan=lifespan,
 )
 
 # -----------------------------------------------------------------------------
@@ -401,7 +467,8 @@ def get_system_health() -> Dict[str, Any]:
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "database": {
             "connected": db_connected,
-            "path": get_db_path(),
+            "path": sanitize_db_target(get_db_path()),
+            "type": "postgresql" if is_postgres_url(get_db_path()) else "sqlite",
             "cases_count": cases_count,
             "indicators_count": indicators_count,
             "lifecycle_audit_records": audit_count,
