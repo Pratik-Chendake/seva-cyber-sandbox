@@ -18,6 +18,15 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SQLITE_DB_PATH = os.path.join(BASE_DIR, "instance", "seva_cases.sqlite3")
 MIGRATION_SQL_PATH = os.path.join(BASE_DIR, "migrations", "001_initial_schema.sql")
 
+# Safely load local .env without overriding environment-provided variables
+try:
+    from dotenv import load_dotenv
+    env_file = os.path.join(BASE_DIR, ".env")
+    if os.path.isfile(env_file):
+        load_dotenv(dotenv_path=env_file, override=False)
+except ImportError:
+    pass
+
 # Dependency order for safe foreign key resolution
 TABLE_MIGRATION_ORDER = [
     ("schema_version", "version"),

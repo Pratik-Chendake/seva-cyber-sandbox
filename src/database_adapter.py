@@ -27,11 +27,6 @@ except ImportError:
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-try:
-    from dotenv import load_dotenv
-    load_dotenv(os.path.join(BASE_DIR, ".env"))
-except ImportError:
-    pass
 DEFAULT_SQLITE_PATH = os.path.join(BASE_DIR, "instance", "seva_cases.sqlite3")
 
 
@@ -42,22 +37,6 @@ def is_postgres_url(target: Optional[str]) -> bool:
     return target.startswith("postgresql://") or target.startswith("postgres://")
 
 
-def sanitize_db_target(target: Optional[str]) -> str:
-    """Masks credentials in database target strings for safe logs and telemetry output."""
-    if not target or not isinstance(target, str):
-        return ""
-    if "://" in target:
-        try:
-            import urllib.parse
-            parsed = urllib.parse.urlparse(target)
-            if parsed.password:
-                netloc = parsed.netloc.replace(f":{parsed.password}@", ":****@")
-                return urllib.parse.urlunparse(parsed._replace(netloc=netloc))
-        except Exception:
-            return "postgresql://***:***@.../"
-    return target
-
-
 def get_active_database_target() -> str:
     """
     Resolves active database target:
@@ -65,9 +44,13 @@ def get_active_database_target() -> str:
     2. SEVA_CASE_DB_PATH / SEVA_DB_PATH (for SQLite custom path)
     3. Default instance/seva_cases.sqlite3
     """
+    pg_target = os.environ.get("DATABASE_URL") or os.environ.get("SEVA_DATABASE_URL")
+    if pg_target and ("<URL_ENCODED_PASSWORD>" in pg_target or "[YOUR-PASSWORD]" in pg_target):
+        # Placeholder password template detected: fall back to local SQLite until configured
+        pg_target = None
+
     return (
-        os.environ.get("DATABASE_URL")
-        or os.environ.get("SEVA_DATABASE_URL")
+        pg_target
         or os.environ.get("SEVA_CASE_DB_PATH")
         or os.environ.get("SEVA_DB_PATH")
         or DEFAULT_SQLITE_PATH

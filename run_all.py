@@ -16,6 +16,15 @@ import time
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Safely load local .env without overriding environment-provided variables
+try:
+    from dotenv import load_dotenv
+    env_file = os.path.join(BASE_DIR, ".env")
+    if os.path.isfile(env_file):
+        load_dotenv(dotenv_path=env_file, override=False)
+except ImportError:
+    pass
+
 
 def get_python_executable() -> str:
     """

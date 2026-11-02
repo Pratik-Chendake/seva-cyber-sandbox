@@ -51,9 +51,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
+# Safely load local .env without overriding environment-provided variables (e.g. Render/production)
 try:
     from dotenv import load_dotenv
-    load_dotenv(os.path.join(BASE_DIR, ".env"))
+    env_file = os.path.join(BASE_DIR, ".env")
+    if os.path.isfile(env_file):
+        load_dotenv(dotenv_path=env_file, override=False)
 except ImportError:
     pass
 
@@ -303,7 +306,7 @@ def setup_admin_endpoint(req: SetupAdminRequest, request: Request) -> Dict[str, 
                 detail="Initial administrator setup is permanently locked. Operator accounts already exist.",
             )
 
-        env_token = os.environ.get("SEVA_INITIAL_ADMIN_TOKEN")
+        env_token = os.environ.get("SEVA_INITIAL_ADMIN_TOKEN") or os.environ.get("SEVA_FIRST_ADMIN_TOKEN")
         client_ip = request.client.host if request.client else "127.0.0.1"
         is_local = client_ip in ("127.0.0.1", "localhost", "testclient")
 

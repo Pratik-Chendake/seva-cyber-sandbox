@@ -10,9 +10,14 @@ __pycache__/
 .pytest_cache/
 
 # Local environment variables
+.env
+.env.*
 .env.local
 .env.*.local
-.env
+frontend/.env
+frontend/.env.*
+!.env.example
+!frontend/.env.example
 
 # OS artifacts
 .DS_Store
